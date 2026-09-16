@@ -1,14 +1,24 @@
+import torch
+
+# Bypass MIOpen runtime kernel compilation on AMD Windows
+torch.backends.cudnn.enabled = False
+
 from ultralytics import YOLO
 
-# 1. Load a pre-trained YOLO pose model to start from
-model = YOLO("yolo26n-pose.pt")  
+def main():
+    # Ensure it is disabled in the main worker thread
+    torch.backends.cudnn.enabled = False
 
-# 2. Train the model on the Stanford Dog Pose dataset
-# Ultralytics will automatically download the dataset when you specify 'dog-pose.yaml'
-results = model.train(
-    data="dog-pose/dog-pose.yaml", 
-    epochs=100,            # Adjust based on your time/compute
-    imgsz=640,             # Image size
-    batch=16,              # Adjust based on your GPU VRAM
-    device='cpu'               # Use device='cpu' if you don't have a GPU
-)
+    # Load model
+    model = YOLO("yolo26n-pose.pt")
+
+    # Train model on your AMD GPU
+    results = model.train(
+        data="dog-pose.yaml",
+        epochs=20,
+        imgsz=640,
+        device=0
+    )
+
+if __name__ == '__main__':
+    main()

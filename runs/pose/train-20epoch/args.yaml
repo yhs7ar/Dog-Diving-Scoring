@@ -1,8 +1,8 @@
 task: pose
 mode: train
 model: yolo26n-pose.pt
-data: dog-pose/dog-pose.yaml
-epochs: 100
+data: dog-pose.yaml
+epochs: 20
 time: null
 patience: 100
 batch: 16
@@ -10,10 +10,10 @@ imgsz: 640
 save: true
 save_period: -1
 cache: false
-device: cpu
+device: '0'
 workers: 8
 project: null
-name: train-2
+name: train-6
 exist_ok: false
 pretrained: true
 cls_remap: true
@@ -112,4 +112,4 @@ auto_augment: randaugment
 erasing: 0.4
 cfg: null
 tracker: tracktrack.yaml
-save_dir: C:\Users\farme\Documents\Captstone Work\runs\pose\train-2
+save_dir: I:\Capstone\Dog-Diving-Scoring\runs\pose\train-6
