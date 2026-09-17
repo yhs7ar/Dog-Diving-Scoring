@@ -17,7 +17,7 @@ def main():
         data="dog-pose.yaml",
         epochs=20,
         imgsz=640,
-        device=0
+        device="0"
     )
 
 if __name__ == '__main__':
