@@ -15,9 +15,13 @@ def main():
     # Train model on your AMD GPU
     results = model.train(
         data="dog-pose.yaml",
-        epochs=20,
-        imgsz=640,
-        device="0"
+        epochs=50,
+        imgsz=1280,
+        device="0",
+        
+        project=r"I:\Capstone\Dog-Diving-Scoring\trained_models",
+        name="dog_pose_720p_50epochs",
+        exist_ok=True
     )
 
 if __name__ == '__main__':
