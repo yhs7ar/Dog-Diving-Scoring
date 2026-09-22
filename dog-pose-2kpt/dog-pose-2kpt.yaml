@@ -1,0 +1,9 @@
+path: I:/Capstone/Dog-Diving-Scoring/dog-pose-2kpt
+train: images/train
+val: images/val
+
+# Keypoints: [Nose, Tailset]
+kpt_shape: [2, 3]  # 2 keypoints, 3 values each (x, y, visibility)
+
+names:
+  0: dog
