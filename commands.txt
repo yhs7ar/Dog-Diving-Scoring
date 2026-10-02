@@ -1,0 +1,2 @@
+Command to run prediction of fine tuned model on AMD pc:
+    yolo predict model="trained_models\dog_pose_s_2kpt_50epochs_720p_finetune\weights\best.pt" source="I:\Capstone\Dog-Diving-Scoring\Initial Dog diving videos" imgsz=1920 conf=0.15 max_det=1 save=True device=0 project="I:\Capstone\Dog-Diving-Scoring\output_videos" name="finetuned_2kpt_results" exist_ok=True
