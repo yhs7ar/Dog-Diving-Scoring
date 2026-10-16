@@ -1,0 +1,8 @@
+path: I:/Capstone/Dog-Diving-Scoring/dog-pose-2kpt-clahe
+train: images/train
+val: images/val
+
+kpt_shape: [2, 3]
+
+names:
+  0: dog
