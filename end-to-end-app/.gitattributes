@@ -1,0 +1,4 @@
+# The vendored detector is pinned by sha256 (src/third_party/waterline/SHA256SUMS) and that hash is
+# recorded in every calibration document it seeds. Any end-of-line conversion would change those bytes
+# on checkout and silently invalidate the pin, so this path is stored and checked out verbatim.
+src/third_party/waterline/** -text

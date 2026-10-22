@@ -1,0 +1,35 @@
+Dog Diving jump-distance result
+==============================
+clip         video004_right-00.00.36.812-00.00.38.328-seg01  (sha256 83eca603e1d9ca42...)  video004_right-00.00.36.812-00.00.38.328-seg01.mp4
+video        960x600 @ 60.0 fps, mpeg4, 92 frames
+model        sha256 45252fc7ce305c33...
+config       imgsz=1280 conf=0.12 kp_conf=0.3 clahe=True
+
+calibration  NONE — data/calib/ is empty (PLAN §12 item 4): the pixel-domain
+             fields below are real, the inches are not computable
+
+detection    92 frames processed, 0 detections, 0 accepted
+ladder       off: fixed thresholds (min_points=0)
+trajectory   0 accepted points, 0 run(s), flight run None None, 0 inliers, arc RMS None px
+contact      chosen frame None from 'last_accepted'; arc_is_freefall=False
+             #1 last_accepted         n/a  avail=False conf=False
+             #2 arc_waterline         n/a  avail=False conf=False
+             #3 conf_collapse         n/a  avail=False conf=False
+             #4 velocity_reversal     n/a  avail=False conf=False
+
+measurement  x=None y=None point_source=model (detection)
+distance     n/a — no calibration was supplied: px->in needs PLAN §4.2's marks and PLAN §5 #2 needs the waterline row, so the inches fields are null and the pixel-domain fields are the real output (data/calib/ is empty as of 2026-10-08 — HANDOFF open item 10)
+
+warnings     2
+  - no measurement point — there is nothing to convert (the chosen frame has no accepted detection; an arc prediction is no longer substituted for one)
+  - no contact frame is chosen (PLAN §5 D4: the operator confirms or nudges the auto-suggestion before a distance is reported)
+
+artifacts
+  annotated    annotated.mp4
+  calib_used   calib_used.json
+  meta         run_meta.json
+  report       report.txt
+  result       result.json
+  still        final_frame.png
+  tracks       tracks.json
+  trajectory   trajectory.json

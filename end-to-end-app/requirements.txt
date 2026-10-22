@@ -1,0 +1,8 @@
+# Runtime dependencies for the Dog Diving scorer app.
+# Versions are the ones this tree was last verified against (Python 3.11, Windows).
+ultralytics>=8.4
+opencv-python>=4.8
+numpy>=1.24
+
+# tkinter is part of the CPython standard library on Windows (python.org builds).
+# The vendored waterline detector (src/third_party/waterline) needs only opencv + numpy.

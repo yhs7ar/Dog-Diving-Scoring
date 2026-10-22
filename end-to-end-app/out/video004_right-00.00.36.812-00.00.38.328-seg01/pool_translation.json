@@ -1,0 +1,1742 @@
+{
+  "calibration": {
+    "created": "2026-10-21T20:25:54+00:00",
+    "route": "A_correspondences",
+    "setup_id": "plane_video004_right-00.00.36.812-00.00.38.328-seg01"
+  },
+  "clip_id": "video004_right-00.00.36.812-00.00.38.328-seg01",
+  "cross_check": {
+    "compared": false,
+    "reason": "no 1-D calibration supplied, so there is no second route to compare against"
+  },
+  "entry": {
+    "X_ft": 8.087888947856953,
+    "Y_ft": 4.506980136553872,
+    "Z_ft": -0.0,
+    "distance_ft": 8.087888947856953,
+    "distance_in": 97.05466737428344,
+    "flags": {
+      "negative_distance": false,
+      "outside_extent": false
+    },
+    "frame": null,
+    "height_assumed_ft": 0.0,
+    "homography_agreement_ft": 5.005076334018155,
+    "notes": [
+      "the homography route and the ray/plane route disagree by 5.005e+00 ft (6.006e+01 in); the answer came from the homography. They are the same map, so a disagreement means the pose is not self-consistent \u2014 with an assumed lens it is not, and on the synthetic scene that costs the ray/plane route several inches while the homography barely moves."
+    ],
+    "point_origin": "click",
+    "point_source": "manual",
+    "ray_depth_ft": 23.885149072307193,
+    "route": "homography",
+    "transverse_ft": 4.506980136553872,
+    "transverse_in": 54.083761638646465,
+    "water_z_ft": -0.0,
+    "x_px": 536.325439453125,
+    "y_px": 315.626953125
+  },
+  "flags": {},
+  "n_track_points": 63,
+  "notes": [
+    "this calibration's plane IS the water surface (PLAN \u00a715), so the map is the plane homography: the answer does not depend on the assumed focal length, only on the corners. The pose route is recorded as a cross-check (homography_agreement_ft).",
+    "the measurement point is a manual GUI click, tagged 'manual'",
+    "the entry was taken with height 0 ft, which is the plan's literal Phase 6 step and is only valid if the tail-set really is at the water surface on the chosen frame. Pass height_ft to price the residual parallax."
+  ],
+  "per_frame": [
+    {
+      "X_ft": -5.956382065086954,
+      "Y_ft": 0.2855507327979172,
+      "Z_ft": -0.0,
+      "distance_ft": -5.956382065086954,
+      "distance_in": -71.47658478104344,
+      "flags": {
+        "negative_distance": true,
+        "outside_extent": true
+      },
+      "frame": 0,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": 3.223705365916028,
+      "kp_conf": 0.9964554309844971,
+      "notes": [
+        "the homography route and the ray/plane route disagree by 3.224e+00 ft (3.868e+01 in); the answer came from the homography. They are the same map, so a disagreement means the pose is not self-consistent \u2014 with an assumed lens it is not, and on the synthetic scene that costs the ray/plane route several inches while the homography barely moves.",
+        "the entry (X, Y)=(-5.96, 0.29) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame",
+        "the entry is 71.5 in on the DOCK side of the dock edge, so the distance is negative \u2014 the datum or the point is wrong (a measured distance from the lip must come out positive)"
+      ],
+      "ray_depth_ft": 31.589238638374372,
+      "route": "homography",
+      "transverse_ft": 0.2855507327979172,
+      "transverse_in": 3.4266087935750065,
+      "water_z_ft": -0.0,
+      "x_px": 721.8509521484375,
+      "y_px": 305.92523193359375
+    },
+    {
+      "X_ft": -5.5921800847366745,
+      "Y_ft": 0.564385386217186,
+      "Z_ft": -0.0,
+      "distance_ft": -5.5921800847366745,
+      "distance_in": -67.10616101684009,
+      "flags": {
+        "negative_distance": true,
+        "outside_extent": true
+      },
+      "frame": 1,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": 3.0384733050680364,
+      "kp_conf": 0.9959122538566589,
+      "notes": [
+        "the homography route and the ray/plane route disagree by 3.038e+00 ft (3.646e+01 in); the answer came from the homography. They are the same map, so a disagreement means the pose is not self-consistent \u2014 with an assumed lens it is not, and on the synthetic scene that costs the ray/plane route several inches while the homography barely moves.",
+        "the entry (X, Y)=(-5.59, 0.56) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame",
+        "the entry is 67.1 in on the DOCK side of the dock edge, so the distance is negative \u2014 the datum or the point is wrong (a measured distance from the lip must come out positive)"
+      ],
+      "ray_depth_ft": 31.127026630711455,
+      "route": "homography",
+      "transverse_ft": 0.564385386217186,
+      "transverse_in": 6.772624634606233,
+      "water_z_ft": -0.0,
+      "x_px": 720.306884765625,
+      "y_px": 306.4179382324219
+    },
+    {
+      "X_ft": -5.8836194473566685,
+      "Y_ft": 0.06174330665907771,
+      "Z_ft": -0.0,
+      "distance_ft": -5.8836194473566685,
+      "distance_in": -70.60343336828002,
+      "flags": {
+        "negative_distance": true,
+        "outside_extent": true
+      },
+      "frame": 2,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": 3.1808481200706247,
+      "kp_conf": 0.9957646131515503,
+      "notes": [
+        "the homography route and the ray/plane route disagree by 3.181e+00 ft (3.817e+01 in); the answer came from the homography. They are the same map, so a disagreement means the pose is not self-consistent \u2014 with an assumed lens it is not, and on the synthetic scene that costs the ray/plane route several inches while the homography barely moves.",
+        "the entry (X, Y)=(-5.88, 0.06) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame",
+        "the entry is 70.6 in on the DOCK side of the dock edge, so the distance is negative \u2014 the datum or the point is wrong (a measured distance from the lip must come out positive)"
+      ],
+      "ray_depth_ft": 31.91220377590493,
+      "route": "homography",
+      "transverse_ft": 0.06174330665907771,
+      "transverse_in": 0.7409196799089325,
+      "water_z_ft": -0.0,
+      "x_px": 717.9223022460938,
+      "y_px": 305.5481262207031
+    },
+    {
+      "X_ft": -5.823648152025587,
+      "Y_ft": 0.3818157619878625,
+      "Z_ft": -0.0,
+      "distance_ft": -5.823648152025587,
+      "distance_in": -69.88377782430705,
+      "flags": {
+        "negative_distance": true,
+        "outside_extent": true
+      },
+      "frame": 3,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": 3.1550096116005824,
+      "kp_conf": 0.9960611462593079,
+      "notes": [
+        "the homography route and the ray/plane route disagree by 3.155e+00 ft (3.786e+01 in); the answer came from the homography. They are the same map, so a disagreement means the pose is not self-consistent \u2014 with an assumed lens it is not, and on the synthetic scene that costs the ray/plane route several inches while the homography barely moves.",
+        "the entry (X, Y)=(-5.82, 0.38) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame",
+        "the entry is 69.9 in on the DOCK side of the dock edge, so the distance is negative \u2014 the datum or the point is wrong (a measured distance from the lip must come out positive)"
+      ],
+      "ray_depth_ft": 31.428731432801072,
+      "route": "homography",
+      "transverse_ft": 0.3818157619878625,
+      "transverse_in": 4.581789143854349,
+      "water_z_ft": -0.0,
+      "x_px": 721.2228393554688,
+      "y_px": 306.0939025878906
+    },
+    {
+      "X_ft": -5.958285112206839,
+      "Y_ft": 0.2911029923443704,
+      "Z_ft": -0.0,
+      "distance_ft": -5.958285112206839,
+      "distance_in": -71.49942134648208,
+      "flags": {
+        "negative_distance": true,
+        "outside_extent": true
+      },
+      "frame": 4,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": 3.2248779974886976,
+      "kp_conf": 0.9963043928146362,
+      "notes": [
+        "the homography route and the ray/plane route disagree by 3.225e+00 ft (3.870e+01 in); the answer came from the homography. They are the same map, so a disagreement means the pose is not self-consistent \u2014 with an assumed lens it is not, and on the synthetic scene that costs the ray/plane route several inches while the homography barely moves.",
+        "the entry (X, Y)=(-5.96, 0.29) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame",
+        "the entry is 71.5 in on the DOCK side of the dock edge, so the distance is negative \u2014 the datum or the point is wrong (a measured distance from the lip must come out positive)"
+      ],
+      "ray_depth_ft": 31.58124548969041,
+      "route": "homography",
+      "transverse_ft": 0.2911029923443704,
+      "transverse_in": 3.493235908132445,
+      "water_z_ft": -0.0,
+      "x_px": 721.950927734375,
+      "y_px": 305.9346923828125
+    },
+    {
+      "X_ft": -5.681293348471877,
+      "Y_ft": 0.7216396279628526,
+      "Z_ft": -0.0,
+      "distance_ft": -5.681293348471877,
+      "distance_in": -68.17552018166253,
+      "flags": {
+        "negative_distance": true,
+        "outside_extent": true
+      },
+      "frame": 5,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": 3.0959641954488233,
+      "kp_conf": 0.9964572787284851,
+      "notes": [
+        "the homography route and the ray/plane route disagree by 3.096e+00 ft (3.715e+01 in); the answer came from the homography. They are the same map, so a disagreement means the pose is not self-consistent \u2014 with an assumed lens it is not, and on the synthetic scene that costs the ray/plane route several inches while the homography barely moves.",
+        "the entry (X, Y)=(-5.68, 0.72) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame",
+        "the entry is 68.2 in on the DOCK side of the dock edge, so the distance is negative \u2014 the datum or the point is wrong (a measured distance from the lip must come out positive)"
+      ],
+      "ray_depth_ft": 30.905315074440807,
+      "route": "homography",
+      "transverse_ft": 0.7216396279628526,
+      "transverse_in": 8.659675535554232,
+      "water_z_ft": -0.0,
+      "x_px": 723.7015991210938,
+      "y_px": 306.6949768066406
+    },
+    {
+      "X_ft": -5.594171172871867,
+      "Y_ft": 0.8257251342265248,
+      "Z_ft": -0.0,
+      "distance_ft": -5.594171172871867,
+      "distance_in": -67.13005407446241,
+      "flags": {
+        "negative_distance": true,
+        "outside_extent": true
+      },
+      "frame": 6,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": 3.0569524647352337,
+      "kp_conf": 0.9964777827262878,
+      "notes": [
+        "the homography route and the ray/plane route disagree by 3.057e+00 ft (3.668e+01 in); the answer came from the homography. They are the same map, so a disagreement means the pose is not self-consistent \u2014 with an assumed lens it is not, and on the synthetic scene that costs the ray/plane route several inches while the homography barely moves.",
+        "the entry (X, Y)=(-5.59, 0.83) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame",
+        "the entry is 67.1 in on the DOCK side of the dock edge, so the distance is negative \u2014 the datum or the point is wrong (a measured distance from the lip must come out positive)"
+      ],
+      "ray_depth_ft": 30.739235206190365,
+      "route": "homography",
+      "transverse_ft": 0.8257251342265248,
+      "transverse_in": 9.908701610718298,
+      "water_z_ft": -0.0,
+      "x_px": 723.841796875,
+      "y_px": 306.8843994140625
+    },
+    {
+      "X_ft": -5.6106593514385,
+      "Y_ft": 0.559315999161034,
+      "Z_ft": -0.0,
+      "distance_ft": -5.6106593514385,
+      "distance_in": -67.327912217262,
+      "flags": {
+        "negative_distance": true,
+        "outside_extent": true
+      },
+      "frame": 7,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": 3.048139890835389,
+      "kp_conf": 0.9959664344787598,
+      "notes": [
+        "the homography route and the ray/plane route disagree by 3.048e+00 ft (3.658e+01 in); the answer came from the homography. They are the same map, so a disagreement means the pose is not self-consistent \u2014 with an assumed lens it is not, and on the synthetic scene that costs the ray/plane route several inches while the homography barely moves.",
+        "the entry (X, Y)=(-5.61, 0.56) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame",
+        "the entry is 67.3 in on the DOCK side of the dock edge, so the distance is negative \u2014 the datum or the point is wrong (a measured distance from the lip must come out positive)"
+      ],
+      "ray_depth_ft": 31.13699068076761,
+      "route": "homography",
+      "transverse_ft": 0.559315999161034,
+      "transverse_in": 6.711791989932408,
+      "water_z_ft": -0.0,
+      "x_px": 720.5064697265625,
+      "y_px": 306.4085693359375
+    },
+    {
+      "X_ft": -5.860258487585486,
+      "Y_ft": 0.3514729011877329,
+      "Z_ft": -0.0,
+      "distance_ft": -5.860258487585486,
+      "distance_in": -70.32310185102583,
+      "flags": {
+        "negative_distance": true,
+        "outside_extent": true
+      },
+      "frame": 8,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": 3.173735079243656,
+      "kp_conf": 0.9961095452308655,
+      "notes": [
+        "the homography route and the ray/plane route disagree by 3.174e+00 ft (3.808e+01 in); the answer came from the homography. They are the same map, so a disagreement means the pose is not self-consistent \u2014 with an assumed lens it is not, and on the synthetic scene that costs the ray/plane route several inches while the homography barely moves.",
+        "the entry (X, Y)=(-5.86, 0.35) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame",
+        "the entry is 70.3 in on the DOCK side of the dock edge, so the distance is negative \u2014 the datum or the point is wrong (a measured distance from the lip must come out positive)"
+      ],
+      "ray_depth_ft": 31.47863157161253,
+      "route": "homography",
+      "transverse_ft": 0.3514729011877329,
+      "transverse_in": 4.217674814252795,
+      "water_z_ft": -0.0,
+      "x_px": 721.3468627929688,
+      "y_px": 306.0406799316406
+    },
+    {
+      "X_ft": -5.759808340242752,
+      "Y_ft": 0.49878778746520513,
+      "Z_ft": -0.0,
+      "distance_ft": -5.759808340242752,
+      "distance_in": -69.11770008291302,
+      "flags": {
+        "negative_distance": true,
+        "outside_extent": true
+      },
+      "frame": 9,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": 3.125390476544626,
+      "kp_conf": 0.9962634444236755,
+      "notes": [
+        "the homography route and the ray/plane route disagree by 3.125e+00 ft (3.750e+01 in); the answer came from the homography. They are the same map, so a disagreement means the pose is not self-consistent \u2014 with an assumed lens it is not, and on the synthetic scene that costs the ray/plane route several inches while the homography barely moves.",
+        "the entry (X, Y)=(-5.76, 0.50) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame",
+        "the entry is 69.1 in on the DOCK side of the dock edge, so the distance is negative \u2014 the datum or the point is wrong (a measured distance from the lip must come out positive)"
+      ],
+      "ray_depth_ft": 31.246578506480713,
+      "route": "homography",
+      "transverse_ft": 0.49878778746520513,
+      "transverse_in": 5.985453449582462,
+      "water_z_ft": -0.0,
+      "x_px": 721.8529052734375,
+      "y_px": 306.2987976074219
+    },
+    {
+      "X_ft": -5.794846242120954,
+      "Y_ft": 0.18983201216714024,
+      "Z_ft": -0.0,
+      "distance_ft": -5.794846242120954,
+      "distance_in": -69.53815490545145,
+      "flags": {
+        "negative_distance": true,
+        "outside_extent": true
+      },
+      "frame": 10,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": 3.134362427969316,
+      "kp_conf": 0.9956372380256653,
+      "notes": [
+        "the homography route and the ray/plane route disagree by 3.134e+00 ft (3.761e+01 in); the answer came from the homography. They are the same map, so a disagreement means the pose is not self-consistent \u2014 with an assumed lens it is not, and on the synthetic scene that costs the ray/plane route several inches while the homography barely moves.",
+        "the entry (X, Y)=(-5.79, 0.19) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame",
+        "the entry is 69.5 in on the DOCK side of the dock edge, so the distance is negative \u2014 the datum or the point is wrong (a measured distance from the lip must come out positive)"
+      ],
+      "ray_depth_ft": 31.710200320436865,
+      "route": "homography",
+      "transverse_ft": 0.18983201216714024,
+      "transverse_in": 2.277984146005683,
+      "water_z_ft": -0.0,
+      "x_px": 718.3130493164062,
+      "y_px": 305.76593017578125
+    },
+    {
+      "X_ft": -5.751575445131764,
+      "Y_ft": 0.264951317709925,
+      "Z_ft": -0.0,
+      "distance_ft": -5.751575445131764,
+      "distance_in": -69.01890534158117,
+      "flags": {
+        "negative_distance": true,
+        "outside_extent": true
+      },
+      "frame": 11,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": 3.1125866483488536,
+      "kp_conf": 0.9956515431404114,
+      "notes": [
+        "the homography route and the ray/plane route disagree by 3.113e+00 ft (3.735e+01 in); the answer came from the homography. They are the same map, so a disagreement means the pose is not self-consistent \u2014 with an assumed lens it is not, and on the synthetic scene that costs the ray/plane route several inches while the homography barely moves.",
+        "the entry (X, Y)=(-5.75, 0.26) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame",
+        "the entry is 69.0 in on the DOCK side of the dock edge, so the distance is negative \u2014 the datum or the point is wrong (a measured distance from the lip must come out positive)"
+      ],
+      "ray_depth_ft": 31.592886438459704,
+      "route": "homography",
+      "transverse_ft": 0.264951317709925,
+      "transverse_in": 3.1794158125191005,
+      "water_z_ft": -0.0,
+      "x_px": 718.6695556640625,
+      "y_px": 305.894775390625
+    },
+    {
+      "X_ft": -5.528171005308133,
+      "Y_ft": 0.6640470727441089,
+      "Z_ft": -0.0,
+      "distance_ft": -5.528171005308133,
+      "distance_in": -66.3380520636976,
+      "flags": {
+        "negative_distance": true,
+        "outside_extent": true
+      },
+      "frame": 12,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": 3.0099939054678173,
+      "kp_conf": 0.9960408210754395,
+      "notes": [
+        "the homography route and the ray/plane route disagree by 3.010e+00 ft (3.612e+01 in); the answer came from the homography. They are the same map, so a disagreement means the pose is not self-consistent \u2014 with an assumed lens it is not, and on the synthetic scene that costs the ray/plane route several inches while the homography barely moves.",
+        "the entry (X, Y)=(-5.53, 0.66) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame",
+        "the entry is 66.3 in on the DOCK side of the dock edge, so the distance is negative \u2014 the datum or the point is wrong (a measured distance from the lip must come out positive)"
+      ],
+      "ray_depth_ft": 30.970548433558783,
+      "route": "homography",
+      "transverse_ft": 0.6640470727441089,
+      "transverse_in": 7.968564872929306,
+      "water_z_ft": -0.0,
+      "x_px": 720.7041015625,
+      "y_px": 306.5959167480469
+    },
+    {
+      "X_ft": -5.471487840947888,
+      "Y_ft": 0.5932086668029093,
+      "Z_ft": -0.0,
+      "distance_ft": -5.471487840947888,
+      "distance_in": -65.65785409137466,
+      "flags": {
+        "negative_distance": true,
+        "outside_extent": true
+      },
+      "frame": 13,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": 2.9752026973830463,
+      "kp_conf": 0.9957584738731384,
+      "notes": [
+        "the homography route and the ray/plane route disagree by 2.975e+00 ft (3.570e+01 in); the answer came from the homography. They are the same map, so a disagreement means the pose is not self-consistent \u2014 with an assumed lens it is not, and on the synthetic scene that costs the ray/plane route several inches while the homography barely moves.",
+        "the entry (X, Y)=(-5.47, 0.59) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame",
+        "the entry is 65.7 in on the DOCK side of the dock edge, so the distance is negative \u2014 the datum or the point is wrong (a measured distance from the lip must come out positive)"
+      ],
+      "ray_depth_ft": 31.06834808358144,
+      "route": "homography",
+      "transverse_ft": 0.5932086668029093,
+      "transverse_in": 7.1185040016349115,
+      "water_z_ft": -0.0,
+      "x_px": 718.9441528320312,
+      "y_px": 306.4716796875
+    },
+    {
+      "X_ft": -5.523417632884595,
+      "Y_ft": 0.5525451726608206,
+      "Z_ft": -0.0,
+      "distance_ft": -5.523417632884595,
+      "distance_in": -66.28101159461514,
+      "flags": {
+        "negative_distance": true,
+        "outside_extent": true
+      },
+      "frame": 14,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": 3.000846936549959,
+      "kp_conf": 0.9958129525184631,
+      "notes": [
+        "the homography route and the ray/plane route disagree by 3.001e+00 ft (3.601e+01 in); the answer came from the homography. They are the same map, so a disagreement means the pose is not self-consistent \u2014 with an assumed lens it is not, and on the synthetic scene that costs the ray/plane route several inches while the homography barely moves.",
+        "the entry (X, Y)=(-5.52, 0.55) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame",
+        "the entry is 66.3 in on the DOCK side of the dock edge, so the distance is negative \u2014 the datum or the point is wrong (a measured distance from the lip must come out positive)"
+      ],
+      "ray_depth_ft": 31.135584561464945,
+      "route": "homography",
+      "transverse_ft": 0.5525451726608206,
+      "transverse_in": 6.630542071929847,
+      "water_z_ft": -0.0,
+      "x_px": 719.1582641601562,
+      "y_px": 306.39874267578125
+    },
+    {
+      "X_ft": -5.306250942880753,
+      "Y_ft": 0.660582199305578,
+      "Z_ft": -0.0,
+      "distance_ft": -5.306250942880753,
+      "distance_in": -63.67501131456904,
+      "flags": {
+        "negative_distance": true,
+        "outside_extent": true
+      },
+      "frame": 15,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": 2.8906837563653,
+      "kp_conf": 0.9955083131790161,
+      "notes": [
+        "the homography route and the ray/plane route disagree by 2.891e+00 ft (3.469e+01 in); the answer came from the homography. They are the same map, so a disagreement means the pose is not self-consistent \u2014 with an assumed lens it is not, and on the synthetic scene that costs the ray/plane route several inches while the homography barely moves.",
+        "the entry (X, Y)=(-5.31, 0.66) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame",
+        "the entry is 63.7 in on the DOCK side of the dock edge, so the distance is negative \u2014 the datum or the point is wrong (a measured distance from the lip must come out positive)"
+      ],
+      "ray_depth_ft": 30.946603972521483,
+      "route": "homography",
+      "transverse_ft": 0.660582199305578,
+      "transverse_in": 7.9269863916669365,
+      "water_z_ft": -0.0,
+      "x_px": 717.4382934570312,
+      "y_px": 306.5951232910156
+    },
+    {
+      "X_ft": 47.257700019196704,
+      "Y_ft": 46.05121529472778,
+      "Z_ft": -0.0,
+      "distance_ft": 47.257700019196704,
+      "distance_in": 567.0924002303605,
+      "flags": {
+        "negative_distance": false,
+        "outside_extent": true
+      },
+      "frame": 22,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": null,
+      "kp_conf": 0.9995860457420349,
+      "notes": [
+        "the pose route failed (behind) so the plane homography answered; that is sound only because this calibration's plane *is* the water surface",
+        "the entry (X, Y)=(47.26, 46.05) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame"
+      ],
+      "ray_depth_ft": null,
+      "route": "homography",
+      "transverse_ft": 46.05121529472778,
+      "transverse_in": 552.6145835367333,
+      "water_z_ft": -0.0,
+      "x_px": 838.93505859375,
+      "y_px": 246.3783416748047
+    },
+    {
+      "X_ft": 45.16481497775036,
+      "Y_ft": 43.95679561109981,
+      "Z_ft": -0.0,
+      "distance_ft": 45.16481497775036,
+      "distance_in": 541.9777797330044,
+      "flags": {
+        "negative_distance": false,
+        "outside_extent": true
+      },
+      "frame": 23,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": null,
+      "kp_conf": 0.999072790145874,
+      "notes": [
+        "the pose route failed (behind) so the plane homography answered; that is sound only because this calibration's plane *is* the water surface",
+        "the entry (X, Y)=(45.16, 43.96) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame"
+      ],
+      "ray_depth_ft": null,
+      "route": "homography",
+      "transverse_ft": 43.95679561109981,
+      "transverse_in": 527.4815473331977,
+      "water_z_ft": -0.0,
+      "x_px": 847.2337646484375,
+      "y_px": 244.16647338867188
+    },
+    {
+      "X_ft": 35.441790535414924,
+      "Y_ft": 37.3607311639743,
+      "Z_ft": -0.0,
+      "distance_ft": 35.441790535414924,
+      "distance_in": 425.3014864249791,
+      "flags": {
+        "negative_distance": false,
+        "outside_extent": true
+      },
+      "frame": 24,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": null,
+      "kp_conf": 0.9990243911743164,
+      "notes": [
+        "the pose route failed (behind) so the plane homography answered; that is sound only because this calibration's plane *is* the water surface",
+        "the entry (X, Y)=(35.44, 37.36) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame"
+      ],
+      "ray_depth_ft": null,
+      "route": "homography",
+      "transverse_ft": 37.3607311639743,
+      "transverse_in": 448.32877396769163,
+      "water_z_ft": -0.0,
+      "x_px": 836.7180786132812,
+      "y_px": 233.66099548339844
+    },
+    {
+      "X_ft": -5.413649535623214,
+      "Y_ft": 0.1239619388257776,
+      "Z_ft": -0.0,
+      "distance_ft": -5.413649535623214,
+      "distance_in": -64.96379442747856,
+      "flags": {
+        "negative_distance": true,
+        "outside_extent": true
+      },
+      "frame": 25,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": 2.9273751978668034,
+      "kp_conf": 0.9944882988929749,
+      "notes": [
+        "the homography route and the ray/plane route disagree by 2.927e+00 ft (3.513e+01 in); the answer came from the homography. They are the same map, so a disagreement means the pose is not self-consistent \u2014 with an assumed lens it is not, and on the synthetic scene that costs the ray/plane route several inches while the homography barely moves.",
+        "the entry (X, Y)=(-5.41, 0.12) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame",
+        "the entry is 65.0 in on the DOCK side of the dock edge, so the distance is negative \u2014 the datum or the point is wrong (a measured distance from the lip must come out positive)"
+      ],
+      "ray_depth_ft": 31.758854349956973,
+      "route": "homography",
+      "transverse_ft": 0.1239619388257776,
+      "transverse_in": 1.4875432659093313,
+      "water_z_ft": -0.0,
+      "x_px": 712.0841674804688,
+      "y_px": 305.6633605957031
+    },
+    {
+      "X_ft": 42.87472474469326,
+      "Y_ft": 45.25253563086598,
+      "Z_ft": -0.0,
+      "distance_ft": 42.87472474469326,
+      "distance_in": 514.4966969363192,
+      "flags": {
+        "negative_distance": false,
+        "outside_extent": true
+      },
+      "frame": 29,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": null,
+      "kp_conf": 0.9983660578727722,
+      "notes": [
+        "the pose route failed (behind) so the plane homography answered; that is sound only because this calibration's plane *is* the water surface",
+        "the entry (X, Y)=(42.87, 45.25) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame"
+      ],
+      "ray_depth_ft": null,
+      "route": "homography",
+      "transverse_ft": 45.25253563086598,
+      "transverse_in": 543.0304275703918,
+      "water_z_ft": -0.0,
+      "x_px": 802.7171630859375,
+      "y_px": 245.53012084960938
+    },
+    {
+      "X_ft": 43.44945511060484,
+      "Y_ft": 45.63930447190108,
+      "Z_ft": -0.0,
+      "distance_ft": 43.44945511060484,
+      "distance_in": 521.393461327258,
+      "flags": {
+        "negative_distance": false,
+        "outside_extent": true
+      },
+      "frame": 30,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": null,
+      "kp_conf": 0.998145341873169,
+      "notes": [
+        "the pose route failed (behind) so the plane homography answered; that is sound only because this calibration's plane *is* the water surface",
+        "the entry (X, Y)=(43.45, 45.64) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame"
+      ],
+      "ray_depth_ft": null,
+      "route": "homography",
+      "transverse_ft": 45.63930447190108,
+      "transverse_in": 547.6716536628129,
+      "water_z_ft": -0.0,
+      "x_px": 803.8577270507812,
+      "y_px": 245.92782592773438
+    },
+    {
+      "X_ft": -5.269097354307265,
+      "Y_ft": 0.27072165566726664,
+      "Z_ft": -0.0,
+      "distance_ft": -5.269097354307265,
+      "distance_in": -63.22916825168718,
+      "flags": {
+        "negative_distance": true,
+        "outside_extent": true
+      },
+      "frame": 38,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": 2.8522196958368804,
+      "kp_conf": 0.9937695860862732,
+      "notes": [
+        "the homography route and the ray/plane route disagree by 2.852e+00 ft (3.423e+01 in); the answer came from the homography. They are the same map, so a disagreement means the pose is not self-consistent \u2014 with an assumed lens it is not, and on the synthetic scene that costs the ray/plane route several inches while the homography barely moves.",
+        "the entry (X, Y)=(-5.27, 0.27) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame",
+        "the entry is 63.2 in on the DOCK side of the dock edge, so the distance is negative \u2014 the datum or the point is wrong (a measured distance from the lip must come out positive)"
+      ],
+      "ray_depth_ft": 31.521842086175273,
+      "route": "homography",
+      "transverse_ft": 0.27072165566726664,
+      "transverse_in": 3.2486598680071994,
+      "water_z_ft": -0.0,
+      "x_px": 711.8807983398438,
+      "y_px": 305.9158630371094
+    },
+    {
+      "X_ft": 38.66555348960265,
+      "Y_ft": 41.36253707925389,
+      "Z_ft": -0.0,
+      "distance_ft": 38.66555348960265,
+      "distance_in": 463.98664187523184,
+      "flags": {
+        "negative_distance": false,
+        "outside_extent": true
+      },
+      "frame": 40,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": null,
+      "kp_conf": 0.9991205334663391,
+      "notes": [
+        "the pose route failed (behind) so the plane homography answered; that is sound only because this calibration's plane *is* the water surface",
+        "the entry (X, Y)=(38.67, 41.36) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame"
+      ],
+      "ray_depth_ft": null,
+      "route": "homography",
+      "transverse_ft": 41.36253707925389,
+      "transverse_in": 496.3504449510467,
+      "water_z_ft": -0.0,
+      "x_px": 809.3031616210938,
+      "y_px": 240.7576446533203
+    },
+    {
+      "X_ft": 42.630932841482505,
+      "Y_ft": 43.9970010555713,
+      "Z_ft": -0.0,
+      "distance_ft": 42.630932841482505,
+      "distance_in": 511.57119409779006,
+      "flags": {
+        "negative_distance": false,
+        "outside_extent": true
+      },
+      "frame": 41,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": null,
+      "kp_conf": 0.9977078437805176,
+      "notes": [
+        "the pose route failed (behind) so the plane homography answered; that is sound only because this calibration's plane *is* the water surface",
+        "the entry (X, Y)=(42.63, 44.00) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame"
+      ],
+      "ray_depth_ft": null,
+      "route": "homography",
+      "transverse_ft": 43.9970010555713,
+      "transverse_in": 527.9640126668556,
+      "water_z_ft": -0.0,
+      "x_px": 817.45703125,
+      "y_px": 244.17459106445312
+    },
+    {
+      "X_ft": -4.843969456508045,
+      "Y_ft": -0.15509334403086053,
+      "Z_ft": -0.0,
+      "distance_ft": -4.843969456508045,
+      "distance_in": -58.12763347809654,
+      "flags": {
+        "negative_distance": true,
+        "outside_extent": true
+      },
+      "frame": 43,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": 2.6199812783467427,
+      "kp_conf": 0.9977269768714905,
+      "notes": [
+        "the homography route and the ray/plane route disagree by 2.620e+00 ft (3.144e+01 in); the answer came from the homography. They are the same map, so a disagreement means the pose is not self-consistent \u2014 with an assumed lens it is not, and on the synthetic scene that costs the ray/plane route several inches while the homography barely moves.",
+        "the entry (X, Y)=(-4.84, -0.16) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame",
+        "the entry is 58.1 in on the DOCK side of the dock edge, so the distance is negative \u2014 the datum or the point is wrong (a measured distance from the lip must come out positive)"
+      ],
+      "ray_depth_ft": 32.10338924151336,
+      "route": "homography",
+      "transverse_ft": -0.15509334403086053,
+      "transverse_in": -1.8611201283703265,
+      "water_z_ft": -0.0,
+      "x_px": 700.6935424804688,
+      "y_px": 305.2122802734375
+    },
+    {
+      "X_ft": -4.6050520955975225,
+      "Y_ft": 0.07127172944197364,
+      "Z_ft": -0.0,
+      "distance_ft": -4.6050520955975225,
+      "distance_in": -55.26062514717027,
+      "flags": {
+        "negative_distance": true,
+        "outside_extent": true
+      },
+      "frame": 44,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": 2.4897801306973584,
+      "kp_conf": 0.9978598952293396,
+      "notes": [
+        "the homography route and the ray/plane route disagree by 2.490e+00 ft (2.988e+01 in); the answer came from the homography. They are the same map, so a disagreement means the pose is not self-consistent \u2014 with an assumed lens it is not, and on the synthetic scene that costs the ray/plane route several inches while the homography barely moves.",
+        "the entry (X, Y)=(-4.61, 0.07) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame",
+        "the entry is 55.3 in on the DOCK side of the dock edge, so the distance is negative \u2014 the datum or the point is wrong (a measured distance from the lip must come out positive)"
+      ],
+      "ray_depth_ft": 31.735986068467483,
+      "route": "homography",
+      "transverse_ft": 0.07127172944197364,
+      "transverse_in": 0.8552607533036838,
+      "water_z_ft": -0.0,
+      "x_px": 700.0277709960938,
+      "y_px": 305.59326171875
+    },
+    {
+      "X_ft": -4.483690519619887,
+      "Y_ft": 0.07687309495557174,
+      "Z_ft": -0.0,
+      "distance_ft": -4.483690519619887,
+      "distance_in": -53.80428623543864,
+      "flags": {
+        "negative_distance": true,
+        "outside_extent": true
+      },
+      "frame": 45,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": 2.4242303780794967,
+      "kp_conf": 0.997718870639801,
+      "notes": [
+        "the homography route and the ray/plane route disagree by 2.424e+00 ft (2.909e+01 in); the answer came from the homography. They are the same map, so a disagreement means the pose is not self-consistent \u2014 with an assumed lens it is not, and on the synthetic scene that costs the ray/plane route several inches while the homography barely moves.",
+        "the entry (X, Y)=(-4.48, 0.08) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame",
+        "the entry is 53.8 in on the DOCK side of the dock edge, so the distance is negative \u2014 the datum or the point is wrong (a measured distance from the lip must come out positive)"
+      ],
+      "ray_depth_ft": 31.712758058992584,
+      "route": "homography",
+      "transverse_ft": 0.07687309495557174,
+      "transverse_in": 0.9224771394668608,
+      "water_z_ft": -0.0,
+      "x_px": 698.38232421875,
+      "y_px": 305.6054382324219
+    },
+    {
+      "X_ft": -4.722746517603866,
+      "Y_ft": -0.10380718556898878,
+      "Z_ft": -0.0,
+      "distance_ft": -4.722746517603866,
+      "distance_in": -56.672958211246396,
+      "flags": {
+        "negative_distance": true,
+        "outside_extent": true
+      },
+      "frame": 46,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": 2.553723572241142,
+      "kp_conf": 0.9975070357322693,
+      "notes": [
+        "the homography route and the ray/plane route disagree by 2.554e+00 ft (3.064e+01 in); the answer came from the homography. They are the same map, so a disagreement means the pose is not self-consistent \u2014 with an assumed lens it is not, and on the synthetic scene that costs the ray/plane route several inches while the homography barely moves.",
+        "the entry (X, Y)=(-4.72, -0.10) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame",
+        "the entry is 56.7 in on the DOCK side of the dock edge, so the distance is negative \u2014 the datum or the point is wrong (a measured distance from the lip must come out positive)"
+      ],
+      "ray_depth_ft": 32.01190586231032,
+      "route": "homography",
+      "transverse_ft": -0.10380718556898878,
+      "transverse_in": -1.2456862268278655,
+      "water_z_ft": -0.0,
+      "x_px": 699.6060791015625,
+      "y_px": 305.2993469238281
+    },
+    {
+      "X_ft": 40.57060320326687,
+      "Y_ft": 47.427541272149995,
+      "Z_ft": -0.0,
+      "distance_ft": 40.57060320326687,
+      "distance_in": 486.84723843920244,
+      "flags": {
+        "negative_distance": false,
+        "outside_extent": true
+      },
+      "frame": 47,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": null,
+      "kp_conf": 0.9965973496437073,
+      "notes": [
+        "the pose route failed (behind) so the plane homography answered; that is sound only because this calibration's plane *is* the water surface",
+        "the entry (X, Y)=(40.57, 47.43) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame"
+      ],
+      "ray_depth_ft": null,
+      "route": "homography",
+      "transverse_ft": 47.427541272149995,
+      "transverse_in": 569.1304952657999,
+      "water_z_ft": -0.0,
+      "x_px": 752.7152099609375,
+      "y_px": 247.55804443359375
+    },
+    {
+      "X_ft": 40.35221208565386,
+      "Y_ft": 48.44332714419317,
+      "Z_ft": -0.0,
+      "distance_ft": 40.35221208565386,
+      "distance_in": 484.2265450278463,
+      "flags": {
+        "negative_distance": false,
+        "outside_extent": true
+      },
+      "frame": 48,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": null,
+      "kp_conf": 0.9983818531036377,
+      "notes": [
+        "the pose route failed (behind) so the plane homography answered; that is sound only because this calibration's plane *is* the water surface",
+        "the entry (X, Y)=(40.35, 48.44) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame"
+      ],
+      "ray_depth_ft": null,
+      "route": "homography",
+      "transverse_ft": 48.44332714419317,
+      "transverse_in": 581.319925730318,
+      "water_z_ft": -0.0,
+      "x_px": 740.30908203125,
+      "y_px": 248.41099548339844
+    },
+    {
+      "X_ft": 40.83482519393008,
+      "Y_ft": 49.433831366608324,
+      "Z_ft": -0.0,
+      "distance_ft": 40.83482519393008,
+      "distance_in": 490.017902327161,
+      "flags": {
+        "negative_distance": false,
+        "outside_extent": true
+      },
+      "frame": 49,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": null,
+      "kp_conf": 0.9981605410575867,
+      "notes": [
+        "the pose route failed (behind) so the plane homography answered; that is sound only because this calibration's plane *is* the water surface",
+        "the entry (X, Y)=(40.83, 49.43) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame"
+      ],
+      "ray_depth_ft": null,
+      "route": "homography",
+      "transverse_ft": 49.433831366608324,
+      "transverse_in": 593.2059763992999,
+      "water_z_ft": -0.0,
+      "x_px": 735.6090698242188,
+      "y_px": 249.19386291503906
+    },
+    {
+      "X_ft": -7.865307443230995,
+      "Y_ft": -3.506631456334234,
+      "Z_ft": -0.0,
+      "distance_ft": -7.865307443230995,
+      "distance_in": -94.38368931877193,
+      "flags": {
+        "negative_distance": true,
+        "outside_extent": true
+      },
+      "frame": 50,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": 4.65524288333263,
+      "kp_conf": 0.9979559183120728,
+      "notes": [
+        "the homography route and the ray/plane route disagree by 4.655e+00 ft (5.586e+01 in); the answer came from the homography. They are the same map, so a disagreement means the pose is not self-consistent \u2014 with an assumed lens it is not, and on the synthetic scene that costs the ray/plane route several inches while the homography barely moves.",
+        "the entry (X, Y)=(-7.87, -3.51) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame",
+        "the entry is 94.4 in on the DOCK side of the dock edge, so the distance is negative \u2014 the datum or the point is wrong (a measured distance from the lip must come out positive)"
+      ],
+      "ray_depth_ft": 37.48025770762446,
+      "route": "homography",
+      "transverse_ft": -3.506631456334234,
+      "transverse_in": -42.07957747601081,
+      "water_z_ft": -0.0,
+      "x_px": 702.8792724609375,
+      "y_px": 300.44287109375
+    },
+    {
+      "X_ft": -9.500211517921029,
+      "Y_ft": -5.252148790427012,
+      "Z_ft": -0.0,
+      "distance_ft": -9.500211517921029,
+      "distance_in": -114.00253821505234,
+      "flags": {
+        "negative_distance": true,
+        "outside_extent": true
+      },
+      "frame": 51,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": 5.868097189816028,
+      "kp_conf": 0.9981428384780884,
+      "notes": [
+        "the homography route and the ray/plane route disagree by 5.868e+00 ft (7.042e+01 in); the answer came from the homography. They are the same map, so a disagreement means the pose is not self-consistent \u2014 with an assumed lens it is not, and on the synthetic scene that costs the ray/plane route several inches while the homography barely moves.",
+        "the entry (X, Y)=(-9.50, -5.25) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame",
+        "the entry is 114.0 in on the DOCK side of the dock edge, so the distance is negative \u2014 the datum or the point is wrong (a measured distance from the lip must come out positive)"
+      ],
+      "ray_depth_ft": 40.28856782893447,
+      "route": "homography",
+      "transverse_ft": -5.252148790427012,
+      "transverse_in": -63.025785485124146,
+      "water_z_ft": -0.0,
+      "x_px": 704.4693603515625,
+      "y_px": 298.4609375
+    },
+    {
+      "X_ft": 36.508638248919056,
+      "Y_ft": 46.507035867802,
+      "Z_ft": -0.0,
+      "distance_ft": 36.508638248919056,
+      "distance_in": 438.10365898702867,
+      "flags": {
+        "negative_distance": false,
+        "outside_extent": true
+      },
+      "frame": 52,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": null,
+      "kp_conf": 0.9983224272727966,
+      "notes": [
+        "the pose route failed (behind) so the plane homography answered; that is sound only because this calibration's plane *is* the water surface",
+        "the entry (X, Y)=(36.51, 46.51) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame"
+      ],
+      "ray_depth_ft": null,
+      "route": "homography",
+      "transverse_ft": 46.507035867802,
+      "transverse_in": 558.084430413624,
+      "water_z_ft": -0.0,
+      "x_px": 720.0203247070312,
+      "y_px": 246.67791748046875
+    },
+    {
+      "X_ft": 50.31286348094017,
+      "Y_ft": 57.98883892896298,
+      "Z_ft": -0.0,
+      "distance_ft": 50.31286348094017,
+      "distance_in": 603.7543617712821,
+      "flags": {
+        "negative_distance": false,
+        "outside_extent": true
+      },
+      "frame": 56,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": null,
+      "kp_conf": 0.9972562193870544,
+      "notes": [
+        "the pose route failed (behind) so the plane homography answered; that is sound only because this calibration's plane *is* the water surface",
+        "the entry (X, Y)=(50.31, 57.99) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame"
+      ],
+      "ray_depth_ft": null,
+      "route": "homography",
+      "transverse_ft": 57.98883892896298,
+      "transverse_in": 695.8660671475557,
+      "water_z_ft": -0.0,
+      "x_px": 744.154296875,
+      "y_px": 254.29885864257812
+    },
+    {
+      "X_ft": 47.37840890395032,
+      "Y_ft": 56.405061230931416,
+      "Z_ft": -0.0,
+      "distance_ft": 47.37840890395032,
+      "distance_in": 568.5409068474039,
+      "flags": {
+        "negative_distance": false,
+        "outside_extent": true
+      },
+      "frame": 57,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": null,
+      "kp_conf": 0.9960242509841919,
+      "notes": [
+        "the pose route failed (behind) so the plane homography answered; that is sound only because this calibration's plane *is* the water surface",
+        "the entry (X, Y)=(47.38, 56.41) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame"
+      ],
+      "ray_depth_ft": null,
+      "route": "homography",
+      "transverse_ft": 56.405061230931416,
+      "transverse_in": 676.860734771177,
+      "water_z_ft": -0.0,
+      "x_px": 733.8433837890625,
+      "y_px": 253.52716064453125
+    },
+    {
+      "X_ft": 47.89989180156509,
+      "Y_ft": 59.08459897347407,
+      "Z_ft": -0.0,
+      "distance_ft": 47.89989180156509,
+      "distance_in": 574.798701618781,
+      "flags": {
+        "negative_distance": false,
+        "outside_extent": true
+      },
+      "frame": 59,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": null,
+      "kp_conf": 0.9967880249023438,
+      "notes": [
+        "the pose route failed (behind) so the plane homography answered; that is sound only because this calibration's plane *is* the water surface",
+        "the entry (X, Y)=(47.90, 59.08) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame"
+      ],
+      "ray_depth_ft": null,
+      "route": "homography",
+      "transverse_ft": 59.08459897347407,
+      "transverse_in": 709.0151876816889,
+      "water_z_ft": -0.0,
+      "x_px": 719.0979614257812,
+      "y_px": 254.77122497558594
+    },
+    {
+      "X_ft": -3.903357558840423,
+      "Y_ft": 1.133551397019536,
+      "Z_ft": -0.0,
+      "distance_ft": -3.903357558840423,
+      "distance_in": -46.84029070608508,
+      "flags": {
+        "negative_distance": true,
+        "outside_extent": true
+      },
+      "frame": 60,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": 2.1972920935597307,
+      "kp_conf": 0.9954720735549927,
+      "notes": [
+        "the homography route and the ray/plane route disagree by 2.197e+00 ft (2.637e+01 in); the answer came from the homography. They are the same map, so a disagreement means the pose is not self-consistent \u2014 with an assumed lens it is not, and on the synthetic scene that costs the ray/plane route several inches while the homography barely moves.",
+        "the entry (X, Y)=(-3.90, 1.13) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame",
+        "the entry is 46.8 in on the DOCK side of the dock edge, so the distance is negative \u2014 the datum or the point is wrong (a measured distance from the lip must come out positive)"
+      ],
+      "ray_depth_ft": 30.06359073962003,
+      "route": "homography",
+      "transverse_ft": 1.133551397019536,
+      "transverse_in": 13.60261676423443,
+      "water_z_ft": -0.0,
+      "x_px": 702.9391479492188,
+      "y_px": 307.4933166503906
+    },
+    {
+      "X_ft": 45.11708160361552,
+      "Y_ft": 58.71287049411556,
+      "Z_ft": -0.0,
+      "distance_ft": 45.11708160361552,
+      "distance_in": 541.4049792433862,
+      "flags": {
+        "negative_distance": false,
+        "outside_extent": true
+      },
+      "frame": 62,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": null,
+      "kp_conf": 0.9974802136421204,
+      "notes": [
+        "the pose route failed (behind) so the plane homography answered; that is sound only because this calibration's plane *is* the water surface",
+        "the entry (X, Y)=(45.12, 58.71) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame"
+      ],
+      "ray_depth_ft": null,
+      "route": "homography",
+      "transverse_ft": 58.71287049411556,
+      "transverse_in": 704.5544459293867,
+      "water_z_ft": -0.0,
+      "x_px": 701.4583129882812,
+      "y_px": 254.59347534179688
+    },
+    {
+      "X_ft": 43.063975924637134,
+      "Y_ft": 57.68997897101549,
+      "Z_ft": -0.0,
+      "distance_ft": 43.063975924637134,
+      "distance_in": 516.7677110956456,
+      "flags": {
+        "negative_distance": false,
+        "outside_extent": true
+      },
+      "frame": 63,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": null,
+      "kp_conf": 0.9975392818450928,
+      "notes": [
+        "the pose route failed (behind) so the plane homography answered; that is sound only because this calibration's plane *is* the water surface",
+        "the entry (X, Y)=(43.06, 57.69) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame"
+      ],
+      "ray_depth_ft": null,
+      "route": "homography",
+      "transverse_ft": 57.68997897101549,
+      "transverse_in": 692.279747652186,
+      "water_z_ft": -0.0,
+      "x_px": 692.66845703125,
+      "y_px": 254.11827087402344
+    },
+    {
+      "X_ft": 44.091015237313556,
+      "Y_ft": 60.60448447820088,
+      "Z_ft": -0.0,
+      "distance_ft": 44.091015237313556,
+      "distance_in": 529.0921828477626,
+      "flags": {
+        "negative_distance": false,
+        "outside_extent": true
+      },
+      "frame": 64,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": null,
+      "kp_conf": 0.997812032699585,
+      "notes": [
+        "the pose route failed (behind) so the plane homography answered; that is sound only because this calibration's plane *is* the water surface",
+        "the entry (X, Y)=(44.09, 60.60) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame"
+      ],
+      "ray_depth_ft": null,
+      "route": "homography",
+      "transverse_ft": 60.60448447820088,
+      "transverse_in": 727.2538137384106,
+      "water_z_ft": -0.0,
+      "x_px": 683.302978515625,
+      "y_px": 255.38357543945312
+    },
+    {
+      "X_ft": 49.48903885045855,
+      "Y_ft": 69.25859852229007,
+      "Z_ft": -0.0,
+      "distance_ft": 49.48903885045855,
+      "distance_in": 593.8684662055026,
+      "flags": {
+        "negative_distance": false,
+        "outside_extent": true
+      },
+      "frame": 65,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": null,
+      "kp_conf": 0.996566891670227,
+      "notes": [
+        "the pose route failed (behind) so the plane homography answered; that is sound only because this calibration's plane *is* the water surface",
+        "the entry (X, Y)=(49.49, 69.26) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame"
+      ],
+      "ray_depth_ft": null,
+      "route": "homography",
+      "transverse_ft": 69.25859852229007,
+      "transverse_in": 831.1031822674809,
+      "water_z_ft": -0.0,
+      "x_px": 675.3662719726562,
+      "y_px": 258.271728515625
+    },
+    {
+      "X_ft": 52.44049837477173,
+      "Y_ft": 74.95007552300822,
+      "Z_ft": -0.0,
+      "distance_ft": 52.44049837477173,
+      "distance_in": 629.2859804972608,
+      "flags": {
+        "negative_distance": false,
+        "outside_extent": true
+      },
+      "frame": 66,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": null,
+      "kp_conf": 0.9957881569862366,
+      "notes": [
+        "the pose route failed (behind) so the plane homography answered; that is sound only because this calibration's plane *is* the water surface",
+        "the entry (X, Y)=(52.44, 74.95) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame"
+      ],
+      "ray_depth_ft": null,
+      "route": "homography",
+      "transverse_ft": 74.95007552300822,
+      "transverse_in": 899.4009062760987,
+      "water_z_ft": -0.0,
+      "x_px": 668.4481811523438,
+      "y_px": 259.6749572753906
+    },
+    {
+      "X_ft": 49.14574555200986,
+      "Y_ft": 71.67005928542368,
+      "Z_ft": -0.0,
+      "distance_ft": 49.14574555200986,
+      "distance_in": 589.7489466241184,
+      "flags": {
+        "negative_distance": false,
+        "outside_extent": true
+      },
+      "frame": 67,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": null,
+      "kp_conf": 0.999051034450531,
+      "notes": [
+        "the pose route failed (behind) so the plane homography answered; that is sound only because this calibration's plane *is* the water surface",
+        "the entry (X, Y)=(49.15, 71.67) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame"
+      ],
+      "ray_depth_ft": null,
+      "route": "homography",
+      "transverse_ft": 71.67005928542368,
+      "transverse_in": 860.040711425084,
+      "water_z_ft": -0.0,
+      "x_px": 663.591552734375,
+      "y_px": 258.8988342285156
+    },
+    {
+      "X_ft": 49.00594317967564,
+      "Y_ft": 73.14831483059638,
+      "Z_ft": -0.0,
+      "distance_ft": 49.00594317967564,
+      "distance_in": 588.0713181561077,
+      "flags": {
+        "negative_distance": false,
+        "outside_extent": true
+      },
+      "frame": 68,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": null,
+      "kp_conf": 0.9965195655822754,
+      "notes": [
+        "the pose route failed (behind) so the plane homography answered; that is sound only because this calibration's plane *is* the water surface",
+        "the entry (X, Y)=(49.01, 73.15) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame"
+      ],
+      "ray_depth_ft": null,
+      "route": "homography",
+      "transverse_ft": 73.14831483059638,
+      "transverse_in": 877.7797779671565,
+      "water_z_ft": -0.0,
+      "x_px": 657.268798828125,
+      "y_px": 259.25567626953125
+    },
+    {
+      "X_ft": 57.45275964223435,
+      "Y_ft": 87.92330455388937,
+      "Z_ft": -0.0,
+      "distance_ft": 57.45275964223435,
+      "distance_in": 689.4331157068121,
+      "flags": {
+        "negative_distance": false,
+        "outside_extent": true
+      },
+      "frame": 69,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": null,
+      "kp_conf": 0.9956517815589905,
+      "notes": [
+        "the pose route failed (behind) so the plane homography answered; that is sound only because this calibration's plane *is* the water surface",
+        "the entry (X, Y)=(57.45, 87.92) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame"
+      ],
+      "ray_depth_ft": null,
+      "route": "homography",
+      "transverse_ft": 87.92330455388937,
+      "transverse_in": 1055.0796546466725,
+      "water_z_ft": -0.0,
+      "x_px": 649.8980712890625,
+      "y_px": 261.9942932128906
+    },
+    {
+      "X_ft": 69.01736083129005,
+      "Y_ft": 110.5755843598327,
+      "Z_ft": -0.0,
+      "distance_ft": 69.01736083129005,
+      "distance_in": 828.2083299754806,
+      "flags": {
+        "negative_distance": false,
+        "outside_extent": true
+      },
+      "frame": 70,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": null,
+      "kp_conf": 0.9972400665283203,
+      "notes": [
+        "the pose route failed (behind) so the plane homography answered; that is sound only because this calibration's plane *is* the water surface",
+        "the entry (X, Y)=(69.02, 110.58) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame"
+      ],
+      "ray_depth_ft": null,
+      "route": "homography",
+      "transverse_ft": 110.5755843598327,
+      "transverse_in": 1326.9070123179924,
+      "water_z_ft": -0.0,
+      "x_px": 638.9524536132812,
+      "y_px": 264.45947265625
+    },
+    {
+      "X_ft": 91.61880932055158,
+      "Y_ft": 150.8945147945645,
+      "Z_ft": -0.0,
+      "distance_ft": 91.61880932055158,
+      "distance_in": 1099.425711846619,
+      "flags": {
+        "negative_distance": false,
+        "outside_extent": true
+      },
+      "frame": 71,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": null,
+      "kp_conf": 0.9973729848861694,
+      "notes": [
+        "the pose route failed (behind) so the plane homography answered; that is sound only because this calibration's plane *is* the water surface",
+        "the entry (X, Y)=(91.62, 150.89) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame"
+      ],
+      "ray_depth_ft": null,
+      "route": "homography",
+      "transverse_ft": 150.8945147945645,
+      "transverse_in": 1810.7341775347738,
+      "water_z_ft": -0.0,
+      "x_px": 633.1730346679688,
+      "y_px": 266.74053955078125
+    },
+    {
+      "X_ft": 1259.362113408163,
+      "Y_ft": 2140.074591178534,
+      "Z_ft": -0.0,
+      "distance_ft": 1259.362113408163,
+      "distance_in": 15112.345360897954,
+      "flags": {
+        "negative_distance": false,
+        "outside_extent": true
+      },
+      "frame": 72,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": null,
+      "kp_conf": 0.9989585876464844,
+      "notes": [
+        "the pose route failed (behind) so the plane homography answered; that is sound only because this calibration's plane *is* the water surface",
+        "the entry (X, Y)=(1259.36, 2140.07) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame"
+      ],
+      "ray_depth_ft": null,
+      "route": "homography",
+      "transverse_ft": 2140.074591178534,
+      "transverse_in": 25680.895094142405,
+      "water_z_ft": -0.0,
+      "x_px": 627.9838256835938,
+      "y_px": 271.5556335449219
+    },
+    {
+      "X_ft": -893.7304038457238,
+      "Y_ft": -1623.654310857707,
+      "Z_ft": -0.0,
+      "distance_ft": -893.7304038457238,
+      "distance_in": -10724.764846148686,
+      "flags": {
+        "negative_distance": true,
+        "outside_extent": true
+      },
+      "frame": 73,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": 1001.7703246057463,
+      "kp_conf": 0.9985781908035278,
+      "notes": [
+        "the homography route and the ray/plane route disagree by 1.002e+03 ft (1.202e+04 in); the answer came from the homography. They are the same map, so a disagreement means the pose is not self-consistent \u2014 with an assumed lens it is not, and on the synthetic scene that costs the ray/plane route several inches while the homography barely moves.",
+        "the entry (X, Y)=(-893.73, -1623.65) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame",
+        "the entry is 10724.8 in on the DOCK side of the dock edge, so the distance is negative \u2014 the datum or the point is wrong (a measured distance from the lip must come out positive)"
+      ],
+      "ray_depth_ft": 2576.165014170407,
+      "route": "homography",
+      "transverse_ft": -1623.654310857707,
+      "transverse_in": -19483.851730292485,
+      "water_z_ft": -0.0,
+      "x_px": 617.5171508789062,
+      "y_px": 272.2822265625
+    },
+    {
+      "X_ft": -121.94716480067977,
+      "Y_ft": -234.1076152376878,
+      "Z_ft": -0.0,
+      "distance_ft": -121.94716480067977,
+      "distance_in": -1463.3659776081572,
+      "flags": {
+        "negative_distance": true,
+        "outside_extent": true
+      },
+      "frame": 74,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": 142.67531950104188,
+      "kp_conf": 0.9956293106079102,
+      "notes": [
+        "the homography route and the ray/plane route disagree by 1.427e+02 ft (1.712e+03 in); the answer came from the homography. They are the same map, so a disagreement means the pose is not self-consistent \u2014 with an assumed lens it is not, and on the synthetic scene that costs the ray/plane route several inches while the homography barely moves.",
+        "the entry (X, Y)=(-121.95, -234.11) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame",
+        "the entry is 1463.4 in on the DOCK side of the dock edge, so the distance is negative \u2014 the datum or the point is wrong (a measured distance from the lip must come out positive)"
+      ],
+      "ray_depth_ft": 397.66932340633855,
+      "route": "homography",
+      "transverse_ft": -234.1076152376878,
+      "transverse_in": -2809.2913828522537,
+      "water_z_ft": -0.0,
+      "x_px": 610.9541015625,
+      "y_px": 274.5214538574219
+    },
+    {
+      "X_ft": -35.92126160998046,
+      "Y_ft": -74.44847820961081,
+      "Z_ft": -0.0,
+      "distance_ft": -35.92126160998046,
+      "distance_in": -431.05513931976554,
+      "flags": {
+        "negative_distance": true,
+        "outside_extent": true
+      },
+      "frame": 75,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": 44.67899141108256,
+      "kp_conf": 0.9989678859710693,
+      "notes": [
+        "the homography route and the ray/plane route disagree by 4.468e+01 ft (5.361e+02 in); the answer came from the homography. They are the same map, so a disagreement means the pose is not self-consistent \u2014 with an assumed lens it is not, and on the synthetic scene that costs the ray/plane route several inches while the homography barely moves.",
+        "the entry (X, Y)=(-35.92, -74.45) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame",
+        "the entry is 431.1 in on the DOCK side of the dock edge, so the distance is negative \u2014 the datum or the point is wrong (a measured distance from the lip must come out positive)"
+      ],
+      "ray_depth_ft": 147.59006188139875,
+      "route": "homography",
+      "transverse_ft": -74.44847820961081,
+      "transverse_in": -893.3817385153297,
+      "water_z_ft": -0.0,
+      "x_px": 605.7562866210938,
+      "y_px": 279.0029602050781
+    },
+    {
+      "X_ft": -26.757295505948743,
+      "Y_ft": -61.65331953282508,
+      "Z_ft": -0.0,
+      "distance_ft": -26.757295505948743,
+      "distance_in": -321.0875460713849,
+      "flags": {
+        "negative_distance": true,
+        "outside_extent": true
+      },
+      "frame": 76,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": 36.32677335669619,
+      "kp_conf": 0.9969632029533386,
+      "notes": [
+        "the homography route and the ray/plane route disagree by 3.633e+01 ft (4.359e+02 in); the answer came from the homography. They are the same map, so a disagreement means the pose is not self-consistent \u2014 with an assumed lens it is not, and on the synthetic scene that costs the ray/plane route several inches while the homography barely moves.",
+        "the entry (X, Y)=(-26.76, -61.65) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame",
+        "the entry is 321.1 in on the DOCK side of the dock edge, so the distance is negative \u2014 the datum or the point is wrong (a measured distance from the lip must come out positive)"
+      ],
+      "ray_depth_ft": 127.37295169764484,
+      "route": "homography",
+      "transverse_ft": -61.65331953282508,
+      "transverse_in": -739.8398343939009,
+      "water_z_ft": -0.0,
+      "x_px": 596.5911865234375,
+      "y_px": 280.1248474121094
+    },
+    {
+      "X_ft": -11.19387306252246,
+      "Y_ft": -30.956907511649298,
+      "Z_ft": -0.0,
+      "distance_ft": -11.19387306252246,
+      "distance_in": -134.32647675026953,
+      "flags": {
+        "negative_distance": true,
+        "outside_extent": true
+      },
+      "frame": 77,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": 17.79241867293115,
+      "kp_conf": 0.9988793730735779,
+      "notes": [
+        "the homography route and the ray/plane route disagree by 1.779e+01 ft (2.135e+02 in); the answer came from the homography. They are the same map, so a disagreement means the pose is not self-consistent \u2014 with an assumed lens it is not, and on the synthetic scene that costs the ray/plane route several inches while the homography barely moves.",
+        "the entry (X, Y)=(-11.19, -30.96) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame",
+        "the entry is 134.3 in on the DOCK side of the dock edge, so the distance is negative \u2014 the datum or the point is wrong (a measured distance from the lip must come out positive)"
+      ],
+      "ray_depth_ft": 79.3767406615849,
+      "route": "homography",
+      "transverse_ft": -30.956907511649298,
+      "transverse_in": -371.4828901397916,
+      "water_z_ft": -0.0,
+      "x_px": 591.4920654296875,
+      "y_px": 285.104736328125
+    },
+    {
+      "X_ft": -6.98311052681339,
+      "Y_ft": -24.061593778695247,
+      "Z_ft": -0.0,
+      "distance_ft": -6.98311052681339,
+      "distance_in": -83.79732632176068,
+      "flags": {
+        "negative_distance": true,
+        "outside_extent": true
+      },
+      "frame": 78,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": 13.541754855572517,
+      "kp_conf": 0.9947389960289001,
+      "notes": [
+        "the homography route and the ray/plane route disagree by 1.354e+01 ft (1.625e+02 in); the answer came from the homography. They are the same map, so a disagreement means the pose is not self-consistent \u2014 with an assumed lens it is not, and on the synthetic scene that costs the ray/plane route several inches while the homography barely moves.",
+        "the entry (X, Y)=(-6.98, -24.06) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame",
+        "the entry is 83.8 in on the DOCK side of the dock edge, so the distance is negative \u2014 the datum or the point is wrong (a measured distance from the lip must come out positive)"
+      ],
+      "ray_depth_ft": 68.54533271802062,
+      "route": "homography",
+      "transverse_ft": -24.061593778695247,
+      "transverse_in": -288.73912534434294,
+      "water_z_ft": -0.0,
+      "x_px": 584.7672729492188,
+      "y_px": 287.1832275390625
+    },
+    {
+      "X_ft": -1.9468847933688898,
+      "Y_ft": -13.813725513414193,
+      "Z_ft": -0.0,
+      "distance_ft": -1.9468847933688898,
+      "distance_in": -23.362617520426678,
+      "flags": {
+        "negative_distance": true,
+        "outside_extent": true
+      },
+      "frame": 79,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": 7.53993038547974,
+      "kp_conf": 0.9987924098968506,
+      "notes": [
+        "the homography route and the ray/plane route disagree by 7.540e+00 ft (9.048e+01 in); the answer came from the homography. They are the same map, so a disagreement means the pose is not self-consistent \u2014 with an assumed lens it is not, and on the synthetic scene that costs the ray/plane route several inches while the homography barely moves.",
+        "the entry (X, Y)=(-1.95, -13.81) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame",
+        "the entry is 23.4 in on the DOCK side of the dock edge, so the distance is negative \u2014 the datum or the point is wrong (a measured distance from the lip must come out positive)"
+      ],
+      "ray_depth_ft": 52.5380727205349,
+      "route": "homography",
+      "transverse_ft": -13.813725513414193,
+      "transverse_in": -165.76470616097032,
+      "water_z_ft": -0.0,
+      "x_px": 579.9439086914062,
+      "y_px": 291.8361511230469
+    },
+    {
+      "X_ft": 1.1858443690033627,
+      "Y_ft": -8.127883330931564,
+      "Z_ft": -0.0,
+      "distance_ft": 1.1858443690033627,
+      "distance_in": 14.230132428040353,
+      "flags": {
+        "negative_distance": false,
+        "outside_extent": true
+      },
+      "frame": 80,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": 4.439532308609053,
+      "kp_conf": 0.9982503056526184,
+      "notes": [
+        "the homography route and the ray/plane route disagree by 4.440e+00 ft (5.327e+01 in); the answer came from the homography. They are the same map, so a disagreement means the pose is not self-consistent \u2014 with an assumed lens it is not, and on the synthetic scene that costs the ray/plane route several inches while the homography barely moves.",
+        "the entry (X, Y)=(1.19, -8.13) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame"
+      ],
+      "ray_depth_ft": 43.636285597871435,
+      "route": "homography",
+      "transverse_ft": -8.127883330931564,
+      "transverse_in": -97.53459997117876,
+      "water_z_ft": -0.0,
+      "x_px": 572.3274536132812,
+      "y_px": 295.8890380859375
+    },
+    {
+      "X_ft": 3.3034781440024967,
+      "Y_ft": -4.1976214615690095,
+      "Z_ft": -0.0,
+      "distance_ft": 3.3034781440024967,
+      "distance_in": 39.64173772802996,
+      "flags": {
+        "negative_distance": false,
+        "outside_extent": true
+      },
+      "frame": 81,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": 2.88730679413277,
+      "kp_conf": 0.9949937462806702,
+      "notes": [
+        "the homography route and the ray/plane route disagree by 2.887e+00 ft (3.465e+01 in); the answer came from the homography. They are the same map, so a disagreement means the pose is not self-consistent \u2014 with an assumed lens it is not, and on the synthetic scene that costs the ray/plane route several inches while the homography barely moves.",
+        "the entry (X, Y)=(3.30, -4.20) ft falls outside the pool extent {'x_min': 0.0, 'x_max': 35.0, 'y_min': 0.0, 'y_max': 16.0} \u2014 arithmetically fine, physically impossible; check the calibration and the contact frame"
+      ],
+      "ray_depth_ft": 37.48881201336382,
+      "route": "homography",
+      "transverse_ft": -4.1976214615690095,
+      "transverse_in": -50.37145753882811,
+      "water_z_ft": -0.0,
+      "x_px": 565.5221557617188,
+      "y_px": 299.8087158203125
+    },
+    {
+      "X_ft": 5.121224489688789,
+      "Y_ft": -0.5656238604456192,
+      "Z_ft": -0.0,
+      "distance_ft": 5.121224489688789,
+      "distance_in": 61.454693876265466,
+      "flags": {
+        "negative_distance": false,
+        "outside_extent": false
+      },
+      "frame": 82,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": 2.7853525892838134,
+      "kp_conf": 0.9952178001403809,
+      "notes": [
+        "the homography route and the ray/plane route disagree by 2.785e+00 ft (3.342e+01 in); the answer came from the homography. They are the same map, so a disagreement means the pose is not self-consistent \u2014 with an assumed lens it is not, and on the synthetic scene that costs the ray/plane route several inches while the homography barely moves."
+      ],
+      "ray_depth_ft": 31.818928719805527,
+      "route": "homography",
+      "transverse_ft": -0.5656238604456192,
+      "transverse_in": -6.78748632534743,
+      "water_z_ft": -0.0,
+      "x_px": 558.8350830078125,
+      "y_px": 304.7674560546875
+    },
+    {
+      "X_ft": 6.4555877830300235,
+      "Y_ft": 2.3188568568431718,
+      "Z_ft": -0.0,
+      "distance_ft": 6.4555877830300235,
+      "distance_in": 77.46705339636028,
+      "flags": {
+        "negative_distance": false,
+        "outside_extent": false
+      },
+      "frame": 83,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": 3.708099068116177,
+      "kp_conf": 0.9946335554122925,
+      "notes": [
+        "the homography route and the ray/plane route disagree by 3.708e+00 ft (4.450e+01 in); the answer came from the homography. They are the same map, so a disagreement means the pose is not self-consistent \u2014 with an assumed lens it is not, and on the synthetic scene that costs the ray/plane route several inches while the homography barely moves."
+      ],
+      "ray_depth_ft": 27.324338910239703,
+      "route": "homography",
+      "transverse_ft": 2.3188568568431718,
+      "transverse_in": 27.82628228211806,
+      "water_z_ft": -0.0,
+      "x_px": 553.317138671875,
+      "y_px": 310.1624755859375
+    },
+    {
+      "X_ft": 7.402801049190482,
+      "Y_ft": 3.7278629963256096,
+      "Z_ft": -0.0,
+      "distance_ft": 7.402801049190482,
+      "distance_in": 88.83361259028578,
+      "flags": {
+        "negative_distance": false,
+        "outside_extent": false
+      },
+      "frame": 84,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": 4.480525159228117,
+      "kp_conf": 0.9939174056053162,
+      "notes": [
+        "the homography route and the ray/plane route disagree by 4.481e+00 ft (5.377e+01 in); the answer came from the homography. They are the same map, so a disagreement means the pose is not self-consistent \u2014 with an assumed lens it is not, and on the synthetic scene that costs the ray/plane route several inches while the homography barely moves."
+      ],
+      "ray_depth_ft": 25.11402486619348,
+      "route": "homography",
+      "transverse_ft": 3.7278629963256096,
+      "transverse_in": 44.73435595590732,
+      "water_z_ft": -0.0,
+      "x_px": 544.7267456054688,
+      "y_px": 313.5074768066406
+    },
+    {
+      "X_ft": 8.087888947856953,
+      "Y_ft": 4.506980136553872,
+      "Z_ft": -0.0,
+      "distance_ft": 8.087888947856953,
+      "distance_in": 97.05466737428344,
+      "flags": {
+        "negative_distance": false,
+        "outside_extent": false
+      },
+      "frame": 85,
+      "height_assumed_ft": 0.0,
+      "homography_agreement_ft": 5.005076334018155,
+      "kp_conf": 0.9938052892684937,
+      "notes": [
+        "the homography route and the ray/plane route disagree by 5.005e+00 ft (6.006e+01 in); the answer came from the homography. They are the same map, so a disagreement means the pose is not self-consistent \u2014 with an assumed lens it is not, and on the synthetic scene that costs the ray/plane route several inches while the homography barely moves."
+      ],
+      "ray_depth_ft": 23.885149072307193,
+      "route": "homography",
+      "transverse_ft": 4.506980136553872,
+      "transverse_in": 54.083761638646465,
+      "water_z_ft": -0.0,
+      "x_px": 536.325439453125,
+      "y_px": 315.626953125
+    }
+  ],
+  "plateau": {
+    "detail": "the reconstructed distance holds within 0.15 ft over the last 1 accepted frame(s) \u2014 a plateau is consistent with the water entry, but also with the detection simply being lost, so it is a candidate and not a confirmed contact frame",
+    "distance_ft": 8.087888947856953,
+    "frame": 85,
+    "ok": true,
+    "plateau_run": 1,
+    "plateau_span_ft": 0.0,
+    "plateau_span_in": 0.0,
+    "plateau_start_frame": 85
+  },
+  "pose_ok": true,
+  "route": "A_correspondences",
+  "water": {
+    "anchors": [],
+    "below_marked_plane_in": 0.0,
+    "method": "known_freeboard",
+    "notes": [
+      "water level from a stated freeboard of 0 in (plane_is_the_water_surface specification); its error is the venue's tolerance, not this pipeline's"
+    ],
+    "offset_ft": -0.0,
+    "offset_in": -0.0,
+    "residual_ft": null,
+    "residual_px": null,
+    "rim_top_z_ft": null,
+    "sigma_ft": null,
+    "sigma_in": null,
+    "wall": null,
+    "z_ft": -0.0
+  }
+}

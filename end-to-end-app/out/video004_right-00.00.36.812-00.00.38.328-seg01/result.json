@@ -1,0 +1,227 @@
+{
+  "artifacts": {
+    "annotated": "annotated.mp4",
+    "calib_used": "calib_used.json",
+    "meta": "run_meta.json",
+    "report": "report.txt",
+    "result": "result.json",
+    "still": "final_frame.png",
+    "tracks": "tracks.json",
+    "trajectory": "trajectory.json"
+  },
+  "calibration": {
+    "path": null,
+    "present": false,
+    "reason": "no calibration was supplied: px->in needs PLAN \u00a74.2's marks and PLAN \u00a75 #2 needs the waterline row, so the inches fields are null and the pixel-domain fields are the real output (data/calib/ is empty as of 2026-10-08 \u2014 HANDOFF open item 10)",
+    "setup_id": null
+  },
+  "clip": {
+    "codec": "mpeg4",
+    "declared_vs_decoded": [
+      92,
+      92
+    ],
+    "fps": 60.0,
+    "height": 600,
+    "id": "video004_right-00.00.36.812-00.00.38.328-seg01",
+    "n_frames": 92,
+    "name": "video004_right-00.00.36.812-00.00.38.328-seg01.mp4",
+    "sha256": "83eca603e1d9ca4295dd0cb80aff71a31e2634f0bd099a6fbd183f7c7630f06a",
+    "vfr": false,
+    "width": 960
+  },
+  "config": {
+    "clahe": true,
+    "clahe_clip": 2.5,
+    "clahe_grid": [
+      8,
+      8
+    ],
+    "conf": 0.12,
+    "device": "cpu",
+    "imgsz": 1280,
+    "kp_conf": 0.3,
+    "max_det": 1,
+    "model_path": "C:\\Users\\harri\\Downloads\\best.pt",
+    "track_coverage_min": 0.5,
+    "tracker": "bytetrack.yaml"
+  },
+  "contact": {
+    "arc_is_freefall": false,
+    "arc_reason": "no fitted arc (fewer than three accepted points in one run)",
+    "candidates": [
+      {
+        "available": false,
+        "confident": false,
+        "evidence": {},
+        "frame": null,
+        "rank": 1,
+        "reason": "no accepted tailset detection in this clip",
+        "source": "last_accepted"
+      },
+      {
+        "available": false,
+        "confident": false,
+        "evidence": {
+          "waterline_y": null
+        },
+        "frame": null,
+        "rank": 2,
+        "reason": "unavailable: no waterline \u2014 PLAN \u00a75 #2 solves y(t) = waterline.y, which comes from the M2 calibration (data/calib/); none exists for this clip",
+        "source": "arc_waterline"
+      },
+      {
+        "available": false,
+        "confident": false,
+        "evidence": {
+          "apex_frame": null,
+          "curvature_min": 0.0,
+          "cx2": null,
+          "cy2": null,
+          "model_slopes_px_per_frame": [],
+          "n_flight_points": 0,
+          "y_span_px": null
+        },
+        "frame": null,
+        "rank": 3,
+        "reason": "unavailable: no fitted arc (fewer than three accepted points in one run)",
+        "source": "conf_collapse"
+      },
+      {
+        "available": false,
+        "confident": false,
+        "evidence": {
+          "apex_frame": null,
+          "curvature_min": 0.0,
+          "cx2": null,
+          "cy2": null,
+          "model_slopes_px_per_frame": [],
+          "n_flight_points": 0,
+          "y_span_px": null
+        },
+        "frame": null,
+        "rank": 4,
+        "reason": "unavailable: no fitted arc (fewer than three accepted points in one run)",
+        "source": "velocity_reversal"
+      }
+    ],
+    "chosen_frame": null,
+    "chosen_source": "last_accepted",
+    "n_frames": 92,
+    "waterline_y": null,
+    "window": null
+  },
+  "detection": {
+    "cache_key_hash": "643e2867d944846f",
+    "dominant_track": null,
+    "n_accepted": 0,
+    "n_detections": 0,
+    "n_frames_clip": 92,
+    "n_frames_processed": 92,
+    "track_coverage": 0.0,
+    "tracking_available": false
+  },
+  "detection_ladder": {
+    "base": {
+      "conf": 0.12,
+      "imgsz": 1280,
+      "kp_conf": 0.3
+    },
+    "below_min_points": false,
+    "chosen": null,
+    "disabled": true,
+    "imgsz_escalated": false,
+    "imgsz_tried": [
+      1280
+    ],
+    "min_points": 0,
+    "n_low_conf_points": 0,
+    "n_points": 0,
+    "rungs": []
+  },
+  "measurement": {
+    "arc_is_freefall": false,
+    "arc_reason": "no fitted arc (fewer than three accepted points in one run)",
+    "calib_fit_type": null,
+    "calib_residual_rms_in": null,
+    "calib_setup_id": null,
+    "cfg": {
+      "kp_mode": "literal",
+      "kp_window": 5,
+      "mark_sigma_px": null,
+      "rounding": "nearest",
+      "waterline_tol_in": 6
+    },
+    "contact_source": "last_accepted",
+    "display": null,
+    "feet": null,
+    "flags": {},
+    "frame": null,
+    "gates": {},
+    "in_per_px": null,
+    "inches": null,
+    "kp_frames": [],
+    "kp_k": 0,
+    "model_point": null,
+    "point_origin": "detection",
+    "point_source": "model",
+    "rounded_inches": null,
+    "sigma_complete": false,
+    "sigma_in": null,
+    "sigma_kp_detrended_in": null,
+    "sigma_kp_literal_in": null,
+    "sigma_terms": null,
+    "splash_gap_in": null,
+    "splash_gap_px": null,
+    "splash_gap_tol_in": 6.0,
+    "total_inches": null,
+    "waterline_y": null,
+    "x_px": null,
+    "y_px": null
+  },
+  "model": {
+    "layout": "",
+    "path": "C:\\Users\\harri\\Downloads\\best.pt",
+    "sha256": "45252fc7ce305c336e9b05f05d3eb2cb6b169cdb9f5f2f98a236d13cb6a7f0c7",
+    "tailset_derived": false
+  },
+  "overrides": {
+    "contact_source": "last_accepted",
+    "manual_point": false,
+    "point_source": "model"
+  },
+  "schema": "dog_diving.result/1",
+  "stage_versions": {
+    "annotate": "m7",
+    "calibration": "m2",
+    "contact": "m5",
+    "detect": "m3",
+    "distance": "m6",
+    "report": "m7",
+    "trajectory": "m4",
+    "video": "m1"
+  },
+  "still_frame": 0,
+  "trajectory": {
+    "airborne_frame_range": null,
+    "arc_rms_all_px": null,
+    "arc_rms_px": null,
+    "coeffs": null,
+    "flight_points": [],
+    "flight_run": null,
+    "inliers": [],
+    "last_arc_frame": null,
+    "last_contact_candidate": null,
+    "max_inlier_res_px": null,
+    "n_before_entry": 0,
+    "n_before_leave": 0,
+    "n_inliers": 0,
+    "n_outliers": 0,
+    "n_points": 0,
+    "runs": []
+  },
+  "warnings": [
+    "no measurement point \u2014 there is nothing to convert (the chosen frame has no accepted detection; an arc prediction is no longer substituted for one)",
+    "no contact frame is chosen (PLAN \u00a75 D4: the operator confirms or nudges the auto-suggestion before a distance is reported)"
+  ]
+}

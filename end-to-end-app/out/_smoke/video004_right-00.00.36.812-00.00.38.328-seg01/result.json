@@ -1,0 +1,1252 @@
+{
+  "artifacts": {
+    "annotated": "annotated.mp4",
+    "calib_used": "calib_used.json",
+    "meta": "run_meta.json",
+    "report": "report.txt",
+    "result": "result.json",
+    "still": "final_frame.png",
+    "tracks": "tracks.json",
+    "trajectory": "trajectory.json"
+  },
+  "calibration": {
+    "path": null,
+    "present": false,
+    "reason": "no calibration was supplied: px->in needs PLAN \u00a74.2's marks and PLAN \u00a75 #2 needs the waterline row, so the inches fields are null and the pixel-domain fields are the real output (data/calib/ is empty as of 2026-10-08 \u2014 HANDOFF open item 10)",
+    "setup_id": null
+  },
+  "clip": {
+    "codec": "mpeg4",
+    "declared_vs_decoded": [
+      92,
+      92
+    ],
+    "fps": 60.0,
+    "height": 600,
+    "id": "video004_right-00.00.36.812-00.00.38.328-seg01",
+    "n_frames": 92,
+    "name": "video004_right-00.00.36.812-00.00.38.328-seg01.mp4",
+    "sha256": "83eca603e1d9ca4295dd0cb80aff71a31e2634f0bd099a6fbd183f7c7630f06a",
+    "vfr": false,
+    "width": 960
+  },
+  "config": {
+    "clahe": true,
+    "clahe_clip": 2.5,
+    "clahe_grid": [
+      8,
+      8
+    ],
+    "conf": 0.12,
+    "device": "cpu",
+    "imgsz": 1280,
+    "kp_conf": 0.3,
+    "max_det": 1,
+    "model_path": "C:\\Users\\harri\\Dog-Diving-End-to-End\\dog-diving-scorer\\models\\yolo26n-pose_dogs_v5.pt",
+    "track_coverage_min": 0.5,
+    "tracker": "bytetrack.yaml"
+  },
+  "contact": {
+    "arc_is_freefall": true,
+    "arc_reason": "arc turns from rising to falling: cy2 = 0.0132 > 0, image-y minimum (apex) at frame 1.6",
+    "candidates": [
+      {
+        "available": true,
+        "confident": true,
+        "evidence": {
+          "frames_after_last_arc": 0,
+          "inside_flight_run": true,
+          "kp_conf": 0.9866892695426941,
+          "last_arc_frame": 86,
+          "n_accepted": 55,
+          "x": 527.3207397460938,
+          "y": 311.88922119140625
+        },
+        "frame": 86,
+        "rank": 1,
+        "reason": "last accepted tailset detection (frame 86, keypoint conf 0.99); inside the fitted flight run; the tailset is occluded or confused once the splash starts, so this proxy is systematically EARLY",
+        "source": "last_accepted"
+      },
+      {
+        "available": false,
+        "confident": false,
+        "evidence": {
+          "waterline_y": null
+        },
+        "frame": null,
+        "rank": 2,
+        "reason": "unavailable: no waterline \u2014 PLAN \u00a75 #2 solves y(t) = waterline.y, which comes from the M2 calibration (data/calib/); none exists for this clip",
+        "source": "arc_waterline"
+      },
+      {
+        "available": false,
+        "confident": false,
+        "evidence": {
+          "apex_frame": 1.596770504069923,
+          "box_conf_floor": null,
+          "collapse_end": 3,
+          "collapse_start": 2,
+          "kp_conf_at_start": null,
+          "kp_conf_threshold": 0.3,
+          "min_descent_px_per_frame": 1.0,
+          "run_length": 2,
+          "slope_at_collapse_px_per_frame": 0.010642715070842357
+        },
+        "frame": null,
+        "rank": 3,
+        "reason": "unavailable: the fitted arc is not descending at frame 2 (dy/dt = 0.01 px/frame < 1), so this confidence gap is not a water entry",
+        "source": "conf_collapse"
+      },
+      {
+        "available": true,
+        "confident": false,
+        "evidence": {
+          "departure_frame": null,
+          "n_pairs": 54,
+          "vel_tol_px": 20.0
+        },
+        "frame": 86,
+        "rank": 4,
+        "reason": "the observed dy/dt stays within 20 px/frame of the free-fall fit across the whole observed run, so the last frame before departure is the last observed frame 86",
+        "source": "velocity_reversal"
+      }
+    ],
+    "chosen_frame": 86,
+    "chosen_source": "last_accepted",
+    "n_frames": 92,
+    "waterline_y": null,
+    "window": [
+      86,
+      86
+    ]
+  },
+  "detection": {
+    "cache_key_hash": "5d69e6f0e6c59705",
+    "dominant_track": null,
+    "n_accepted": 55,
+    "n_detections": 55,
+    "n_frames_clip": 92,
+    "n_frames_processed": 92,
+    "track_coverage": 0.0,
+    "tracking_available": false
+  },
+  "detection_ladder": {
+    "base": {
+      "conf": 0.12,
+      "imgsz": 1280,
+      "kp_conf": 0.3
+    },
+    "below_min_points": false,
+    "chosen": {
+      "base_conf": 0.12,
+      "base_kp_conf": 0.3,
+      "conf": 0.12,
+      "imgsz": 1280,
+      "kp_conf": 0.3,
+      "met_minimum": true,
+      "n_accepted": 55,
+      "n_detections": 55
+    },
+    "disabled": false,
+    "imgsz_escalated": false,
+    "imgsz_tried": [
+      1280
+    ],
+    "min_points": 8,
+    "n_low_conf_points": 0,
+    "n_points": 55,
+    "rungs": [
+      {
+        "conf": 0.12,
+        "imgsz": 1280,
+        "kp_conf": 0.3,
+        "met_minimum": true,
+        "n_accepted": 55,
+        "n_detections": 55
+      }
+    ]
+  },
+  "measurement": {
+    "arc_is_freefall": true,
+    "arc_reason": "arc turns from rising to falling: cy2 = 0.0132 > 0, image-y minimum (apex) at frame 1.6",
+    "calib_fit_type": null,
+    "calib_residual_rms_in": null,
+    "calib_setup_id": null,
+    "cfg": {
+      "kp_mode": "literal",
+      "kp_window": 5,
+      "mark_sigma_px": null,
+      "rounding": "nearest",
+      "waterline_tol_in": 6
+    },
+    "contact_source": "last_accepted",
+    "display": null,
+    "feet": null,
+    "flags": {},
+    "frame": 86,
+    "gates": {},
+    "in_per_px": null,
+    "inches": null,
+    "kp_frames": [
+      82,
+      83,
+      84,
+      85,
+      86
+    ],
+    "kp_k": 5,
+    "model_point": [
+      527.3207397460938,
+      311.88922119140625
+    ],
+    "point_origin": "detection",
+    "point_source": "model",
+    "rounded_inches": null,
+    "sigma_complete": false,
+    "sigma_in": null,
+    "sigma_kp_detrended_in": null,
+    "sigma_kp_literal_in": null,
+    "sigma_terms": {
+      "fit": null,
+      "frame": null,
+      "kp": null,
+      "mark": null
+    },
+    "splash_gap_in": null,
+    "splash_gap_px": null,
+    "splash_gap_tol_in": 6.0,
+    "total_inches": null,
+    "waterline_y": null,
+    "x_px": 527.3207397460938,
+    "y_px": 311.88922119140625
+  },
+  "model": {
+    "path": "C:\\Users\\harri\\Dog-Diving-End-to-End\\dog-diving-scorer\\models\\yolo26n-pose_dogs_v5.pt",
+    "sha256": "e6e0005e1c94b0d2a22236b3a279c8dedeaa37da66c947a474d5b44be6cef0ba"
+  },
+  "overrides": {
+    "contact_source": "last_accepted",
+    "manual_point": false,
+    "point_source": "model"
+  },
+  "schema": "dog_diving.result/1",
+  "stage_versions": {
+    "annotate": "m7",
+    "calibration": "m2",
+    "contact": "m5",
+    "detect": "m3",
+    "distance": "m6",
+    "report": "m7",
+    "trajectory": "m4",
+    "video": "m1"
+  },
+  "still_frame": 86,
+  "trajectory": {
+    "airborne_frame_range": [
+      5,
+      86
+    ],
+    "arc_rms_all_px": 19.450719802444432,
+    "arc_rms_px": 9.701679905843974,
+    "coeffs": {
+      "t_ref": 47.018181818181816,
+      "x": [
+        -0.05923423501595347,
+        -4.809931304808908,
+        791.0770256604023
+      ],
+      "y": [
+        0.013196845937936916,
+        1.1988387347919989,
+        240.95332592682803
+      ]
+    },
+    "flight_points": [
+      {
+        "box_conf": 0.13461185991764069,
+        "conf_used": 0.12,
+        "frame": 5,
+        "kp_conf": 0.9890475869178772,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 877.17626953125,
+        "y": 221.9127960205078
+      },
+      {
+        "box_conf": 0.27174627780914307,
+        "conf_used": 0.12,
+        "frame": 7,
+        "kp_conf": 0.9915453791618347,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 883.9209594726562,
+        "y": 215.7757568359375
+      },
+      {
+        "box_conf": 0.31213825941085815,
+        "conf_used": 0.12,
+        "frame": 8,
+        "kp_conf": 0.9937360286712646,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 889.5714721679688,
+        "y": 210.84457397460938
+      },
+      {
+        "box_conf": 0.2647082805633545,
+        "conf_used": 0.12,
+        "frame": 10,
+        "kp_conf": 0.99339759349823,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 892.8640747070312,
+        "y": 216.03814697265625
+      },
+      {
+        "box_conf": 0.3064449429512024,
+        "conf_used": 0.12,
+        "frame": 11,
+        "kp_conf": 0.9948930740356445,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 908.8667602539062,
+        "y": 208.0340118408203
+      },
+      {
+        "box_conf": 0.7664799690246582,
+        "conf_used": 0.12,
+        "frame": 12,
+        "kp_conf": 0.9943933486938477,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 883.9387817382812,
+        "y": 213.96359252929688
+      },
+      {
+        "box_conf": 0.7822912931442261,
+        "conf_used": 0.12,
+        "frame": 13,
+        "kp_conf": 0.9951978325843811,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 878.9337158203125,
+        "y": 212.06268310546875
+      },
+      {
+        "box_conf": 0.7573668360710144,
+        "conf_used": 0.12,
+        "frame": 14,
+        "kp_conf": 0.9948990941047668,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 877.8173217773438,
+        "y": 213.55917358398438
+      },
+      {
+        "box_conf": 0.7321581840515137,
+        "conf_used": 0.12,
+        "frame": 15,
+        "kp_conf": 0.9944857954978943,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 878.799560546875,
+        "y": 214.03973388671875
+      },
+      {
+        "box_conf": 0.7699521780014038,
+        "conf_used": 0.12,
+        "frame": 16,
+        "kp_conf": 0.9944837689399719,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 894.6538696289062,
+        "y": 209.5451202392578
+      },
+      {
+        "box_conf": 0.5757308006286621,
+        "conf_used": 0.12,
+        "frame": 17,
+        "kp_conf": 0.9931786060333252,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 891.91259765625,
+        "y": 211.2163848876953
+      },
+      {
+        "box_conf": 0.6030829548835754,
+        "conf_used": 0.12,
+        "frame": 18,
+        "kp_conf": 0.9954121708869934,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 877.9993286132812,
+        "y": 218.51231384277344
+      },
+      {
+        "box_conf": 0.729493260383606,
+        "conf_used": 0.12,
+        "frame": 19,
+        "kp_conf": 0.996577799320221,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 871.472412109375,
+        "y": 218.8597869873047
+      },
+      {
+        "box_conf": 0.4519558548927307,
+        "conf_used": 0.12,
+        "frame": 20,
+        "kp_conf": 0.9945396780967712,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 873.1533203125,
+        "y": 220.6419219970703
+      },
+      {
+        "box_conf": 0.42418450117111206,
+        "conf_used": 0.12,
+        "frame": 21,
+        "kp_conf": 0.9924613833427429,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 888.9530639648438,
+        "y": 216.2061767578125
+      },
+      {
+        "box_conf": 0.6971312761306763,
+        "conf_used": 0.12,
+        "frame": 22,
+        "kp_conf": 0.9932876229286194,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 894.9741821289062,
+        "y": 217.79159545898438
+      },
+      {
+        "box_conf": 0.35998430848121643,
+        "conf_used": 0.12,
+        "frame": 23,
+        "kp_conf": 0.9927652478218079,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 885.6185302734375,
+        "y": 220.71624755859375
+      },
+      {
+        "box_conf": 0.4855097234249115,
+        "conf_used": 0.12,
+        "frame": 26,
+        "kp_conf": 0.9917757511138916,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 880.1083374023438,
+        "y": 221.20181274414062
+      },
+      {
+        "box_conf": 0.2114342451095581,
+        "conf_used": 0.12,
+        "frame": 29,
+        "kp_conf": 0.9922575950622559,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 892.913330078125,
+        "y": 220.13621520996094
+      },
+      {
+        "box_conf": 0.7096506953239441,
+        "conf_used": 0.12,
+        "frame": 33,
+        "kp_conf": 0.9955370426177979,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 877.2940673828125,
+        "y": 214.3075714111328
+      },
+      {
+        "box_conf": 0.38322219252586365,
+        "conf_used": 0.12,
+        "frame": 34,
+        "kp_conf": 0.9955936074256897,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 869.1026611328125,
+        "y": 221.4275665283203
+      },
+      {
+        "box_conf": 0.5106984972953796,
+        "conf_used": 0.12,
+        "frame": 35,
+        "kp_conf": 0.9963679313659668,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 866.8440551757812,
+        "y": 223.8284912109375
+      },
+      {
+        "box_conf": 0.2200426161289215,
+        "conf_used": 0.12,
+        "frame": 38,
+        "kp_conf": 0.9944156408309937,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 892.2205810546875,
+        "y": 210.74693298339844
+      },
+      {
+        "box_conf": 0.14639873802661896,
+        "conf_used": 0.12,
+        "frame": 39,
+        "kp_conf": 0.9942014813423157,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 878.42578125,
+        "y": 216.59112548828125
+      },
+      {
+        "box_conf": 0.44534167647361755,
+        "conf_used": 0.12,
+        "frame": 43,
+        "kp_conf": 0.9939414262771606,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 811.3528442382812,
+        "y": 240.54356384277344
+      },
+      {
+        "box_conf": 0.4425852298736572,
+        "conf_used": 0.12,
+        "frame": 44,
+        "kp_conf": 0.9952937960624695,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 804.422119140625,
+        "y": 238.29139709472656
+      },
+      {
+        "box_conf": 0.7005115747451782,
+        "conf_used": 0.12,
+        "frame": 45,
+        "kp_conf": 0.9945068955421448,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 801.2534790039062,
+        "y": 240.7624053955078
+      },
+      {
+        "box_conf": 0.43863609433174133,
+        "conf_used": 0.12,
+        "frame": 46,
+        "kp_conf": 0.9935110211372375,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 797.6217651367188,
+        "y": 246.5741729736328
+      },
+      {
+        "box_conf": 0.7883676886558533,
+        "conf_used": 0.12,
+        "frame": 47,
+        "kp_conf": 0.9934385418891907,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 787.48388671875,
+        "y": 249.39056396484375
+      },
+      {
+        "box_conf": 0.4490879774093628,
+        "conf_used": 0.12,
+        "frame": 48,
+        "kp_conf": 0.9933028221130371,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 787.9752197265625,
+        "y": 247.05899047851562
+      },
+      {
+        "box_conf": 0.5622903108596802,
+        "conf_used": 0.12,
+        "frame": 49,
+        "kp_conf": 0.9924840331077576,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 777.2074584960938,
+        "y": 247.1173095703125
+      },
+      {
+        "box_conf": 0.39410826563835144,
+        "conf_used": 0.12,
+        "frame": 54,
+        "kp_conf": 0.9956421852111816,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 767.3859252929688,
+        "y": 253.87380981445312
+      },
+      {
+        "box_conf": 0.37032100558280945,
+        "conf_used": 0.12,
+        "frame": 64,
+        "kp_conf": 0.9988808035850525,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 675.6024780273438,
+        "y": 250.8449249267578
+      },
+      {
+        "box_conf": 0.8145257234573364,
+        "conf_used": 0.12,
+        "frame": 65,
+        "kp_conf": 0.9989727735519409,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 665.1837158203125,
+        "y": 249.5482635498047
+      },
+      {
+        "box_conf": 0.779941976070404,
+        "conf_used": 0.12,
+        "frame": 66,
+        "kp_conf": 0.9953587651252747,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 658.2224731445312,
+        "y": 249.67233276367188
+      },
+      {
+        "box_conf": 0.8118668794631958,
+        "conf_used": 0.12,
+        "frame": 67,
+        "kp_conf": 0.998324453830719,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 651.1221923828125,
+        "y": 254.05311584472656
+      },
+      {
+        "box_conf": 0.4900123178958893,
+        "conf_used": 0.12,
+        "frame": 68,
+        "kp_conf": 0.9969382286071777,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 636.791748046875,
+        "y": 254.66326904296875
+      },
+      {
+        "box_conf": 0.13705679774284363,
+        "conf_used": 0.12,
+        "frame": 69,
+        "kp_conf": 0.9936536550521851,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 631.2041625976562,
+        "y": 257.6946716308594
+      },
+      {
+        "box_conf": 0.6176250576972961,
+        "conf_used": 0.12,
+        "frame": 70,
+        "kp_conf": 0.9979141354560852,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 632.65625,
+        "y": 260.1101989746094
+      },
+      {
+        "box_conf": 0.5385324358940125,
+        "conf_used": 0.12,
+        "frame": 71,
+        "kp_conf": 0.998623251914978,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 632.0101318359375,
+        "y": 265.8055114746094
+      },
+      {
+        "box_conf": 0.2537282705307007,
+        "conf_used": 0.12,
+        "frame": 72,
+        "kp_conf": 0.9989081621170044,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 625.4215087890625,
+        "y": 269.3105163574219
+      },
+      {
+        "box_conf": 0.2602122724056244,
+        "conf_used": 0.12,
+        "frame": 73,
+        "kp_conf": 0.9986957907676697,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 613.3972778320312,
+        "y": 270.3132019042969
+      },
+      {
+        "box_conf": 0.5514548420906067,
+        "conf_used": 0.12,
+        "frame": 74,
+        "kp_conf": 0.9972835779190063,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 603.3519287109375,
+        "y": 271.7267761230469
+      },
+      {
+        "box_conf": 0.5506393313407898,
+        "conf_used": 0.12,
+        "frame": 75,
+        "kp_conf": 0.9950923919677734,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 599.8951416015625,
+        "y": 276.46588134765625
+      },
+      {
+        "box_conf": 0.6342394351959229,
+        "conf_used": 0.12,
+        "frame": 76,
+        "kp_conf": 0.9989681243896484,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 599.0908203125,
+        "y": 282.6361999511719
+      },
+      {
+        "box_conf": 0.5773787498474121,
+        "conf_used": 0.12,
+        "frame": 77,
+        "kp_conf": 0.9971747398376465,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 586.7247314453125,
+        "y": 285.29034423828125
+      },
+      {
+        "box_conf": 0.5586543083190918,
+        "conf_used": 0.12,
+        "frame": 78,
+        "kp_conf": 0.9979808926582336,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 578.3303833007812,
+        "y": 288.9469299316406
+      },
+      {
+        "box_conf": 0.5949833989143372,
+        "conf_used": 0.12,
+        "frame": 79,
+        "kp_conf": 0.9954740405082703,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 578.47021484375,
+        "y": 293.922607421875
+      },
+      {
+        "box_conf": 0.7484419345855713,
+        "conf_used": 0.12,
+        "frame": 80,
+        "kp_conf": 0.9966949224472046,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 569.0980834960938,
+        "y": 295.7248229980469
+      },
+      {
+        "box_conf": 0.4022405445575714,
+        "conf_used": 0.12,
+        "frame": 81,
+        "kp_conf": 0.9969712495803833,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 562.7330932617188,
+        "y": 301.0111999511719
+      },
+      {
+        "box_conf": 0.6323180794715881,
+        "conf_used": 0.12,
+        "frame": 82,
+        "kp_conf": 0.9978006482124329,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 556.4210815429688,
+        "y": 306.1822814941406
+      },
+      {
+        "box_conf": 0.7737475633621216,
+        "conf_used": 0.12,
+        "frame": 83,
+        "kp_conf": 0.9978601336479187,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 548.48583984375,
+        "y": 307.6447448730469
+      },
+      {
+        "box_conf": 0.8317327499389648,
+        "conf_used": 0.12,
+        "frame": 84,
+        "kp_conf": 0.9979503750801086,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 536.8984375,
+        "y": 310.38519287109375
+      },
+      {
+        "box_conf": 0.2565166652202606,
+        "conf_used": 0.12,
+        "frame": 85,
+        "kp_conf": 0.9977169036865234,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 534.4403076171875,
+        "y": 311.4192810058594
+      },
+      {
+        "box_conf": 0.17530272901058197,
+        "conf_used": 0.12,
+        "frame": 86,
+        "kp_conf": 0.9866892695426941,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 527.3207397460938,
+        "y": 311.88922119140625
+      }
+    ],
+    "flight_run": 0,
+    "inliers": [
+      {
+        "box_conf": 0.13461185991764069,
+        "conf_used": 0.12,
+        "frame": 5,
+        "kp_conf": 0.9890475869178772,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 877.17626953125,
+        "y": 221.9127960205078
+      },
+      {
+        "box_conf": 0.27174627780914307,
+        "conf_used": 0.12,
+        "frame": 7,
+        "kp_conf": 0.9915453791618347,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 883.9209594726562,
+        "y": 215.7757568359375
+      },
+      {
+        "box_conf": 0.31213825941085815,
+        "conf_used": 0.12,
+        "frame": 8,
+        "kp_conf": 0.9937360286712646,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 889.5714721679688,
+        "y": 210.84457397460938
+      },
+      {
+        "box_conf": 0.2647082805633545,
+        "conf_used": 0.12,
+        "frame": 10,
+        "kp_conf": 0.99339759349823,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 892.8640747070312,
+        "y": 216.03814697265625
+      },
+      {
+        "box_conf": 0.7664799690246582,
+        "conf_used": 0.12,
+        "frame": 12,
+        "kp_conf": 0.9943933486938477,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 883.9387817382812,
+        "y": 213.96359252929688
+      },
+      {
+        "box_conf": 0.7822912931442261,
+        "conf_used": 0.12,
+        "frame": 13,
+        "kp_conf": 0.9951978325843811,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 878.9337158203125,
+        "y": 212.06268310546875
+      },
+      {
+        "box_conf": 0.7573668360710144,
+        "conf_used": 0.12,
+        "frame": 14,
+        "kp_conf": 0.9948990941047668,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 877.8173217773438,
+        "y": 213.55917358398438
+      },
+      {
+        "box_conf": 0.7321581840515137,
+        "conf_used": 0.12,
+        "frame": 15,
+        "kp_conf": 0.9944857954978943,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 878.799560546875,
+        "y": 214.03973388671875
+      },
+      {
+        "box_conf": 0.7699521780014038,
+        "conf_used": 0.12,
+        "frame": 16,
+        "kp_conf": 0.9944837689399719,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 894.6538696289062,
+        "y": 209.5451202392578
+      },
+      {
+        "box_conf": 0.5757308006286621,
+        "conf_used": 0.12,
+        "frame": 17,
+        "kp_conf": 0.9931786060333252,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 891.91259765625,
+        "y": 211.2163848876953
+      },
+      {
+        "box_conf": 0.6030829548835754,
+        "conf_used": 0.12,
+        "frame": 18,
+        "kp_conf": 0.9954121708869934,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 877.9993286132812,
+        "y": 218.51231384277344
+      },
+      {
+        "box_conf": 0.729493260383606,
+        "conf_used": 0.12,
+        "frame": 19,
+        "kp_conf": 0.996577799320221,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 871.472412109375,
+        "y": 218.8597869873047
+      },
+      {
+        "box_conf": 0.4519558548927307,
+        "conf_used": 0.12,
+        "frame": 20,
+        "kp_conf": 0.9945396780967712,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 873.1533203125,
+        "y": 220.6419219970703
+      },
+      {
+        "box_conf": 0.42418450117111206,
+        "conf_used": 0.12,
+        "frame": 21,
+        "kp_conf": 0.9924613833427429,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 888.9530639648438,
+        "y": 216.2061767578125
+      },
+      {
+        "box_conf": 0.35998430848121643,
+        "conf_used": 0.12,
+        "frame": 23,
+        "kp_conf": 0.9927652478218079,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 885.6185302734375,
+        "y": 220.71624755859375
+      },
+      {
+        "box_conf": 0.4855097234249115,
+        "conf_used": 0.12,
+        "frame": 26,
+        "kp_conf": 0.9917757511138916,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 880.1083374023438,
+        "y": 221.20181274414062
+      },
+      {
+        "box_conf": 0.44534167647361755,
+        "conf_used": 0.12,
+        "frame": 43,
+        "kp_conf": 0.9939414262771606,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 811.3528442382812,
+        "y": 240.54356384277344
+      },
+      {
+        "box_conf": 0.4425852298736572,
+        "conf_used": 0.12,
+        "frame": 44,
+        "kp_conf": 0.9952937960624695,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 804.422119140625,
+        "y": 238.29139709472656
+      },
+      {
+        "box_conf": 0.7005115747451782,
+        "conf_used": 0.12,
+        "frame": 45,
+        "kp_conf": 0.9945068955421448,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 801.2534790039062,
+        "y": 240.7624053955078
+      },
+      {
+        "box_conf": 0.43863609433174133,
+        "conf_used": 0.12,
+        "frame": 46,
+        "kp_conf": 0.9935110211372375,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 797.6217651367188,
+        "y": 246.5741729736328
+      },
+      {
+        "box_conf": 0.7883676886558533,
+        "conf_used": 0.12,
+        "frame": 47,
+        "kp_conf": 0.9934385418891907,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 787.48388671875,
+        "y": 249.39056396484375
+      },
+      {
+        "box_conf": 0.4490879774093628,
+        "conf_used": 0.12,
+        "frame": 48,
+        "kp_conf": 0.9933028221130371,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 787.9752197265625,
+        "y": 247.05899047851562
+      },
+      {
+        "box_conf": 0.5622903108596802,
+        "conf_used": 0.12,
+        "frame": 49,
+        "kp_conf": 0.9924840331077576,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 777.2074584960938,
+        "y": 247.1173095703125
+      },
+      {
+        "box_conf": 0.39410826563835144,
+        "conf_used": 0.12,
+        "frame": 54,
+        "kp_conf": 0.9956421852111816,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 767.3859252929688,
+        "y": 253.87380981445312
+      },
+      {
+        "box_conf": 0.5385324358940125,
+        "conf_used": 0.12,
+        "frame": 71,
+        "kp_conf": 0.998623251914978,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 632.0101318359375,
+        "y": 265.8055114746094
+      },
+      {
+        "box_conf": 0.2537282705307007,
+        "conf_used": 0.12,
+        "frame": 72,
+        "kp_conf": 0.9989081621170044,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 625.4215087890625,
+        "y": 269.3105163574219
+      },
+      {
+        "box_conf": 0.2602122724056244,
+        "conf_used": 0.12,
+        "frame": 73,
+        "kp_conf": 0.9986957907676697,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 613.3972778320312,
+        "y": 270.3132019042969
+      },
+      {
+        "box_conf": 0.5514548420906067,
+        "conf_used": 0.12,
+        "frame": 74,
+        "kp_conf": 0.9972835779190063,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 603.3519287109375,
+        "y": 271.7267761230469
+      },
+      {
+        "box_conf": 0.5506393313407898,
+        "conf_used": 0.12,
+        "frame": 75,
+        "kp_conf": 0.9950923919677734,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 599.8951416015625,
+        "y": 276.46588134765625
+      },
+      {
+        "box_conf": 0.6342394351959229,
+        "conf_used": 0.12,
+        "frame": 76,
+        "kp_conf": 0.9989681243896484,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 599.0908203125,
+        "y": 282.6361999511719
+      },
+      {
+        "box_conf": 0.5773787498474121,
+        "conf_used": 0.12,
+        "frame": 77,
+        "kp_conf": 0.9971747398376465,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 586.7247314453125,
+        "y": 285.29034423828125
+      },
+      {
+        "box_conf": 0.5586543083190918,
+        "conf_used": 0.12,
+        "frame": 78,
+        "kp_conf": 0.9979808926582336,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 578.3303833007812,
+        "y": 288.9469299316406
+      },
+      {
+        "box_conf": 0.5949833989143372,
+        "conf_used": 0.12,
+        "frame": 79,
+        "kp_conf": 0.9954740405082703,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 578.47021484375,
+        "y": 293.922607421875
+      },
+      {
+        "box_conf": 0.7484419345855713,
+        "conf_used": 0.12,
+        "frame": 80,
+        "kp_conf": 0.9966949224472046,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 569.0980834960938,
+        "y": 295.7248229980469
+      },
+      {
+        "box_conf": 0.4022405445575714,
+        "conf_used": 0.12,
+        "frame": 81,
+        "kp_conf": 0.9969712495803833,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 562.7330932617188,
+        "y": 301.0111999511719
+      },
+      {
+        "box_conf": 0.6323180794715881,
+        "conf_used": 0.12,
+        "frame": 82,
+        "kp_conf": 0.9978006482124329,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 556.4210815429688,
+        "y": 306.1822814941406
+      },
+      {
+        "box_conf": 0.7737475633621216,
+        "conf_used": 0.12,
+        "frame": 83,
+        "kp_conf": 0.9978601336479187,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 548.48583984375,
+        "y": 307.6447448730469
+      },
+      {
+        "box_conf": 0.8317327499389648,
+        "conf_used": 0.12,
+        "frame": 84,
+        "kp_conf": 0.9979503750801086,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 536.8984375,
+        "y": 310.38519287109375
+      },
+      {
+        "box_conf": 0.2565166652202606,
+        "conf_used": 0.12,
+        "frame": 85,
+        "kp_conf": 0.9977169036865234,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 534.4403076171875,
+        "y": 311.4192810058594
+      },
+      {
+        "box_conf": 0.17530272901058197,
+        "conf_used": 0.12,
+        "frame": 86,
+        "kp_conf": 0.9866892695426941,
+        "kp_conf_used": 0.3,
+        "low_conf": false,
+        "x": 527.3207397460938,
+        "y": 311.88922119140625
+      }
+    ],
+    "last_arc_frame": 86,
+    "last_contact_candidate": {
+      "box_conf": 0.17530272901058197,
+      "conf_used": 0.12,
+      "frame": 86,
+      "kp_conf": 0.9866892695426941,
+      "kp_conf_used": 0.3,
+      "low_conf": false,
+      "x": 527.3207397460938,
+      "y": 311.88922119140625
+    },
+    "max_inlier_res_px": 18.565269947466724,
+    "n_before_entry": 0,
+    "n_before_leave": 0,
+    "n_inliers": 40,
+    "n_outliers": 15,
+    "n_points": 55,
+    "runs": [
+      {
+        "end_frame": 86,
+        "i0": 0,
+        "i1": 55,
+        "n": 55,
+        "start_frame": 5
+      }
+    ]
+  },
+  "warnings": [
+    "sigma_kp unavailable: no calibration, so there is no px->in scale to convert the window's scatter into inches",
+    "sigma_frame unavailable: no neighbouring frame to difference (needs the fitted arc or an explicit point at frame +-1)",
+    "no mark-localisation term: PLAN \u00a74.4 does not list one, and the M2 study measured mark placement as the *dominant* reproducibility budget (~5.1 x sigma_px inches) \u2014 pass mark_sigma_px to include it, and inflate any claim made without it",
+    "NO CALIBRATION for this clip (data/calib/ is empty): px->in needs PLAN \u00a74.2's marks, and PLAN \u00a75 #2 needs the waterline row \u2014 the pixel-domain fields above are real, the inches are not computable"
+  ]
+}

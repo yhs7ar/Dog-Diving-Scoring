@@ -1,0 +1,61 @@
+{
+  "argv": null,
+  "clip_id": "video004_right-00.00.36.812-00.00.38.328-seg01",
+  "created": "2026-10-21T14:59:05+00:00",
+  "extra": {
+    "conf": 0.12,
+    "contact": "auto",
+    "draw": true,
+    "imgsz": 1280,
+    "kp_conf": 0.3,
+    "ladder": {
+      "base": {
+        "conf": 0.12,
+        "imgsz": 1280,
+        "kp_conf": 0.3
+      },
+      "below_min_points": false,
+      "chosen": {
+        "base_conf": 0.12,
+        "base_kp_conf": 0.3,
+        "conf": 0.12,
+        "imgsz": 1280,
+        "kp_conf": 0.3,
+        "met_minimum": true,
+        "n_accepted": 55,
+        "n_detections": 55
+      },
+      "disabled": false,
+      "imgsz_escalated": false,
+      "imgsz_tried": [
+        1280
+      ],
+      "min_points": 8,
+      "n_low_conf_points": 0,
+      "n_points": 55,
+      "rungs": [
+        {
+          "conf": 0.12,
+          "imgsz": 1280,
+          "kp_conf": 0.3,
+          "met_minimum": true,
+          "n_accepted": 55,
+          "n_detections": 55
+        }
+      ]
+    },
+    "min_points": 8,
+    "subclip": null
+  },
+  "from_cache": false,
+  "host": "ThinkPad5440",
+  "platform": "Windows-10-10.0.26200-SP0",
+  "timings": {
+    "cancelled": 0.0,
+    "fps": 1.4543663042095032,
+    "inference_ms_per_frame": null,
+    "ms_per_frame": 687.5846869565186,
+    "projected_clip_s": 63.2577911999997,
+    "total_s": 63.2577911999997
+  }
+}

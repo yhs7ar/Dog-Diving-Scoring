@@ -1,0 +1,57 @@
+{
+  "frames": 46,
+  "frames_with_gt": 46,
+  "frames_with_detection": 1,
+  "frames_accepted": 1,
+  "frames_scored": 1,
+  "tailset_err_px": {
+    "n": 1,
+    "mean": 196.37,
+    "median": 196.37,
+    "p90": 196.37,
+    "max": 196.37
+  },
+  "nose_err_px": {
+    "n": 1,
+    "mean": 351.04,
+    "median": 351.04,
+    "p90": 351.04,
+    "max": 351.04
+  },
+  "tailset_rel_err": {
+    "n": 1,
+    "mean": 2.29,
+    "median": 2.29,
+    "p90": 2.29,
+    "max": 2.29
+  },
+  "nose_rel_err": {
+    "n": 1,
+    "mean": 4.09,
+    "median": 4.09,
+    "p90": 4.09,
+    "max": 4.09
+  },
+  "tailset_within_5pct": 0.0,
+  "tailset_within_10pct": 0.0,
+  "tailset_within_20pct": 0.0,
+  "per_frame": [
+    {
+      "frame": 35,
+      "tailset_err_px": 196.4,
+      "nose_err_px": 351.0,
+      "box_diag_px": 85.7,
+      "tailset_err_rel": 2.2902,
+      "kp_conf": 0.952
+    }
+  ],
+  "trajectory": {
+    "points": 1,
+    "runs": 1,
+    "airborne": null,
+    "arc_rms_px": null,
+    "inliers": 0,
+    "outliers": 0
+  },
+  "model": "models\\yolo26s-pose_dogs_clahe.pt"
+}

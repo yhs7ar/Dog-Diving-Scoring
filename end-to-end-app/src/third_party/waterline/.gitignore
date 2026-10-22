@@ -1,0 +1,9 @@
+out/
+cleanup/
+__pycache__/
+videos/
+out_lite/
+out_stub/
+
+plane.json
+waterline.json

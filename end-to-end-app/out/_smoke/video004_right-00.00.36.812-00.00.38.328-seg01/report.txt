@@ -1,0 +1,37 @@
+Dog Diving jump-distance result
+==============================
+clip         video004_right-00.00.36.812-00.00.38.328-seg01  (sha256 83eca603e1d9ca42...)  video004_right-00.00.36.812-00.00.38.328-seg01.mp4
+video        960x600 @ 60.0 fps, mpeg4, 92 frames
+model        sha256 e6e0005e1c94b0d2...
+config       imgsz=1280 conf=0.12 kp_conf=0.3 clahe=True
+
+calibration  NONE — data/calib/ is empty (PLAN §12 item 4): the pixel-domain
+             fields below are real, the inches are not computable
+
+detection    92 frames processed, 55 detections, 55 accepted
+ladder       min 8 pt -> imgsz=1280 conf=0.12 kp_conf=0.3: 55 pt, 0 low-conf, 1 rung(s) tried
+trajectory   55 accepted points, 1 run(s), flight run 0 [5, 86], 40 inliers, arc RMS 9.701679905843974 px
+contact      chosen frame 86 from 'last_accepted'; arc_is_freefall=True
+             #1 last_accepted         f86  avail=True conf=True
+             #2 arc_waterline         n/a  avail=False conf=False
+             #3 conf_collapse         n/a  avail=False conf=False
+             #4 velocity_reversal     f86  avail=True conf=False
+
+measurement  x=527.3207397460938 y=311.88922119140625 point_source=model (detection)
+distance     n/a — no calibration was supplied: px->in needs PLAN §4.2's marks and PLAN §5 #2 needs the waterline row, so the inches fields are null and the pixel-domain fields are the real output (data/calib/ is empty as of 2026-10-08 — HANDOFF open item 10)
+
+warnings     4
+  - sigma_kp unavailable: no calibration, so there is no px->in scale to convert the window's scatter into inches
+  - sigma_frame unavailable: no neighbouring frame to difference (needs the fitted arc or an explicit point at frame +-1)
+  - no mark-localisation term: PLAN §4.4 does not list one, and the M2 study measured mark placement as the *dominant* reproducibility budget (~5.1 x sigma_px inches) — pass mark_sigma_px to include it, and inflate any claim made without it
+  - NO CALIBRATION for this clip (data/calib/ is empty): px->in needs PLAN §4.2's marks, and PLAN §5 #2 needs the waterline row — the pixel-domain fields above are real, the inches are not computable
+
+artifacts
+  annotated    annotated.mp4
+  calib_used   calib_used.json
+  meta         run_meta.json
+  report       report.txt
+  result       result.json
+  still        final_frame.png
+  tracks       tracks.json
+  trajectory   trajectory.json

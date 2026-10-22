@@ -1,0 +1,324 @@
+{
+  "frames": 46,
+  "frames_with_gt": 46,
+  "frames_with_detection": 34,
+  "frames_accepted": 34,
+  "frames_scored": 34,
+  "tailset_err_px": {
+    "n": 34,
+    "mean": 296.59,
+    "median": 252.8,
+    "p90": 585.38,
+    "max": 622.81
+  },
+  "nose_err_px": {
+    "n": 34,
+    "mean": 431.26,
+    "median": 404.72,
+    "p90": 708.14,
+    "max": 734.6
+  },
+  "tailset_rel_err": {
+    "n": 34,
+    "mean": 4.38,
+    "median": 2.93,
+    "p90": 10.57,
+    "max": 11.99
+  },
+  "nose_rel_err": {
+    "n": 34,
+    "mean": 6.11,
+    "median": 4.68,
+    "p90": 12.79,
+    "max": 14.14
+  },
+  "tailset_within_5pct": 0.0,
+  "tailset_within_10pct": 0.0,
+  "tailset_within_20pct": 0.0,
+  "per_frame": [
+    {
+      "frame": 25,
+      "tailset_err_px": 83.0,
+      "nose_err_px": 225.1,
+      "box_diag_px": 93.8,
+      "tailset_err_rel": 0.8857,
+      "kp_conf": 0.943
+    },
+    {
+      "frame": 26,
+      "tailset_err_px": 91.3,
+      "nose_err_px": 239.2,
+      "box_diag_px": 97.4,
+      "tailset_err_rel": 0.9368,
+      "kp_conf": 0.94
+    },
+    {
+      "frame": 27,
+      "tailset_err_px": 101.8,
+      "nose_err_px": 250.8,
+      "box_diag_px": 96.3,
+      "tailset_err_rel": 1.0566,
+      "kp_conf": 0.936
+    },
+    {
+      "frame": 28,
+      "tailset_err_px": 114.6,
+      "nose_err_px": 262.0,
+      "box_diag_px": 90.9,
+      "tailset_err_rel": 1.2606,
+      "kp_conf": 0.935
+    },
+    {
+      "frame": 29,
+      "tailset_err_px": 124.3,
+      "nose_err_px": 280.2,
+      "box_diag_px": 98.2,
+      "tailset_err_rel": 1.2656,
+      "kp_conf": 0.933
+    },
+    {
+      "frame": 30,
+      "tailset_err_px": 134.1,
+      "nose_err_px": 287.4,
+      "box_diag_px": 95.0,
+      "tailset_err_rel": 1.412,
+      "kp_conf": 0.937
+    },
+    {
+      "frame": 31,
+      "tailset_err_px": 145.4,
+      "nose_err_px": 300.7,
+      "box_diag_px": 93.4,
+      "tailset_err_rel": 1.5561,
+      "kp_conf": 0.947
+    },
+    {
+      "frame": 32,
+      "tailset_err_px": 158.1,
+      "nose_err_px": 313.6,
+      "box_diag_px": 90.8,
+      "tailset_err_rel": 1.7411,
+      "kp_conf": 0.948
+    },
+    {
+      "frame": 33,
+      "tailset_err_px": 170.3,
+      "nose_err_px": 325.9,
+      "box_diag_px": 88.6,
+      "tailset_err_rel": 1.9209,
+      "kp_conf": 0.95
+    },
+    {
+      "frame": 34,
+      "tailset_err_px": 184.4,
+      "nose_err_px": 338.5,
+      "box_diag_px": 85.3,
+      "tailset_err_rel": 2.1632,
+      "kp_conf": 0.949
+    },
+    {
+      "frame": 35,
+      "tailset_err_px": 196.4,
+      "nose_err_px": 351.0,
+      "box_diag_px": 85.7,
+      "tailset_err_rel": 2.2902,
+      "kp_conf": 0.952
+    },
+    {
+      "frame": 36,
+      "tailset_err_px": 209.8,
+      "nose_err_px": 361.9,
+      "box_diag_px": 83.9,
+      "tailset_err_rel": 2.5002,
+      "kp_conf": 0.954
+    },
+    {
+      "frame": 37,
+      "tailset_err_px": 222.1,
+      "nose_err_px": 374.8,
+      "box_diag_px": 85.7,
+      "tailset_err_rel": 2.5913,
+      "kp_conf": 0.953
+    },
+    {
+      "frame": 38,
+      "tailset_err_px": 235.0,
+      "nose_err_px": 386.2,
+      "box_diag_px": 85.1,
+      "tailset_err_rel": 2.7601,
+      "kp_conf": 0.951
+    },
+    {
+      "frame": 39,
+      "tailset_err_px": 247.3,
+      "nose_err_px": 399.0,
+      "box_diag_px": 85.9,
+      "tailset_err_rel": 2.8779,
+      "kp_conf": 0.952
+    },
+    {
+      "frame": 40,
+      "tailset_err_px": 258.3,
+      "nose_err_px": 410.5,
+      "box_diag_px": 86.4,
+      "tailset_err_rel": 2.99,
+      "kp_conf": 0.953
+    },
+    {
+      "frame": 41,
+      "tailset_err_px": 271.8,
+      "nose_err_px": 426.0,
+      "box_diag_px": 90.2,
+      "tailset_err_rel": 3.0146,
+      "kp_conf": 0.949
+    },
+    {
+      "frame": 42,
+      "tailset_err_px": 289.3,
+      "nose_err_px": 435.3,
+      "box_diag_px": 84.5,
+      "tailset_err_rel": 3.4256,
+      "kp_conf": 0.939
+    },
+    {
+      "frame": 43,
+      "tailset_err_px": 301.4,
+      "nose_err_px": 450.3,
+      "box_diag_px": 84.7,
+      "tailset_err_rel": 3.5585,
+      "kp_conf": 0.938
+    },
+    {
+      "frame": 44,
+      "tailset_err_px": 313.4,
+      "nose_err_px": 464.9,
+      "box_diag_px": 85.9,
+      "tailset_err_rel": 3.6501,
+      "kp_conf": 0.938
+    },
+    {
+      "frame": 45,
+      "tailset_err_px": 325.0,
+      "nose_err_px": 475.7,
+      "box_diag_px": 83.3,
+      "tailset_err_rel": 3.9036,
+      "kp_conf": 0.937
+    },
+    {
+      "frame": 46,
+      "tailset_err_px": 337.8,
+      "nose_err_px": 487.8,
+      "box_diag_px": 83.3,
+      "tailset_err_rel": 4.055,
+      "kp_conf": 0.931
+    },
+    {
+      "frame": 47,
+      "tailset_err_px": 345.9,
+      "nose_err_px": 499.4,
+      "box_diag_px": 84.2,
+      "tailset_err_rel": 4.1066,
+      "kp_conf": 0.937
+    },
+    {
+      "frame": 50,
+      "tailset_err_px": 17.1,
+      "nose_err_px": 15.8,
+      "box_diag_px": 74.7,
+      "tailset_err_rel": 0.2285,
+      "kp_conf": 0.901
+    },
+    {
+      "frame": 51,
+      "tailset_err_px": 22.9,
+      "nose_err_px": 13.7,
+      "box_diag_px": 70.4,
+      "tailset_err_rel": 0.3254,
+      "kp_conf": 0.932
+    },
+    {
+      "frame": 62,
+      "tailset_err_px": 528.0,
+      "nose_err_px": 658.7,
+      "box_diag_px": 61.9,
+      "tailset_err_rel": 8.5264,
+      "kp_conf": 0.937
+    },
+    {
+      "frame": 63,
+      "tailset_err_px": 539.9,
+      "nose_err_px": 669.8,
+      "box_diag_px": 61.6,
+      "tailset_err_rel": 8.7678,
+      "kp_conf": 0.936
+    },
+    {
+      "frame": 64,
+      "tailset_err_px": 551.7,
+      "nose_err_px": 679.8,
+      "box_diag_px": 60.5,
+      "tailset_err_rel": 9.1221,
+      "kp_conf": 0.934
+    },
+    {
+      "frame": 65,
+      "tailset_err_px": 565.3,
+      "nose_err_px": 691.0,
+      "box_diag_px": 56.8,
+      "tailset_err_rel": 9.9494,
+      "kp_conf": 0.939
+    },
+    {
+      "frame": 66,
+      "tailset_err_px": 577.2,
+      "nose_err_px": 701.1,
+      "box_diag_px": 56.6,
+      "tailset_err_rel": 10.1938,
+      "kp_conf": 0.936
+    },
+    {
+      "frame": 67,
+      "tailset_err_px": 588.9,
+      "nose_err_px": 711.2,
+      "box_diag_px": 54.9,
+      "tailset_err_rel": 10.7306,
+      "kp_conf": 0.936
+    },
+    {
+      "frame": 68,
+      "tailset_err_px": 598.5,
+      "nose_err_px": 715.6,
+      "box_diag_px": 52.2,
+      "tailset_err_rel": 11.4755,
+      "kp_conf": 0.931
+    },
+    {
+      "frame": 69,
+      "tailset_err_px": 610.9,
+      "nose_err_px": 725.6,
+      "box_diag_px": 52.2,
+      "tailset_err_rel": 11.6947,
+      "kp_conf": 0.932
+    },
+    {
+      "frame": 70,
+      "tailset_err_px": 622.8,
+      "nose_err_px": 734.6,
+      "box_diag_px": 51.9,
+      "tailset_err_rel": 11.9901,
+      "kp_conf": 0.931
+    }
+  ],
+  "trajectory": {
+    "points": 34,
+    "runs": 2,
+    "airborne": [
+      25,
+      51
+    ],
+    "arc_rms_px": 1.59,
+    "inliers": 23,
+    "outliers": 2
+  },
+  "model": "models\\yolo26s-pose_dogs_clahe.pt"
+}

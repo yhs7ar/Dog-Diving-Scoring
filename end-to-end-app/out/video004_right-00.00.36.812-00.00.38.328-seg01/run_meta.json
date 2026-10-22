@@ -1,0 +1,44 @@
+{
+  "argv": null,
+  "clip_id": "video004_right-00.00.36.812-00.00.38.328-seg01",
+  "created": "2026-10-22T05:00:36+00:00",
+  "extra": {
+    "conf": 0.12,
+    "contact": "auto",
+    "draw": true,
+    "imgsz": 1280,
+    "kp_conf": 0.3,
+    "ladder": {
+      "base": {
+        "conf": 0.12,
+        "imgsz": 1280,
+        "kp_conf": 0.3
+      },
+      "below_min_points": false,
+      "chosen": null,
+      "disabled": true,
+      "imgsz_escalated": false,
+      "imgsz_tried": [
+        1280
+      ],
+      "min_points": 0,
+      "n_low_conf_points": 0,
+      "n_points": 0,
+      "rungs": []
+    },
+    "min_points": 0,
+    "subclip": null
+  },
+  "from_cache": true,
+  "host": "DESKTOP-N6LE4SI",
+  "platform": "Windows-10-10.0.22635-SP0",
+  "timings": {
+    "cache_load_s": 0.031947800000125426,
+    "cancelled": 0.0,
+    "fps": 1.263531897865501,
+    "inference_ms_per_frame": null,
+    "ms_per_frame": 791.4323347826133,
+    "projected_clip_s": 72.81177480000042,
+    "total_s": 72.81177480000042
+  }
+}

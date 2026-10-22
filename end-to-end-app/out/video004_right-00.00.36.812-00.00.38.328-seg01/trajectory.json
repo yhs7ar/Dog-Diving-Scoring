@@ -1,0 +1,27 @@
+{
+  "airborne_frame_range": null,
+  "arc_rms_all_px": null,
+  "arc_rms_px": null,
+  "cfg": {
+    "arc_outlier_px": 20,
+    "max_frame_gap": 10,
+    "min_run_points": 3,
+    "ransac_iters": 3000,
+    "seed": 0
+  },
+  "clip_id": "video004_right-00.00.36.812-00.00.38.328-seg01",
+  "coeffs": null,
+  "flight_points": [],
+  "flight_run": null,
+  "inliers": [],
+  "last_arc_frame": null,
+  "last_contact_candidate": null,
+  "max_inlier_res_px": null,
+  "n_before_entry": 0,
+  "n_before_leave": 0,
+  "n_outliers": 0,
+  "n_points": 0,
+  "points": [],
+  "residuals": null,
+  "runs": []
+}
