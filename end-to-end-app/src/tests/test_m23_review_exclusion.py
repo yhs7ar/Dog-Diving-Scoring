@@ -185,3 +185,57 @@ def test_annotated_still_drops_the_excluded_marker(tmp_path: Path, sc, doc):
     assert a.shape == b.shape
     assert int(np.abs(a.astype(int) - b.astype(int)).sum()) > 0, \
         "the exported still ignored the deselection"
+
+
+# ---------------------------------------------------------------------------
+# 5. the list opens on the points the arc uses (order 2026-10-28)
+# ---------------------------------------------------------------------------
+def _traj_55():
+    """55 accepted detections with the parabola fitted on the last 20 — a real run's shape."""
+    pts = [{"frame": 32 + i, "x": 800.0 - 3.0 * i, "y": 300.0 + 1.5 * i, "kp_conf": 0.9}
+           for i in range(55)]
+    traj = traj_with(pts)
+    traj.fit_points = pts[-20:]                 # exactly what build_trajectory records
+    return traj, pts
+
+
+def test_the_list_opens_on_the_points_the_arc_uses():
+    """Order 2026-10-28: *"automatically deselect the points not being used for the trajectory"*.
+
+    A 55-detection run read "55 of 55 point(s) included" while the arc fitted 20 of them.
+    """
+    app_gui = pytest.importorskip("app_gui")
+    traj, pts = _traj_55()
+    st = app_gui.ReviewState(clip=Path("x.mp4"), traj=traj, contact=None, calib=None,
+                             image_size=(960, 600))
+    assert sum(r["included"] for r in st.point_rows()) == 55
+
+    dropped = st.focus_trajectory_window()
+    assert dropped == 35
+
+    rows = st.point_rows()
+    assert sum(r["included"] for r in rows) == 20
+    # exactly the twenty the fit used — the LAST twenty, not the first
+    assert [r["frame"] for r in rows if r["included"]] == [p["frame"] for p in pts[-20:]]
+    # and the measured point is untouched: the final detection was, and still is, included
+    assert int(M.final_point(traj, st.excluded)["frame"]) == pts[-1]["frame"]
+
+
+def test_the_drawn_points_are_exactly_the_fitted_window():
+    """The canvas keeps the same twenty the quadratic was fitted on — not a nearby set."""
+    app_gui = pytest.importorskip("app_gui")
+    traj, _pts = _traj_55()
+    st = app_gui.ReviewState(clip=Path("x.mp4"), traj=traj, contact=None, calib=None,
+                             image_size=(960, 600))
+    st.focus_trajectory_window()
+    assert [int(p["frame"]) for p in st.draw_points()] == [int(p["frame"]) for p in traj.fit_points]
+
+
+def test_focus_is_a_no_op_when_there_is_no_window():
+    """No parabola window (the gates rejected it, or no frame size): nothing is hidden."""
+    app_gui = pytest.importorskip("app_gui")
+    pts = [{"frame": f, "x": float(f), "y": 1.0} for f in (10, 20, 30)]
+    st = app_gui.ReviewState(clip=Path("x.mp4"), traj=traj_with(pts), contact=None, calib=None,
+                             image_size=(960, 600))
+    assert st.focus_trajectory_window() == 0
+    assert sum(r["included"] for r in st.point_rows()) == 3

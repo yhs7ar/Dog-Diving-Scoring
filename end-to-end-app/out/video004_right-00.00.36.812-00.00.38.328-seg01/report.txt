@@ -2,32 +2,32 @@ Dog Diving jump-distance result
 ==============================
 clip         video004_right-00.00.36.812-00.00.38.328-seg01  (sha256 83eca603e1d9ca42...)  video004_right-00.00.36.812-00.00.38.328-seg01.mp4
 video        960x600 @ 60.0 fps, mpeg4, 92 frames
-model        sha256 45252fc7ce305c33...
+model        sha256 e6e0005e1c94b0d2...
 config       imgsz=1280 conf=0.12 kp_conf=0.3 clahe=True
 
 calibration  NONE — data/calib/ is empty (PLAN §12 item 4): the pixel-domain
              fields below are real, the inches are not computable
 
-detection    92 frames processed, 0 detections, 0 accepted
+detection    92 frames processed, 55 detections, 55 accepted
 ladder       off: fixed thresholds (min_points=0)
-trajectory   0 accepted points, 0 run(s), flight run None None, 0 inliers, arc RMS None px
-contact      chosen frame None from 'last_accepted'; arc_is_freefall=False
-             #1 last_accepted         n/a  avail=False conf=False
+trajectory   55 accepted points, 1 run(s), flight run 0 [5, 86], 40 inliers, arc RMS 9.701679905843974 px
+contact      chosen frame 86 from 'final-detection'; arc_is_freefall=True
+             #1 last_accepted         f86  avail=True conf=True
              #2 arc_waterline         n/a  avail=False conf=False
              #3 conf_collapse         n/a  avail=False conf=False
-             #4 velocity_reversal     n/a  avail=False conf=False
+             #4 velocity_reversal     f86  avail=True conf=False
 
-measurement  x=None y=None point_source=model (detection)
-distance     n/a — no calibration was supplied: px->in needs PLAN §4.2's marks and PLAN §5 #2 needs the waterline row, so the inches fields are null and the pixel-domain fields are the real output (data/calib/ is empty as of 2026-10-08 — HANDOFF open item 10)
+measurement  x=527.3207397460938 y=311.88922119140625 point_source=model (detection)
+distance     8' 1"  +/- None in  [LOWER BOUND: a budget term is missing]
+             total_inches=97.0056585329481 sigma_complete=None terms=None
 
-warnings     2
-  - no measurement point — there is nothing to convert (the chosen frame has no accepted detection; an arc prediction is no longer substituted for one)
-  - no contact frame is chosen (PLAN §5 D4: the operator confirms or nudges the auto-suggestion before a distance is reported)
+warnings     0
 
 artifacts
   annotated    annotated.mp4
   calib_used   calib_used.json
   meta         run_meta.json
+  pool_translation pool_translation.json
   report       report.txt
   result       result.json
   still        final_frame.png

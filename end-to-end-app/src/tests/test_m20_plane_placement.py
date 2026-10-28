@@ -281,11 +281,11 @@ def test_the_arrow_keys_do_not_nudge_from_another_tab(monkeypatch):
         s.select("10")
         before = s.corners["10"]
 
-        app.nb.select(0)                                       # the Load tab
+        app.nb.select(1)                                       # Process — not the plane tab
         assert app.on_arrow_key(_Ev(0), 1, 0) is None
         assert s.corners["10"] == before, "an arrow key on another tab moved the plane"
 
-        app.nb.select(1)                                       # Calibrate
+        app.nb.select(0)                                       # Calibrate
         assert app.on_arrow_key(_Ev(0), 1, 0) == "break"
         assert s.corners["10"][0] == pytest.approx(before[0] + 1.0)
     finally:
@@ -360,19 +360,37 @@ def test_the_length_entry_is_an_anchor_and_35_is_the_ceiling(monkeypatch):
     root = _root_or_skip()
     try:
         app = _app(root, monkeypatch)
-        # New Plane starts on the whole pool: 0 ft at the dock, 35 ft opposite it.
+        # Before the corners are placed the boxes describe the INITIAL FIT: the full 0-35 ft axis.
         assert app.plane_len_var.get() == "35"
         assert app.plane_near_var.get() == "0"
-        start = app.plane_session.length_ft
+        assert app.plane_session.length_ft == pytest.approx(PL.METRIC_LENGTH_FT)
+        assert app.plane_session.dock_offset_ft == pytest.approx(0.0)
+
         app.plane_len_var.set("40")
         app.on_plane_dims()
-        assert app.plane_session.length_ft == pytest.approx(start), (
+        assert app.plane_session.length_ft == pytest.approx(PL.METRIC_LENGTH_FT), (
             "an anchor beyond the 35 ft axis must be refused, leaving the plane unchanged")
-        assert app.plane_session.length_ft == pytest.approx(PL.METRIC_LENGTH_FT)
 
-        app.plane_len_var.set("18")
+        # Applying anchors moves the SELECTABLE short edges to those X values ...
+        H0 = app.plane_session.homography()
+        before = dict(app.plane_session.corners)
+        app.plane_near_var.set("10")
+        app.plane_len_var.set("15")
         app.on_plane_dims()
-        assert app.plane_session.length_ft == pytest.approx(18.0)
-        assert app.plane_session.extent()["x_max"] == pytest.approx(35.0)
+        assert app.plane_session.dock_offset_ft == pytest.approx(10.0)
+        assert app.plane_session.length_ft == pytest.approx(5.0)
+        assert app.plane_session.corners != before, "the selectable short edges did not move"
+        for tag, want_x in (("00", 10.0), ("01", 10.0), ("10", 15.0), ("11", 15.0)):
+            wx, _wy = app.plane_session.world_at(*app.plane_session.corners[tag])
+            assert wx == pytest.approx(want_x, abs=1e-6), (tag, wx)
+
+        # ... and the PLANE does not move with them.
+        H1 = app.plane_session.homography()
+        for X, Y in ((0.0, 0.0), (5.0, 5.0), (17.5, 10.0), (35.0, 20.0)):
+            a = PL.project(H0, X, Y)
+            b = PL.project(H1, X, Y)
+            d = ((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2) ** 0.5
+            assert d < 1e-6, f"the plane moved {d:.3g} px at X={X}, Y={Y}"
+        assert app.plane_session.extent()["x_max"] == pytest.approx(PL.METRIC_LENGTH_FT)
     finally:
         root.destroy()

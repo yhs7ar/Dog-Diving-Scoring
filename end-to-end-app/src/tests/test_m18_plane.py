@@ -103,13 +103,28 @@ def test_only_the_nearest_handle_is_grabbed_and_sides_move_both_corners(sc):
     assert s.corners["00"] == pytest.approx((c00[0] + 30.0, c00[1] + 12.0))
     s.release()
 
-    # a side drag translates the edge: both of its corners move by the same delta
+    # a side drag PULLS the edge along its own normal (2026-10-27): both corners move together and
+    # the edge's direction is unchanged, but the motion is perpendicular to it — a waterline cannot
+    # be slid sideways or rotated by accident.
     mid = s.side_midpoint("back")
     before = {t: s.corners[t] for t in ("00", "10")}
+    ex, ey = before["10"][0] - before["00"][0], before["10"][1] - before["00"][1]
+    n = float(np.hypot(ex, ey))
+    ux, uy = ex / n, ey / n                      # along the edge
+    nx, ny = -uy, ux                             # its normal
     assert s.click(pad[0] + mid[0], pad[1] + mid[1]) is True and s.dragging == "back"
-    s.drag_to(pad[0] + mid[0], pad[1] + mid[1] - 25.0)
+    # sideways along the edge is REJECTED: nothing moves
+    s.drag_to(pad[0] + mid[0] + 25.0 * ux, pad[1] + mid[1] + 25.0 * uy)
     for t in ("00", "10"):
-        assert s.corners[t] == pytest.approx((before[t][0], before[t][1] - 25.0))
+        assert s.corners[t] == pytest.approx(before[t], abs=1e-6), f"{t} slid along the edge"
+    # perpendicular is ACCEPTED, both corners by the same delta, and only along the normal
+    s.drag_to(pad[0] + mid[0] + 25.0 * nx, pad[1] + mid[1] + 25.0 * ny)
+    deltas = [(s.corners[t][0] - before[t][0], s.corners[t][1] - before[t][1])
+              for t in ("00", "10")]
+    for dx_, dy_ in deltas:
+        assert abs(dx_ * ux + dy_ * uy) < 1e-6, "the edge moved along itself instead of across"
+        assert dx_ * nx + dy_ * ny == pytest.approx(25.0, abs=1e-6)
+    assert deltas[0] == pytest.approx(deltas[1], abs=1e-6), "the two corners did not move together"
     s.release()
     assert s.dragging is None
 
@@ -327,7 +342,9 @@ def test_review_measures_x_from_the_plane_not_the_1d_route(sc):
     m = st.measurement()
     assert m.get("route") == "plane", m
     assert m["total_inches"] == pytest.approx(X * 12.0, abs=0.2), m
-    assert "plane" in st.readout()
+    # the readout is the NUMBER and nothing else (order 2026-10-28): no [plane·…] bracket
+    assert st.readout() == str(m["display"])
+    assert "[" not in st.readout()
     # a manual click takes precedence over the trajectory point, as everywhere else
     st.manual_point = (float(sc.project(5.0, 4.0, sc.water_z_ft)[0]),
                        float(sc.project(5.0, 4.0, sc.water_z_ft)[1]))

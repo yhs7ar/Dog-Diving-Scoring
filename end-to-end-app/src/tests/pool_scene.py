@@ -31,7 +31,7 @@ import numpy as np
 DEFAULT_FREEBOARD_IN = 19.5
 # A competition pool's stated length, and the 14-20 ft width band the plan's Phase 3 names.
 DEFAULT_LENGTH_FT = 31.0
-DEFAULT_WIDTH_FT = 16.0
+DEFAULT_WIDTH_FT = 20.0
 DEFAULT_IMAGE = (1920, 1080)
 
 

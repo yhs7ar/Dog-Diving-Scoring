@@ -9,10 +9,10 @@ PLAN §5, ``app_gui.py`` — Tkinter flow (D5)::
                    near edge long) and arms the Snap to Waterline toggle; the pool's two short ends
                    are detected as well as its two long waterlines, and X = 0 lands on whichever end
                    the orientation control selects.  Plus two anchors (near dock / opposite dock),
-                   Re-detect Waterline, Flip Plane (left-right, which changes the NUMBER scale only)
-                   and Complete; Save New Plane sits with the saved-plane picker and keys the
-                   document to the clip's sha256 instead of a typed setup id.  A clip that has a
-                   saved plane gets it automatically on load.
+                   Re-fit Waterline, Flip Plane (left-right, which changes the NUMBER scale only)
+                   and Complete.  The saved-plane picker keys each document to its clip's sha256;
+                   "Save New Plane" is hidden (2026-10-27) and Complete commits the quad.  A clip
+                   that has a saved plane gets it automatically on load.
     3. Process   — `Run` in a worker thread; progress bar with frame count and ETA
                    (measured throughput, not guessed); `Cancel`; "using cached
                    tracks" indicator; a quick `Preview on this frame` button.
@@ -68,6 +68,7 @@ from __future__ import annotations
 
 import argparse
 import math
+import os
 import queue
 import shutil
 import sys
@@ -130,8 +131,8 @@ SEED_FRAME_COUNT = 90
 
 #: The two +x anchors, in feet from the dock: the quad's dock-side edge and its far edge.  The
 #: defaults are the whole 35 ft pool, which is what a new plane starts as.
-SEED_ANCHOR_NEAR_FT = 0.0
-SEED_ANCHOR_FAR_FT = float(plane_mod.METRIC_LENGTH_FT)
+SEED_ANCHOR_NEAR_FT = 10.0
+SEED_ANCHOR_FAR_FT = 15.0
 
 #: The snap toggle's four boxes, in the order they appear: plane side -> label.  ``back``/``front``
 #: are the two long waterlines (far/near), ``left``/``right`` the pool's two short ends (X = 0/X = L).
@@ -151,6 +152,13 @@ PRIMARY_BG_ACTIVE = "#388bfd"
 #: at 90% default"*).  Tk cannot alpha-composite canvas items over a photo, so :meth:`App._blend`
 #: applies the same arithmetic an alpha blend would — colour = a*ink + (1-a)*the frame pixel under it.
 OPACITY_DEFAULT_PCT = 90.0
+
+#: Review's GRID opacity at startup, in percent — a slider of its own (operator order 2026-10-28:
+#: *"add another opacity slider for the grid and only the grid"*).  The lattice covers the whole pool
+#: and the trajectory, points and entry mark sit on top of the dog: wanting to read one is not the
+#: same as wanting to read the other, so they are separate controls.  Same 90 % default, so an
+#: untouched app looks exactly as it did.
+GRID_OPACITY_DEFAULT_PCT = 90.0
 
 #: Grab radius, in SCREEN px, for taking hold of the entry marker.  Screen px so it behaves the same
 #: at every zoom instead of demanding a pixel-perfect hit on a 3 px mark.
@@ -562,8 +570,12 @@ class ReviewState:
             return {"coeffs": getattr(self.traj, "coeffs", None),
                     "inliers": getattr(self.traj, "inliers", []) or [],
                     "frame_range": getattr(self.traj, "airborne_frame_range", None),
-                    "n": len(pts), "rms_px": getattr(self.traj, "arc_rms_px", None)}
-        return trajectory_mod.refit(pts)
+                    "n": len(pts), "rms_px": getattr(self.traj, "arc_rms_px", None),
+                    # the fork's parabola, fitted at build time on the last 20 detections
+                    "parabola": getattr(self.traj, "parabola", None),
+                    "curve": getattr(self.traj, "curve", []) or [],
+                    "contact": getattr(self.traj, "contact_point", None)}
+        return trajectory_mod.refit(pts, frame_size=self.image_size)
 
     def point_rows(self) -> list[dict]:
         """Every accepted detection, frame order, with whether it is currently included.
@@ -578,6 +590,24 @@ class ReviewState:
                          "kp_conf": p.get("kp_conf"), "included": f not in self.excluded,
                          "low_conf": bool(p.get("low_conf"))})
         return rows
+
+
+    def focus_trajectory_window(self) -> int:
+        """Keep only the detections the trajectory is built from, and deselect the rest.
+
+        Order 2026-10-28: *"automatically deselect the points not being used for the trajectory"* —
+        the arc fits the last ``trajectory.LAST_N_POINTS`` accepted detections, so a 55-detection run
+        should read 20 of 55 included, not 55 of 55.  Returns how many were deselected.
+
+        A no-op when the trajectory has no window (the parabola gates rejected it, or the frame size
+        was unknown): there is no "used" set to keep, and hiding points would be a guess.
+        """
+        used = {int(f) for f in trajectory_mod.window_frames(self.traj)}
+        every = {int(p["frame"]) for p in (getattr(self.traj, "points", None) or [])}
+        if not used or not every or not (every - used):
+            return 0
+        self.excluded = every - used
+        return len(self.excluded)
 
 
     def include_all(self) -> None:
@@ -631,18 +661,18 @@ class ReviewState:
             frame=cut, frame_is_operator_choice=cut is not None)
 
     def readout(self) -> str:
+        """The measured number and nothing else.
+
+        Order 2026-10-28: the ``[plane·…]`` / ``[n point(s) deselected]`` / ``[entry f… by operator]``
+        suffixes are gone.  Each of them repeated a state the Review pane already shows, and three
+        brackets on the number that gets carried into the report made it harder to read, not easier.
+        """
         m = self.measurement()
         frame = self.contact.chosen_frame
-        tail = (f"   [{len(self.excluded)} point(s) deselected]") if self.excluded else ""
-        if self.entry_frame is not None or (self.entry_live and self.frame is not None):
-            tail += f"   [entry f{self.cutoff()} by operator]"
         if m.get("total_inches") is None:
             why = (m.get("warnings") or ["no measurement"])[0]
-            return f"frame {frame}: distance n/a — {why}{tail}"
-        at = m.get("frame")
-        where = "final detection" if m.get("point_source") == "model" else str(m.get("point_source"))
-        return (f"{m.get('display')}   [plane·{where}"
-                + (f" f{at}" if at is not None else "") + "]" + tail)
+            return f"frame {frame}: distance n/a — {why}"
+        return f"{m.get('display')}"
 
 
 # ===========================================================================
@@ -927,7 +957,7 @@ class App:
 
         self.tk, self.ttk = tk, ttk
         self.root = root
-        root.title("Dog Diving jump-distance scorer — prototype (PLAN §5)")
+        root.title("Dog Diving jump-distance scorer")
         root.geometry("1180x820")
 
         # --- state ---------------------------------------------------------
@@ -936,6 +966,11 @@ class App:
         self.stability = None
         self.stability_record: dict | None = None
         self.stability_overridden = False
+        # The ONE thing a failed stability check can ask of the operator (order 2026-10-28).  A suite
+        # gets a no-op, because a modal dialog would block it forever.
+        from tkinter import messagebox as _messagebox
+        self.warn: Callable[..., Any] = (
+            (lambda *a, **k: None) if "pytest" in sys.modules else _messagebox.showwarning)
         self.calib: dict | None = None
         self.calib_path: Path | None = None
         # The 3-D route's document and its per-clip result.  Kept apart from ``calib`` because they
@@ -957,6 +992,9 @@ class App:
         #: Waterline detections cached per clip sha256 — "detect once per clip", so New Plane on a
         #: clip already looked at places its quad instantly instead of re-running the detector.
         self._seed_cache: dict[str, tuple[Any, Any]] = {}
+        #: Canvas-px positions of the four per-edge lock icons, rebuilt on every overlay draw and
+        #: used by ``_lock_at`` so a click on a lock toggles that edge instead of grabbing a handle.
+        self._lock_hotspots: dict[str, tuple[float, float]] = {}
         #: The clip's sha256, computed on load and reused as the key that finds this clip's plane.
         self.clip_sha: str = ""
         #: The saved plane's identity: its setup id and the clips it has been accepted for.
@@ -1019,17 +1057,17 @@ class App:
 
         self.nb = ttk.Notebook(self.root)
         self.nb.pack(fill="both", expand=True, padx=8, pady=(0, 8))
-        self.tab_load = ttk.Frame(self.nb, padding=8)
         self.tab_calib = ttk.Frame(self.nb, padding=8)
         self.tab_process = ttk.Frame(self.nb, padding=8)
         self.tab_review = ttk.Frame(self.nb, padding=8)
         self.tab_results = ttk.Frame(self.nb, padding=8)
-        for tab, name in ((self.tab_load, "1 Load"), (self.tab_calib, "2 Calibrate"),
-                          (self.tab_process, "3 Process"), (self.tab_review, "4 Review"),
-                          (self.tab_results, "5 Results")):
+        # No Load step (order 2026-10-28): the toolbar's "Open clip…" loads, the stability check runs
+        # by itself, and a clip that fails it says so in a popup on Calibrate.  Nothing is asked of
+        # the operator that a screen could ask for.
+        for tab, name in ((self.tab_calib, "1 Calibrate"), (self.tab_process, "2 Process"),
+                          (self.tab_review, "3 Review"), (self.tab_results, "4 Results")):
             self.nb.add(tab, text=name)
 
-        self._build_load()
         self._build_calibrate()
         self._build_process()
         self._build_review()
@@ -1089,25 +1127,6 @@ class App:
             side="left", padx=8)
         return view, holder
 
-    def _build_load(self) -> None:
-        tk, ttk = self.tk, self.ttk
-        f = self.tab_load
-        self.load_info = ttk.Label(f, text="Open a clip to begin.", justify="left")
-        self.load_info.pack(anchor="w")
-        row = ttk.Frame(f)
-        row.pack(anchor="w", pady=6)
-        ttk.Button(row, text="Run stability check", command=self.on_stability).pack(side="left")
-        self.override_btn = ttk.Button(row, text="Override 'unusable'",
-                                       command=self.on_override_stability, state="disabled")
-        self.override_btn.pack(side="left", padx=6)
-        self.stability_label = ttk.Label(f, text="", justify="left", wraplength=1000)
-        self.stability_label.pack(anchor="w", pady=4)
-        self.load_canvas = tk.Canvas(f, width=900, height=420, bg="#202020",
-                                     highlightthickness=1, highlightbackground="#444")
-        self.load_canvas.pack(anchor="w", pady=4)
-        self.load_view = FrameView(self.load_canvas, 900, 420)
-        self.load_canvas.bind("<Configure>", self.load_view.on_resize)   # re-fits with the window
-
     def _build_calibrate(self) -> None:
         tk, ttk = self.tk, self.ttk
         f = self.tab_calib
@@ -1133,8 +1152,9 @@ class App:
         # Save New Plane belongs beside the picker (operator order): the picker decides which plane is
         # loaded, so the button that commits the current quad goes with it rather than in the button
         # row, where it was read as part of the alignment workflow.
+        # "Save New Plane" is hidden (operator order 2026-10-27): the plane is committed by Complete,
+        # and the extra button was being read as part of the alignment workflow.
         self.save_plane_btn = ttk.Button(pick, text="Save New Plane", command=self.on_save_pool)
-        self.save_plane_btn.pack(side="left", padx=(8, 0))
         # Whether this clip has a saved plane at all — the document is found by CLIP, not named by
         # hand (operator order 2026-10-21).
         self.pool_status = ttk.Label(pick, text="no saved plane for this clip")
@@ -1154,38 +1174,38 @@ class App:
         # tools — the seed and the flip use the same primitives — but they are no longer buttons.
         self.new_plane_btn = self._blue_button(plane_row, "New Plane", self.on_new_plane)
         self.new_plane_btn.pack(side="left")
-        # The waterline detector runs on demand and its result is cached per clip, so New Plane on
-        # the same clip is instant afterwards; this button forces a fresh look.
-        self.detect_btn = ttk.Button(plane_row, text="Re-detect Waterline",
-                                     command=self.on_detect_waterline)
+        # Re-fit (was Re-detect): puts the quad back on the waterlines detected for THIS clip.  It is
+        # deliberately not a fresh detection — the first fit is the reference, so an operator who has
+        # dragged things around can always get the detected shape back.  Operator order 2026-10-27.
+        self.detect_btn = ttk.Button(plane_row, text="Re-fit Waterline",
+                                     command=self.on_refit_waterline)
         self.detect_btn.pack(side="left", padx=(8, 0))
-        # Snapping is its own button (operator order) because it is a MODE: on, every edit that moves
-        # an edge is followed by sliding that edge back onto the detected waterline, which is what the
-        # operator wants while placing and exactly what they do not want while hand-correcting.
-        self.snap_on_var = tk.BooleanVar(value=False)
-        self.snap_btn = ttk.Button(plane_row, text="TOGGLE: Snap to Waterline (OFF)",
+        # Snapping is a per-EDGE property now (2026-10-27): every edge carries a lock icon on the
+        # canvas, all four are locked to begin with, and the master switch behind them stays on.
+        # The old toggle and its checkboxes are still built for the primitives and the tests, but
+        # nothing packs them.
+        self.snap_on_var = tk.BooleanVar(value=True)
+        self.snap_btn = ttk.Button(plane_row, text="TOGGLE: Snap to Waterline (ON)",
                                    command=self.on_toggle_snap)
-        self.snap_btn.pack(side="left", padx=(8, 0))
-        # One box per plane edge: Top = the far waterline, Bottom = the near one, Left/Right = the
-        # pool's two short ends (X = 0 and X = L).  Unchecking one leaves that edge free.  Only TOP is
-        # checked to begin with (operator order 2026-10-21): the far waterline is the one the seed's
-        # far edge is built from, so holding it is a real constraint, while holding all four would
-        # pin corners the operator still wants to drag.
         self.snap_side_vars: dict[str, Any] = {}
+        # The two LONG edges are fitted to the detected waterlines, so they start LOCKED.  The two
+        # SHORT ends sit at the anchor X values in mid-pool, where no waterline was detected, so a
+        # lock there would hold nothing: they start RELEASED (order 2026-10-27).
         for side, label in SNAP_SIDE_LABELS:
-            var = tk.BooleanVar(value=(side == SNAP_DEFAULT_SIDE))
-            self.snap_side_vars[side] = var
-            ttk.Checkbutton(plane_row, text=label, variable=var).pack(side="left", padx=(4, 0))
-        # Kept for the tests and for the log line that named it: the far edge is "Top".
+            self.snap_side_vars[side] = tk.BooleanVar(value=(side in ("back", "front")))
         self.snap_far_var = self.snap_side_vars["back"]
         # Changes the NUMBER scale only (operator order 2026-10-21): the quad keeps every corner where
         # the operator put it and only which end means X=0 changes.
         ttk.Button(plane_row, text="Flip Plane (left-right)",
                    command=self.on_plane_flip_x).pack(side="left", padx=(10, 0))
-        self.complete_btn = self._blue_button(plane_row, "Complete", self.on_build_plane)
+        self.complete_btn = self._blue_button(plane_row, "Plane Confirmed", self.on_build_plane,
+                                              primary_big=True)
         self.complete_btn.pack(side="left", padx=(10, 0))
+        # No plane caption on screen (order 2026-10-28: "remove ... anchors 10 — 15 ft • axis 0—35 ft
+        # ... ").  The label survives for the code that keeps it current, but nothing packs it: the
+        # quad, the anchors and the grid are the state, and a sentence repeating it was the noisiest
+        # line on the pane.
         self.plane_label = ttk.Label(f, text="no plane yet")
-        self.plane_label.pack(anchor="w", pady=(4, 0))
 
         dim_row = ttk.Frame(f)
         dim_row.pack(anchor="w", pady=(6, 0))
@@ -1211,14 +1231,6 @@ class App:
                      values=("auto", "left", "right"), width=6,
                      state="readonly").pack(side="left")
 
-        ttk.Label(f, text=(f"grid always on: 1 ft minor, 5 ft major · the +x axis always runs 0 → "
-                           f"{plane_mod.METRIC_LENGTH_FT:g} ft from the dock edge; the anchors only "
-                           "place this quad's two edges against visible pool marks")).pack(
-            anchor="w", pady=(2, 0))
-
-        self.calib_prompt = ttk.Label(f, text="not calibrating", font=("", 11, "bold"))
-        self.calib_prompt.pack(anchor="w", pady=4)
-
         self.calib_view, _cal_holder = self._zoomable(f, 900, 430)
         _cal_holder.pack(fill="both", expand=True)
         self.calib_view.overlay = self._draw_plane_overlay
@@ -1235,12 +1247,21 @@ class App:
 
 
     # -- fine placement: the arrow pad ---------------------------------------
-    def _blue_button(self, parent, text: str, command):
+    def _blue_button(self, parent, text: str, command, *, primary_big: bool = False):
         """A primary action: blue with white text (operator order — New Plane and Complete).
 
         ``tk.Button``, not ``ttk.Button``: the Windows ``vista`` theme paints ttk buttons itself and
         ignores ``background``, so a themed "blue" button comes out grey.
+
+        ``primary_big`` doubles the height and scales the width with it — the confirmation is the one
+        button the operator must not miss (order 2026-10-28).
         """
+        if primary_big:
+            return self.tk.Button(parent, text=text, command=command, bg=PRIMARY_BG, fg="white",
+                                  activebackground=PRIMARY_BG_ACTIVE, activeforeground="white",
+                                  relief="flat", bd=0, padx=30, pady=12, width=18,
+                                  font=("TkDefaultFont", 11, "bold"), cursor="hand2",
+                                  highlightthickness=0)
         return self.tk.Button(parent, text=text, command=command, bg=PRIMARY_BG, fg="white",
                               activebackground=PRIMARY_BG_ACTIVE, activeforeground="white",
                               relief="flat", bd=0, padx=12, pady=3, cursor="hand2",
@@ -1311,7 +1332,7 @@ class App:
     def on_arrow_key(self, event, dx: int, dy: int):
         """Arrow keys nudge on the Calibrate tab only, so Review keeps its own key bindings."""
         try:
-            if int(self.nb.index(self.nb.select())) != 1:
+            if int(self.nb.index(self.nb.select())) != 0:
                 return None
         except Exception:                                            # noqa: BLE001
             return None
@@ -1341,7 +1362,7 @@ class App:
         # the correct behaviour, and the log says so rather than silently mixing checkpoints.
         mrow = ttk.Frame(f)
         mrow.pack(anchor="w", pady=(6, 0))
-        ttk.Label(mrow, text="pose model:").pack(side="left")
+        ttk.Label(mrow, text="weights (.pt):").pack(side="left")
         self.model_var = self.tk.StringVar(value=str(detect_mod.MODEL_PATH))
         self.cmb_model = ttk.Combobox(mrow, textvariable=self.model_var, width=56,
                                       values=self._model_choices())
@@ -1362,14 +1383,13 @@ class App:
         # model (that one stays reachable through the file combobox, marked a/b in the registry).
         srow = ttk.Frame(f)
         srow.pack(anchor="w", pady=(2, 0))
-        ttk.Label(srow, text="backbone:").pack(side="left")
+        ttk.Label(srow, text="base model:").pack(side="left")
         self.scale_var = self.tk.StringVar(value=self._scale_choice_for(detect_mod.MODEL_PATH))
         self.cmb_scale = ttk.Combobox(srow, textvariable=self.scale_var, width=40,
                                       state="readonly", values=self._scale_choices())
         self.cmb_scale.pack(side="left", padx=4)
         self.cmb_scale.bind("<<ComboboxSelected>>", self.on_scale_pick)
         self.scale_status = ttk.Label(srow, text=self._scale_status_text(detect_mod.MODEL_PATH))
-        self.scale_status.pack(side="left", padx=6)
 
         row = ttk.Frame(f)
         row.pack(anchor="w", pady=6)
@@ -1379,7 +1399,7 @@ class App:
         self.cancel_btn.pack(side="left", padx=6)
         ttk.Button(row, text="Preview on this frame",
                    command=self.on_preview).pack(side="left", padx=6)
-        self.contact_mode = ttk.Label(f, text="contact frame: auto (PLAN §5 candidate #1)")
+        self.contact_mode = ttk.Label(f, text="contact frame: auto")
         self.contact_mode.pack(anchor="w")
         row2 = ttk.Frame(f)
         row2.pack(anchor="w", pady=(6, 0))
@@ -1391,25 +1411,14 @@ class App:
         self.min_points_var = self.tk.IntVar(value=0)
         ttk.Spinbox(row2, from_=0, to=500, width=5,
                     textvariable=self.min_points_var).pack(side="left", padx=4)
-        ttk.Label(row2, justify="left", wraplength=620, text=(
-            "0 = fixed thresholds. Below this many accepted points the detection confidence "
-            "threshold is lowered until the minimum is reached (imgsz last), and every point that "
-            "buys is marked low_conf in the artifacts.")).pack(side="left", padx=6)
         self.progress = ttk.Progressbar(f, length=880, maximum=1.0)
         self.progress.pack(anchor="w", pady=8)
         self.progress_label = ttk.Label(f, text="idle")
         self.progress_label.pack(anchor="w")
         self.cache_label = ttk.Label(f, text="")
-        self.cache_label.pack(anchor="w", pady=4)
-        ttk.Label(f, justify="left", wraplength=900, text=(
-            "Note (honest limitation): Cancel reaches the inference loop, because that is "
-            "the only stage exposing a cancel hook. It cannot interrupt the trajectory / "
-            "contact / annotate / encode stages, and a warm cache never consults it — the "
-            "run returns immediately instead."
-        )).pack(anchor="w", pady=(12, 0))
         self.process_canvas = self.tk.Canvas(f, width=900, height=360, bg="#202020",
                                              highlightthickness=1, highlightbackground="#444")
-        self.process_canvas.pack(anchor="w")
+        self.process_canvas.pack(fill="both", expand=True)
         self.process_view = FrameView(self.process_canvas, 900, 360)
 
     def on_jump_last_detection(self) -> None:
@@ -1425,35 +1434,14 @@ class App:
         self.log(f"jumped to the last accepted detection: frame {frame}")
         self._after_review_change()
 
-    def on_jump_apex(self) -> None:
-        """Jump to the fitted arc's apex — the fork's ``jump_apex``, ported."""
-        if self.review is None:
-            return
-        traj = self.review.traj
-        coeffs = getattr(traj, "coeffs", None)
-        flight = list(getattr(traj, "flight_points", []) or [])
-        if not coeffs or not flight:
-            self.log("no fitted arc to find an apex on")
-            return
-        fs = trajectory_mod.solve_frame_for_y(coeffs, max(p["y"] for p in flight))
-        if fs is None:
-            self.log("the arc has no apex in the fitted range")
-            return
-        frame = int(round(fs))
-        self.review.choose(frame, "jump-apex")
-        self.log(f"jumped to the arc apex: frame {frame}")
-        self._after_review_change()
-
     def _build_review(self) -> None:
         tk, ttk = self.tk, self.ttk
         f = self.tab_review
         row = ttk.Frame(f)
         row.pack(anchor="w")
-        # the trajectory fork's two jumps: land on a frame that HAS a detection, or on the apex
+        # land on a frame that HAS a detection (the fork's "jump last"), then step from there
         ttk.Button(row, text="last detection",
                    command=self.on_jump_last_detection).pack(side="left", padx=(10, 2))
-        ttk.Button(row, text="apex",
-                   command=self.on_jump_apex).pack(side="left", padx=(0, 8))
         for txt, delta in (("<<", -10), ("<", -5), ("prev", -1), ("next", +1),
                            ("+5", +5), (">>", +10)):
             ttk.Button(row, text=txt, width=5,
@@ -1498,7 +1486,7 @@ class App:
         # The plan view lives here now (2026-10-21): it replaces the water-entry candidate table,
         # which the final-point rule had already made redundant.  Where the dog landed belongs next
         # to the frame it landed on.
-        plan = ttk.LabelFrame(right, text="plan view — landing on the pool", padding=4)
+        plan = ttk.LabelFrame(right, text="Top-Down View of Jump", padding=4)
         plan.pack(fill="both", expand=True)
         self.plan_canvas = tk.Canvas(plan, width=360, height=250, background="#101418",
                                      highlightthickness=1, highlightbackground="#2a3038")
@@ -1509,7 +1497,7 @@ class App:
 
         # The other-dog fix (2026-10-21): every accepted detection is listed and can be taken out of
         # the trajectory.  The canvas click and this list write the SAME set, so they cannot disagree.
-        pts = ttk.LabelFrame(right, text="trajectory points — deselect what is not your dog", padding=4)
+        pts = ttk.LabelFrame(right, text="", padding=4)
         pts.pack(fill="both", expand=True, pady=(6, 0))
         bar = ttk.Frame(pts)
         bar.pack(fill="x")
@@ -1550,6 +1538,20 @@ class App:
                                       length=200, width=10,
                                       command=self.on_opacity)
         self.opacity_scale.pack(side="left", padx=(6, 0))
+        ttk.Label(op, text="%").pack(side="left", padx=(2, 0))
+
+        # The lattice gets a slider of its own (operator order 2026-10-28: *"add another opacity
+        # slider for the grid and only the grid … the other should control the trajectory, points,
+        # entry point"*).  The grid covers the entire pool; the elements sit on the dog.  Fading one
+        # is not the same decision as fading the other, and before this the single slider forced it
+        # to be.
+        ttk.Label(op, text="grid opacity:").pack(side="left", padx=(16, 0))
+        self.grid_opacity = tk.DoubleVar(value=GRID_OPACITY_DEFAULT_PCT)
+        self.grid_opacity_scale = tk.Scale(op, from_=0, to=100, orient="horizontal",
+                                           variable=self.grid_opacity, showvalue=True,
+                                           length=200, width=10,
+                                           command=self.on_opacity)
+        self.grid_opacity_scale.pack(side="left", padx=(6, 0))
         ttk.Label(op, text="%").pack(side="left", padx=(2, 0))
 
     def _build_results(self) -> None:
@@ -1602,20 +1604,16 @@ class App:
             self.log(f"could not open {clip}: {type(exc).__name__}: {exc}")
             return
         self.clip_label.configure(text=str(clip))
-        self.load_info.configure(text=(
-            f"{self.info.width}x{self.info.height} @ {self.info.fps:.3f} fps   "
-            f"{self.info.n_frames} frames   codec={self.info.codec}   "
-            f"duration={self.info.duration_s:.2f}s"
-            + ("   " + " | ".join(self.info.warnings) if self.info.warnings else "")
-        ))
+        # No Load pane to print the probe into: it goes to the session log, where it stays readable.
+        self.log(
+            f"clip: {self.info.width}x{self.info.height} @ {self.info.fps:.3f} fps · "
+            f"{self.info.n_frames} frames · codec={self.info.codec} · "
+            f"{self.info.duration_s:.2f}s")
         for w in self.info.warnings:
             self.log(f"clip warning: {w}")
-        self.load_view.show(read_frame(clip, 0), reset_view=True)
         self.slider.configure(to=max(1, int(self.info.n_frames) - 1))
         self.stability = None
         self.stability_overridden = False
-        self.override_btn.configure(state="disabled")
-        self.stability_label.configure(text="")
         # A different clip is a different plane until proven otherwise: drop the previous one, then
         # let the clip itself find its saved plane (Load pool doc, now automatic).
         self.pool_calib = None
@@ -1632,9 +1630,14 @@ class App:
         self._refresh_plane_choices()
         self._sync_plane_widgets()
         self.log(f"loaded {clip.name} ({self.info.n_frames} frames)")
+        # Calibrate is where the work is, and the stability check no longer waits to be asked for:
+        # it starts here, by itself, and only a FAILURE interrupts (order 2026-10-28).
+        self.nb.select(self.tab_calib)
         self.root.after(1, self.auto_load_plane_for_clip)
+        self.root.after(2, self.on_stability)
 
     def on_stability(self) -> None:
+        """Run the stability check automatically — the operator is told only when it FAILS."""
         if not self.clip:
             return
         self.log("stability check…")
@@ -1649,25 +1652,38 @@ class App:
         threading.Thread(target=work, daemon=True).start()
 
     def _show_stability(self, rep) -> None:
-        self.stability = rep
-        self.stability_label.configure(text="stability: " + rep.summary())
-        if rep.verdict == "unusable":
-            self.override_btn.configure(state="normal")
-            self.log("STABILITY: unusable — measurement is blocked. Override explicitly to continue.")
-        else:
-            self.override_btn.configure(state="disabled")
-            self.log(f"stability: {rep.verdict} ({rep.max_drift_px:.2f} px)")
+        """Silent on a good clip; a popup on Calibrate when the check FAILS (order 2026-10-28).
 
-    def on_override_stability(self) -> None:
-        if not self.stability:
+        The check runs on every load, so the old two-button dance (run it, then override it) is gone.
+        A failed check is still recorded against the run — the operator's acknowledgement of the
+        popup *is* the override — so the artifacts keep the honest drift number.
+        """
+        self.stability = rep
+        if rep.verdict != "unusable":
+            self.stability_overridden = False
+            self.log(f"stability: {rep.verdict} ({rep.max_drift_px:.2f} px)")
+            # Stable ⇒ place the plane NOW, without waiting to be asked (order 2026-10-28).  A saved
+            # plane for this clip wins: auto_load_plane_for_clip adopted it before the check landed.
+            if self.plane_session is None and self.clip is not None:
+                self.log("stable clip — placing the plane over the pool")
+                self.on_new_plane()
             return
+        self.log(f"STABILITY: {rep.verdict} ({rep.max_drift_px:.2f} px) — warned on Calibrate")
         try:
             self.stability_record = stability_mod.assert_usable(
-                self.stability, override=True, note="GUI override (PLAN §5)")
+                self.stability, override=True,
+                note=f"operator warned on Calibrate ({rep.max_drift_px:.2f} px drift)")
             self.stability_overridden = True
             self.log(f"stability override logged: {self.stability_record}")
         except Exception as exc:  # noqa: BLE001
-            self.log(f"override failed: {exc}")
+            self.log(f"stability record failed: {exc}")
+        self.nb.select(self.tab_calib)
+        self.warn(
+            "Stability check failed",
+            f"This clip is not stable: {rep.summary()}\n\n"
+            f"Drift is movement of the waterline between frames ({rep.max_drift_px:.2f} px). "
+            "Distances measured from this clip carry that error. Calibration still works, and "
+            "the warning is recorded with the run.")
 
     # -- Calibrate ----------------------------------------------------------
     # -- the pool plane (3-D) calibration (2026-10-19) ------------------------
@@ -1675,8 +1691,57 @@ class App:
     # live in ``dog_diving/pool/plane.py``; this is the wiring — one drag gesture on the pane's
     # zoomable canvas (which is padded, so corners can sit outside the frame) and the document build.
     # -- Calibrate canvas gestures (plane only; the 1-D sequence is archived) --
+    def _draw_lock(self, c, x: float, y: float, locked: bool) -> None:
+        """A small padlock: an 11x8 body with the shackle above it, open when unlocked.
+
+        Drawn as shapes rather than a glyph because the Tk font on Windows has no reliable
+        lock codepoint at this size.
+        """
+        col = "#ffd166" if locked else "#8a8f98"
+        c.create_rectangle(x - 5, y - 1, x + 5, y + 7, outline=col, width=1,
+                           fill=col if locked else "", tags="overlay")
+        if locked:
+            c.create_arc(x - 4, y - 8, x + 4, y + 1, start=0, extent=180, style="arc",
+                         outline=col, width=1, tags="overlay")
+        else:
+            c.create_arc(x - 1, y - 9, x + 7, y + 1, start=0, extent=180, style="arc",
+                         outline=col, width=1, tags="overlay")
+
+    def _lock_at(self, event) -> str | None:
+        """The edge whose lock icon is under the pointer, in CANVAS px (scroll aware)."""
+        cx = float(self.calib_canvas.canvasx(event.x))
+        cy = float(self.calib_canvas.canvasy(event.y))
+        for name, (lx, ly) in self._lock_hotspots.items():
+            if abs(cx - lx) <= 9.0 and abs(cy - ly) <= 9.0:
+                return name
+        return None
+
+    def on_toggle_side_snap(self, side: str) -> None:
+        """Lock or release ONE edge's hold on its detected waterline (order 2026-10-27).
+
+        Locking pulls the edge back onto its line immediately — that is what the icon promises —
+        and releasing leaves it free to be dragged or pulled.
+        """
+        var = self.snap_side_vars.get(side)
+        if var is None:
+            return
+        var.set(not bool(var.get()))
+        self.snap_on_var.set(True)
+        label = dict(SNAP_SIDE_LABELS).get(side, side)
+        if var.get():
+            moved = self._maybe_snap_edges()
+            self.log(f"{label} edge LOCKED to its detected waterline"
+                     + (" (moved back onto it)" if moved else ""))
+        else:
+            self.log(f"{label} edge released — drag or pull it freely")
+        self._redraw_plane()
+
     def on_calib_click(self, event) -> None:
-        """Press: place a missing plane corner, or grab a corner/side handle."""
+        """Press: a lock icon first, then a corner/side handle, else place a missing corner."""
+        lock = self._lock_at(event)
+        if lock is not None:
+            self.on_toggle_side_snap(lock)
+            return
         if self.plane_session is None:
             return
         x, y = self.calib_view.to_image(event.x, event.y)
@@ -1728,11 +1793,14 @@ class App:
         if frame is None:
             self.log(f"could not read frame {idx}")
             return
-        far, near, Wd = self._plane_dims_or_default()
+        _far, _near, Wd = self._plane_dims_or_default()
         self.pool_frame = frame
+        # The session's world side is the full 0 -> 35 ft axis, not the anchors: the aspect the
+        # default quad is drawn with, and the extent the seed fits to, are the POOL's, and the
+        # anchors only relabel afterwards (order 2026-10-27).
         self.plane_session = plane_mod.PlaneSession(
             frame_shape=(int(frame.shape[0]), int(frame.shape[1])),
-            length_ft=max(1e-6, far - near), width_ft=Wd, dock_offset_ft=near)
+            length_ft=float(plane_mod.METRIC_LENGTH_FT), width_ft=Wd, dock_offset_ft=0.0)
         self.plane_session.fit_to_frame()
         # A new plane supersedes a loaded document: keeping both would let a run use a document that
         # no longer matches what is on screen.
@@ -1741,8 +1809,7 @@ class App:
         self._plane_setup_id = None
         self._plane_clips = []
         self.pool_status.configure(text="new plane — not saved for this clip yet")
-        # Arm the snap toggle BEFORE the seed lands, so the seed's own edits are already constrained
-        # and the operator can see which edges are being held.
+        # Snapping is armed and stays armed: the per-edge locks decide what actually moves.
         self.snap_on_var.set(True)
         self._sync_snap_btn()
         self._sync_plane_widgets()
@@ -1841,29 +1908,33 @@ class App:
         for side, name in (("back", "far"), ("front", "near")):
             line = seed_mod.line_of(getattr(edges, name, None))
             if line is not None:
+                if name == "near":
+                    # The seed places the near edge NEAR_WALL_DROP_PX below the detected near
+                    # waterline (the pool wall stands above the water), so that is the line the
+                    # lock must hold it on — otherwise locking would undo the drop.
+                    line = (line[0] + np.array([0.0, float(seed_mod.NEAR_WALL_DROP_PX)]),
+                            line[1])
                 out[side] = line
 
-        # One line per image end: the detected short end, or the dock line when that end is the one
-        # the detector voted for (``dock`` is a copy of the winning ``left``/``right``).
-        dock_side = getattr(edges, "dock_side", "unknown")
-        dock_line = seed_mod.line_of(getattr(edges, "dock", None))
-        end_lines: dict[str, tuple[np.ndarray, np.ndarray]] = {}
-        for name in ("left", "right"):
-            line = seed_mod.line_of(getattr(edges, name, None))
-            if line is None and dock_side == name:
-                line = dock_line
-            if line is not None:
-                end_lines[name] = line
-        if not end_lines:
+        # A short end does NOT hold a waterline.  The quad's short edges sit at the anchor X values
+        # (10 / 15 ft by default), not on the pool walls, so the lock target is the plane's own
+        # X = const line through that edge.  Holding them to the detected dock waterline instead
+        # drags the whole band onto the wall (measured: a 60 px jump that lands X = 15 on X = 0).
+        # At the full 0..35 fit the plane's X = 0 line IS the detected dock waterline, so nothing is
+        # lost when the quad does sit on the walls (order 2026-10-27).
+        try:
+            H = s.homography()
+        except Exception:
+            H = None
+        if H is None:
             return out
-
-        first, other = ("left", "right") if self._x0_end_is_image_left(s) else ("right", "left")
-        if first in end_lines:
-            out["left"] = end_lines[first]                        # X = 0
-        if other in end_lines:
-            out["right"] = end_lines[other]                       # X = L
-        elif "left" in out and len(end_lines) > 1:
-            out["right"] = next(v for k, v in end_lines.items() if k != first)
+        w_ft = float(s.width_ft)
+        for name, x_ft in (("left", float(s.dock_offset_ft)),
+                           ("right", float(s.dock_offset_ft) + float(s.length_ft))):
+            p0 = np.asarray(plane_mod.project(H, x_ft, 0.0), float)
+            p1 = np.asarray(plane_mod.project(H, x_ft, w_ft), float)
+            if np.all(np.isfinite(p0)) and np.all(np.isfinite(p1)):
+                out[name] = (p0, p1 - p0)
         return out
 
     @staticmethod
@@ -1955,6 +2026,39 @@ class App:
                     break
         return float(np.median(xs)) if xs else None
 
+    def on_refit_waterline(self) -> None:
+        """Re-fit: put the quad back on the waterlines that were detected for THIS clip.
+
+        Not a re-detection.  The first fit is the reference — it is the shape the operator validated
+        — so this restores it after hand edits instead of looking again and possibly landing
+        somewhere else.  With nothing cached yet it simply does the first fit.  Order 2026-10-27.
+        """
+        if not self.clip:
+            self.log("load a clip first")
+            return
+        if self.plane_session is None:
+            self.on_new_plane()
+            return
+        cached = self._seed_cache.get(self.clip_sha or "")
+        session = self.plane_session
+        if cached is not None:
+            edges, res = cached
+            if res.corners:
+                block = seed_mod.build_block(res, edges, upstream=waterline_mod.UPSTREAM,
+                                             file_sha256=waterline_mod.vendored_sha256())
+                session.apply_seed(res.corners, block)
+                session.ensure_far_edge_short()
+                self.seed_edges = edges
+                self.log(f"re-fit: the quad is back on the waterlines detected for this clip "
+                         f"({res.level}) — corners "
+                         + ", ".join(f"{k} ({v[0]:.0f},{v[1]:.0f})"
+                                     for k, v in res.corners.items()))
+                self._sync_plane_widgets()
+                self._redraw_plane()
+                return
+        self.log("no detected fit cached for this clip yet — fitting it now")
+        self._start_waterline_detection()
+
     def on_detect_waterline(self) -> None:
         """Force a fresh waterline detection (the result is cached per clip, so New Plane is free).
 
@@ -1976,7 +2080,10 @@ class App:
         s = self.plane_session
         if s is None or not self.clip:
             return
-        L, Wd = float(s.length_ft), float(s.width_ft)
+        # The FIT is the full metric axis: the quad snaps to the pool's corners at 0 ft (the dock)
+        # and METRIC_LENGTH_FT (35 ft), whatever the anchor boxes say.  The anchors are a manual
+        # label adjustment applied afterwards and are never read by the fit (order 2026-10-27).
+        L, Wd = float(plane_mod.METRIC_LENGTH_FT), float(s.width_ft)
         shape = (int(s.frame_shape[0]), int(s.frame_shape[1]))
         snapshot = plane_mod.PlaneSession.from_doc({"plane": s.as_dict()})
         roi = self._seed_roi(snapshot)
@@ -2029,7 +2136,16 @@ class App:
         water, and it is what drags the threshold. Growing the quad keeps the pool and the wall
         immediately above it inside the region while excluding the ceiling. A badly placed quad makes
         the region generous rather than restrictive, because the growth is outward.
+
+        ``DD_SEED_ROI=0`` disables it.  Measured on video004 seg01: a fit-to-frame quad puts the
+        region's right edge at x ~ 698 while the water runs to x = 958, so the dock side of the pool
+        is outside the search region and no short-edge method can see it.
+
+        OFF BY DEFAULT (order 2026-10-28): that measurement is the reason.  ``DD_SEED_ROI=1`` turns
+        the clipped region back on for experiments.
         """
+        if str(os.environ.get("DD_SEED_ROI", "0")).strip() == "0":
+            return None
         if session is None or not session.placed:
             return None
         pts = np.array([session.corners[t] for t in plane_mod.CORNER_TAGS], dtype=float)
@@ -2050,8 +2166,13 @@ class App:
         self.log(f"waterlines: {edges.level} (far {'ok' if edges.far.found else 'no'}, "
                  f"near {'ok' if edges.near.found else 'no'}, "
                  f"dock {'ok' if edges.dock.found else 'no'}, side {edges.dock_side}) · "
-                 f"{edges.method} fisher {edges.fisher:.2f} · frames "
+                 f"{edges.method} fisher {edges.fisher:.2f} · short-edge method "
+                 f"{getattr(edges, 'short_method', 'current')} · frames "
                  f"{edges.window[0]}-{edges.window[1]} · {gates}")
+        for name in ("left", "right"):
+            e = getattr(edges, name, None)
+            if e is not None:
+                self.log(f"  short end {name}: {e.status} — {e.reason or 'fitted'}")
         for note in res.notes:
             self.log(f"  seed: {note}")
         for w in edges.warnings:
@@ -2060,6 +2181,11 @@ class App:
             return
         if res.refused or res.corners is None:
             self.log(f"seed REFUSED — {res.reason}")
+            # On the status strip too (order 2026-10-28): a refused seed leaves the DEFAULT quad on
+            # screen, and that looks like a plane that was placed and simply wrong.  The operator has
+            # to know the fit did not happen before deciding to confirm it.
+            self.status.configure(
+                text=f"seed refused — the plane was NOT fitted ({res.reason.split(':')[0]})")
             # Even a refused reconstruction leaves real lines on the canvas, so the quad is still slid
             # onto them: "New Plane snaps the plane to the detected waterlines" is the promise, and a
             # refused anchor is a reason not to move the quad projectively, not a reason to ignore the
@@ -2079,6 +2205,11 @@ class App:
         # length, so the far edge must subtend fewer pixels.  Swapping the Y ends keeps every corner
         # where it is and only exchanges which pair is "far", so the operator is not disturbed.
         swapped = s.ensure_far_edge_short()
+        # The quad IS the full pool at this point: X = 0 on the dock short edge, X = 35 on the
+        # inferred opposite one, the anchors reading 0 / 35.
+        self.plane_near_var.set(f"{s.dock_offset_ft:g}")
+        self.plane_len_var.set(f"{s.dock_offset_ft + s.length_ft:g}")
+        self.log(f"plane placed over the full pool: X 0 → {s.dock_offset_ft + s.length_ft:g} ft")
         # Cache the whole detection against the clip, so New Plane on this clip is instant and the
         # operator is not made to sit through the temporal analysis twice.
         if self.clip_sha:
@@ -2088,13 +2219,21 @@ class App:
         self.pool_calib = None
         self.pool_calib_path = None
         self._maybe_snap_edges()
+        # ... and the 10 / 15 defaults follow IMMEDIATELY, with no button to press (order 2026-10-28:
+        # "this step is critical for minimizing user input").  The plane does not move: apply_anchors
+        # re-projects through the same homography, so only the selectable edges slide inward.
+        self._place_default_anchors()
         self._sync_plane_widgets()
         self._redraw_plane()
         if swapped:
             self.log("far edge is now the short one (the seed had the pool the other way round)")
-        self.log(f"seed {res.level}: anchor {res.anchor_ft:g} ft · {res.px_per_ft_x:.1f} px/ft along "
-                 f"X at the dock edge ({res.px_per_ft_y:.1f} across) · drag a corner or a side to "
-                 f"correct it, then Complete")
+        if np.isfinite(res.px_per_ft_x) and np.isfinite(res.px_per_ft_y):
+            scale_txt = (f"{res.px_per_ft_x:.1f} px/ft along X at the dock edge "
+                         f"({res.px_per_ft_y:.1f} across)")
+        else:
+            scale_txt = "extent taken from the four detected lines — no px/ft involved"
+        self.log(f"seed {res.level}: anchor {res.anchor_ft:g} ft · {scale_txt} · "
+                 f"drag a corner or a side to correct it, then Plane Confirmed")
 
     def on_plane_dims(self) -> None:
         """Apply the two anchors and the width, then hold the checked edges if snapping is on.
@@ -2126,18 +2265,23 @@ class App:
         except ValueError as exc:
             self.log(f"plane size rejected: {exc}")
             return
-        self.plane_session.length_ft = far - near
         self.plane_session.width_ft = Wd
-        self.plane_session.dock_offset_ft = near
+        try:
+            info = self.plane_session.apply_anchors(near, far)
+        except ValueError as exc:
+            self.log(f"anchors not applied: {exc}")
+            return
         self.plane_session.notes.append(
-            f"size set: near-dock anchor {near:g} ft, opposite-dock anchor {far:g} ft, width {Wd:g} ft")
+            f"anchors applied: {near:g} -> {far:g} ft, width {Wd:g} ft · the quad's short edges "
+            f"moved {info['moved_px']:.1f} px, the plane {info['plane_shift_px']:.2e} px")
         self._maybe_snap_edges()
         self._sync_plane_widgets()
         self._redraw_plane()
+        self.log(f"anchors {near:g} / {far:g} ft: the quad's short edges moved {info['moved_px']:.1f} px; "
+                 f"the plane moved {info['plane_shift_px']:.1e} px (it does not move)")
         if near > 0:
-            self.log(f"the plane's dock-side edge is X = {near:g} ft — put its two corners on the "
-                     f"{near:g} ft marks; the grid still runs 0 → "
-                     f"{plane_mod.METRIC_LENGTH_FT:g} ft")
+            self.log(f"the quad's dock-side edge now sits at X = {near:g} ft on the fixed "
+                     f"0 → {plane_mod.METRIC_LENGTH_FT:g} ft axis; the grid is unchanged")
 
     def _plane_dims_or_default(self) -> tuple[float, float, float]:
         """``(far anchor, near anchor, width)`` from the pane, defaulting politely."""
@@ -2179,7 +2323,7 @@ class App:
             self.plane_wid_var.set(f"{s.width_ft:g}")
         except Exception:                                            # noqa: BLE001
             pass
-        self.calib_prompt.configure(text="pool plane: " + s.prompt)
+        self._sync_plane_prompt()
         self._sync_nudge_label()
 
     def _redraw_plane(self, reset_view: bool = False) -> None:
@@ -2218,6 +2362,7 @@ class App:
         """
         c = view.canvas
         c.delete("overlay")
+        self._lock_hotspots = {}
         s = self.plane_session
         if s is None:
             return
@@ -2231,7 +2376,10 @@ class App:
         # not placed — that is exactly the state in which the operator presses the button, and a
         # refused seed is only diagnosable if the lines it was refused on are visible.
         if self.seed_edges is not None:
-            for name, colour in (("far", "#ffcc44"), ("near", "#ff8ce0"), ("dock", "#7cf0ff")):
+            # Both short ends are drawn, not just the one that won the dock vote: they are what the
+            # 2026-10-27 short-edge methods place, and a manual check needs to see both.
+            for name, colour in (("left", "#8affc1"), ("right", "#ffb08a"),
+                                 ("far", "#ffcc44"), ("near", "#ff8ce0"), ("dock", "#7cf0ff")):
                 e = getattr(self.seed_edges, name, None)
                 if e is None or not getattr(e, "found", False) or e.fit is None:
                     continue
@@ -2257,7 +2405,15 @@ class App:
                                   tags="overlay")
             return
 
-        H = s.homography()
+        try:
+            H = s.homography()
+        except Exception as exc:                                      # noqa: BLE001
+            # A degenerate quad (four corners on one line) cannot produce a homography.  Raising
+            # here would abort the canvas redraw and take the whole UI down on the next zoom or
+            # flip, which is how a bad seed used to present — the lines are drawn above either way.
+            c.create_text(12, 12, anchor="nw", fill="#ff8a8a", tags="overlay",
+                          text=f"plane not drawable: {exc}"[:160])
+            return
         Wd = float(s.width_ft)
         L = float(s.length_ft)
         off = float(s.dock_offset_ft)
@@ -2327,7 +2483,23 @@ class App:
             if m is None:
                 continue
             x, y = P(m)
-            c.create_oval(x - 3, y - 3, x + 3, y + 3, outline="#c8c8c8", width=1, tags="overlay")
+            if name in ("back", "front"):
+                # The two LONG edges get a solid centreline handle you can pull (order 2026-10-27):
+                # dragging it moves the edge along its own normal only, so the waterline cannot be
+                # slid sideways or rotated by accident.
+                c.create_oval(x - 6, y - 6, x + 6, y + 6, fill="#00c8ff", outline="#ffffff",
+                              width=1, tags="overlay")
+            else:
+                c.create_oval(x - 3, y - 3, x + 3, y + 3, outline="#c8c8c8", width=1,
+                              tags="overlay")
+            # The lock, just outside the quad on this edge's own normal.  Clicking it holds or
+            # releases THIS edge on its detected waterline; all four start locked (order 2026-10-27).
+            cxq, cyq = P((cx0, cy0))
+            ddx, ddy = x - cxq, y - cyq
+            dn = float(np.hypot(ddx, ddy)) or 1.0
+            lx, ly = x + 21.0 * ddx / dn, y + 21.0 * ddy / dn
+            self._draw_lock(c, lx, ly, bool(self.snap_side_vars[name].get()))
+            self._lock_hotspots[name] = (lx, ly)
         for handle in {s.selected, s.dragging}:
             if handle is None:
                 continue
@@ -2341,16 +2513,55 @@ class App:
                           width=2, tags="overlay")
 
     def _sync_plane_prompt(self) -> None:
-        s = self.plane_session
-        if s is not None:
-            self.calib_prompt.configure(text="pool plane: " + s.prompt)
+        """No-op since 2026-10-27: the "pool plane: drag corners…" label was removed from the pane.
+
+        The plane panel and the log already say what state the quad is in; the duplicated prompt was
+        the text the operator asked to have taken off the screen.
+        """
+        return
 
     def on_build_plane(self) -> None:
-        """Complete: turn the aligned plane into a pool-calibration document (status only)."""
+        """Plane Confirmed: commit the plane, then hand the operator the inner anchor pair.
+
+        The document is built from the FULL-pool quad — that is the fit, and it is what the
+        measurement uses.  Only afterwards do the anchors move to their 10 / 15 ft defaults, so the
+        next drag starts inside the pool instead of at its walls.  ``apply_anchors`` re-projects
+        through the same homography, so the plane itself does not move (measured: ~1e-12 px).
+        """
+        s = self.plane_session
+        # Pressing the button twice must not turn the 10/15 band into the document: if the quad is
+        # sitting on the post-confirmation defaults, restore the pool-wide labels first.
+        if s is not None and s.placed and \
+                abs(s.dock_offset_ft - SEED_ANCHOR_NEAR_FT) < 1e-9 and \
+                abs(s.length_ft - (SEED_ANCHOR_FAR_FT - SEED_ANCHOR_NEAR_FT)) < 1e-9:
+            try:
+                s.apply_anchors(0.0, float(plane_mod.METRIC_LENGTH_FT))
+            except Exception:                                        # noqa: BLE001
+                pass
         doc = self._build_pool_doc()
         if doc is not None:
             self._show_pool_doc(doc, source="aligned plane")
-            self.log("plane complete — Save New Plane makes it stick to this clip")
+            self.log("plane confirmed — the document is built from the full-pool quad")
+            self._place_default_anchors()
+
+    def _place_default_anchors(self) -> None:
+        """Switch the selectable quad to the 10 / 15 ft defaults, leaving the plane where it is."""
+        s = self.plane_session
+        if s is None or not s.placed:
+            return
+        try:
+            info = s.apply_anchors(SEED_ANCHOR_NEAR_FT, SEED_ANCHOR_FAR_FT)
+        except ValueError as exc:
+            self.log(f"default anchors not placed: {exc}")
+            return
+        except Exception as exc:                                     # noqa: BLE001
+            self.log(f"default anchors not placed: {type(exc).__name__}: {exc}")
+            return
+        self._sync_plane_widgets()
+        self._redraw_plane()
+        self.log(f"anchors now {SEED_ANCHOR_NEAR_FT:g} / {SEED_ANCHOR_FAR_FT:g} ft: the quad's short "
+                 f"edges moved {info['moved_px']:.1f} px, the plane "
+                 f"{info['plane_shift_px']:.1e} px (it does not move)")
 
     def _plane_id(self) -> str:
         """The document's id: the loaded plane's, else one derived from the clip."""
@@ -2389,12 +2600,16 @@ class App:
 
         self.pool_calib = doc
         self.pool_calib_path = None if path is None else Path(path)
-        self.pool_status.configure(
-            text=f"{doc.get('setup_id')} · route {doc.get('route')} · "
-                 f"{'gates PASS' if delivery_ok else 'GATES FAIL'}")
+        # No route and no gate verdict on the status line (order 2026-10-28: "remove ... route
+        # A_correspondences gates PASS").  The gate detail still goes to the log, where a failure can
+        # be read; the strip is a state line, not a report.
+        self.pool_status.configure(text=f"{doc.get('setup_id')}")
         for name, g in list(pgates.items()) + list(gates.items()):
             if not g.get("pass"):
-                self.log(f"  gate {name} FAIL: {g.get('detail')}")
+                # Only P1-P4 can fail delivery on this route; a W gate grades the pose that route A
+                # reconstructs as a by-product (with an assumed lens), so it is labelled, not trusted.
+                tag = "" if name.startswith("P") else " (informational, not a delivery gate)"
+                self.log(f"  gate {name}{tag} FAIL: {g.get('detail')}")
         if plane_doc and gates:
             self.log("  the W gates grade the reconstructed pose — informational on this route: the "
                      "answer is the plane homography, so they can fail while every distance is right")
@@ -2407,8 +2622,7 @@ class App:
             at0 = mp.get("px_per_ft_along_at_0")
             self.log(f"  mapping: {'n/a' if at0 is None else f'{at0:.1f} px/ft along X at 0 ft'}, "
                      f"round-trip worst {worst:.1e} ft")
-        self.log(f"pool calibration from {source}: route {doc.get('route')}, "
-                 f"{'gates pass' if delivery_ok else 'GATES FAIL'}")
+        self.log(f"pool calibration from {source}")
         self._redraw_plan()
 
     def on_save_pool(self) -> None:
@@ -2506,7 +2720,7 @@ class App:
         hit = self.find_plane_for_clip()
         if hit is None:
             self.pool_status.configure(text="no saved plane for this clip")
-            self.log("no saved plane for this clip — New Plane, then Save New Plane")
+            self.log("no saved plane for this clip — press New Plane to fit the waterlines")
             return False
         path, doc = hit
         self._apply_plane_doc(doc, path)
@@ -2534,7 +2748,7 @@ class App:
                     self.plane_session.frame_shape = self.pool_frame.shape[:2]
             self._sync_plane_widgets()
             self._redraw_plane(reset_view=True)
-            self.log("plane restored — drag it and Save New Plane again to update this clip's entry")
+            self.log("plane restored — drag it, then Plane Confirmed to rebuild the document")
         n = len(self._plane_clips)
         self.log(f"plane {doc.get('setup_id')} applies to {n} clip(s)"
                  + (f"; this clip is one of them" if n else ""))
@@ -2553,7 +2767,7 @@ class App:
             if str(doc.get("setup_id")) == sid:
                 self._apply_plane_doc(doc, path)
                 self.log(f"plane {sid} adopted for {self.clip.stem if self.clip else 'this clip'} — "
-                         f"Save New Plane adds this clip to its list")
+                         f"Complete rebuilds the document for it")
                 return
         self.log(f"saved plane {sid!r} is no longer on disk — back to auto")
         self.plane_pick_var.set("auto")
@@ -2644,7 +2858,7 @@ class App:
         """
         spec = self._scale_specs().get(self.scale_var.get())
         if spec is None:
-            self.log("backbone: custom — the pose model file above decides the checkpoint")
+            self.log("base model: custom — the weights file above decides the checkpoint")
             return
         if not spec.is_file():
             self.scale_status.configure(text=f"{spec.scale}-scale · MISSING")
@@ -2668,7 +2882,7 @@ class App:
             self.cmb_scale.configure(values=self._scale_choices())
         if hasattr(self, "scale_status"):
             self.scale_status.configure(text=self._scale_status_text(path))
-        self.log(f"pose model: {path.name} — switching checkpoints invalidates warm tracks; the "
+        self.log(f"weights: {path.name} — switching checkpoints invalidates warm tracks; the "
                  f"next Run re-runs inference")
         if spec is not None:
             measured = spec.measured_line()
@@ -2750,7 +2964,7 @@ class App:
             self.log(f"pose model not found: {model_path} — pick one before running")
             return
         self.model_status.configure(text=model_path.name)
-        self.log(f"pose model: {model_path.name}")
+        self.log(f"weights: {model_path.name}")
 
         def work() -> None:
             cfg = detect_mod.DetectConfig(model_path=model_path, imgsz=DEFAULT_IMGSZ,
@@ -2779,7 +2993,12 @@ class App:
         return "auto"
 
     def outcome_frame_spec(self) -> str:
-        return "auto (PLAN §5 candidate #1); adjust in Review"
+        """What the contact frame will be — no parenthetical, no advice (order 2026-10-28).
+
+        The old value was ``"auto (PLAN §5 candidate #1); adjust in Review"``: a document section
+        number and a pointer at a control the operator can already see.
+        """
+        return "auto"
 
     def on_cancel(self) -> None:
         self.cancel_event.set()
@@ -2835,6 +3054,15 @@ class App:
         self.review.entry_live = False
         if hasattr(self, "entry_live_var"):
             self.entry_live_var.set(False)
+        # Order 2026-10-28: the list opens on the detections the arc actually uses — the last
+        # trajectory.LAST_N_POINTS — instead of reading "55 of 55" while the fit used 20.  The
+        # measurement is unaffected (it takes the final KEPT detection, which is still included).
+        dropped = self.review.focus_trajectory_window()
+        if dropped:
+            rows = self.review.point_rows()
+            self.log(f"points: {sum(1 for r in rows if r['included'])} of {len(rows)} kept — the "
+                     f"trajectory uses the last {trajectory_mod.LAST_N_POINTS} detection(s); the "
+                     f"other {dropped} were deselected (Include all brings them back)")
         self.slider.configure(to=max(1, self.review.n_frames - 1))
         if self.review.frame is not None:
             self._syncing = True
@@ -3118,9 +3346,13 @@ class App:
             ), tags=() if r["included"] else ("out",))
         n_out = len(self.review.excluded) if self.review is not None else 0
         if hasattr(self, "pts_note"):
+            # Say which points the ARC uses, not just how many are included (order 2026-10-28): the
+            # fit takes the last 20 of the included points, so "55 of 55 included" alone reads as if
+            # all 55 were fitted.
             self.pts_note.configure(text=(
                 f"{len(rows) - n_out} of {len(rows)} point(s) included"
-                + (f"   ·   {n_out} deselected" if n_out else "")))
+                + (f"   ·   {n_out} deselected" if n_out else "")
+                + f"   ·   arc fits the last {int(getattr(trajectory_mod, 'LAST_N_POINTS', 20))}"))
         # keep the row under the frame slider visible, so the list and the picture agree
         if self.review is not None and self.review.frame is not None:
             iid = str(int(self.review.frame))
@@ -3203,6 +3435,19 @@ class App:
             pct = float(self.entry_opacity.get())
         except Exception:                                            # noqa: BLE001
             pct = OPACITY_DEFAULT_PCT
+        return max(0.0, min(1.0, pct / 100.0))
+
+    def _grid_opacity(self) -> float:
+        """The GRID's opacity as a 0..1 factor, from its own slider (order 2026-10-28).
+
+        Independent of :meth:`_opacity`, which now governs only the trajectory, the points and the
+        entry mark.  The grid is the element that covers the whole pool; the elements are the ones
+        that sit on the dog.
+        """
+        try:
+            pct = float(self.grid_opacity.get())
+        except Exception:                                            # noqa: BLE001
+            pct = GRID_OPACITY_DEFAULT_PCT
         return max(0.0, min(1.0, pct / 100.0))
 
     def _bg_at(self, at) -> tuple[int, int, int]:
@@ -3299,22 +3544,35 @@ class App:
         def P(p) -> tuple[float, float]:
             return (float(p[0]) * z, float(p[1]) * z)
 
+        # The lattice has its OWN opacity (order 2026-10-28), so it is drawn outside the elements'
+        # gate: element opacity 0 hides the trajectory, the points and the entry mark, and leaves the
+        # grid exactly where its own slider put it.
+        if self._grid_opacity() > 0.0:
+            self._draw_review_grid(c, P, self._grid_opacity(), None)
+
         if alpha > 0.0:
-            self._draw_review_grid(c, P, alpha,
-                                   (self.review.measurement().get("y_px")
-                                    if self.review is not None else None))
             traj_pts = [(float(p["x"]), float(p["y"])) for p in r.draw_points()]
             self._ink_polyline(c, traj_pts, P, "#ffe14d", line_w, dash, alpha)
 
             arc = r.arc()
-            coeffs, span = arc.get("coeffs"), arc.get("frame_range")
-            if coeffs and span:
-                f0, f1 = int(span[0]), int(span[1])
-                curve = []
-                for f in range(f0, f1 + 1):
-                    q = trajectory_mod.predict(coeffs, f)
-                    curve.append((float(q[0]), float(q[1])))
+            # The fork's parabola first: ``curve`` is what Final_pipeline_w_json.py draws — the
+            # pixel-space y = Ax²+Bx+C walked to the bottom edge.  ``predict`` is the older
+            # time-domain arc, kept only for trajectories built before this existed.
+            curve = [(float(p[0]), float(p[1])) for p in (arc.get("curve") or [])]
+            if not curve:
+                coeffs, span = arc.get("coeffs"), arc.get("frame_range")
+                if coeffs and span:
+                    curve = [(float(q[0]), float(q[1]))
+                             for q in (trajectory_mod.predict(coeffs, f)
+                                       for f in range(int(span[0]), int(span[1]) + 1))]
+            if curve:
                 self._ink_polyline(c, curve, P, "#3cf03c", max(1, line_w - 1), dash, alpha)
+            contact = arc.get("contact")
+            if contact:
+                cx, cy = P(contact)
+                rr = max(3.0, float(dot_r) * 1.4)
+                c.create_oval(cx - rr, cy - rr, cx + rr, cy + rr, tags="overlay",
+                              width=2, outline=self._blend("#3cf03c", contact, alpha))
             for p in (arc.get("inliers") or []):
                 at = (float(p["x"]), float(p["y"]))
                 x, y = P(at)
@@ -3370,7 +3628,10 @@ class App:
         return spec
 
     def _draw_review_grid(self, c, P, alpha: float, fade_y) -> None:
-        """The 1-ft lattice as canvas items, at the operator's opacity (operator order 2026-10-21).
+        """The 1-ft lattice as canvas items, at the GRID's own opacity (order 2026-10-28).
+
+        ``alpha`` is :meth:`_grid_opacity`, not the element opacity: the lattice covers the whole
+        pool while the trajectory and points sit on the dog, so the two are separate sliders.
 
         The lattice used to be baked into the photo, which meant the opacity slider could not touch
         it — the one element that covers the most picture was the one element the slider missed.  It
@@ -3556,7 +3817,7 @@ class App:
         plane = ((self.pool_calib or {}).get("plane") or {})
         if not plane:
             c.create_text(12, 12, anchor="nw", fill="#c8d0d8", width=280,
-                          text="no plane yet — align one in Calibrate and Save New Plane")
+                          text="no plane yet — align one in Calibrate")
             if hasattr(self, "plan_note"):
                 self.plan_note.configure(text="")
             return

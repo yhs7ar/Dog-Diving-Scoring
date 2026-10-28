@@ -44,13 +44,17 @@ NEEDS_CLIP = pytest.mark.skipif(not CLIP.is_file(), reason="sample clip missing"
 
 
 # --- 1. the module and its five steps ---------------------------------------
-def test_module_exposes_the_five_plan_steps() -> None:
+def test_module_exposes_the_plan_steps() -> None:
     assert hasattr(app_gui, "App")
     assert hasattr(app_gui, "ReviewState")
     assert hasattr(app_gui, "run_pipeline")
     src = Path(app_gui.__file__).read_text(encoding="utf-8")
-    for tab in ("1 Load", "2 Calibrate", "3 Process", "4 Review", "5 Results"):
+    for tab in ("1 Calibrate", "2 Process", "3 Review", "4 Results"):
         assert tab in src, f"PLAN §5 step {tab!r} has no tab"
+    # the Load step is gone (order 2026-10-28): the toolbar opens clips and the stability check runs
+    # by itself, so there is no tab for it
+    assert "1 Load" not in src
+    assert not hasattr(app_gui.App, "_build_load")
     # the threading rule: the Tk class must not be the thing that runs inference
     assert "threading.Thread" in src
     print(f"\n  app_gui: {Path(app_gui.__file__).name}, "
@@ -289,11 +293,15 @@ def test_app_constructs_and_loads_a_clip() -> None:
         app = app_gui.App(root, clip=CLIP)
         root.update_idletasks()
         print(f"\n  window built; clip label: {app.clip_label.cget('text')}")
-        print(f"  info: {app.load_info.cget('text')}")
         assert app.info is not None and app.clip == CLIP
         assert str(CLIP) in app.clip_label.cget("text")
         assert int(app.slider.cget("to")) == app.info.n_frames - 1
-        assert app.load_info.cget("text").startswith(f"{app.info.width}x{app.info.height}")
+        # the probe line lives in the session log now, and the app lands on Calibrate: the Load step
+        # is gone (order 2026-10-28)
+        log = app.log_text.get("1.0", "end")
+        assert f"{app.info.width}x{app.info.height}" in log, log
+        assert "codec=" in log, log
+        assert app.nb.index(app.nb.select()) == 0
     finally:
         root.destroy()
 

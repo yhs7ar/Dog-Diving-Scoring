@@ -37,6 +37,8 @@ that is the space ``PlaneSession`` corners and the pool document live in.
 
 from __future__ import annotations
 
+import os
+import math
 import time
 import dataclasses
 from dataclasses import dataclass, field
@@ -74,6 +76,39 @@ MIN_DOCK_ANGLE_DEG = 55.0
 MAX_RUN_GAP_PX = 16.0
 RUN_JUMP_FACTOR = 4.0
 
+#: How to place the pool's two SHORT ends (the water against each end wall).  ``current`` is the
+#: original S1 extreme-pixel row scan; ``A`` and ``B`` are the two routes in
+#: ``out/SHORT_EDGE_METHODS.md`` (A: band-consensus occupancy on the water strip, occlusion-first;
+#: B: local change point on the continuous noise map, illumination-first).  ``DD_SHORT_EDGE_METHOD``
+#: selects one per process so two GUI instances can be compared on the same clip.
+SHORT_EDGE_METHODS = ("current", "A", "B", "M1")
+#: The DEFAULT is M1 (order 2026-10-28).  ``current`` keeps the near-vertical model, and on this
+#: corpus it reads the dock short end as a diagonal at 146 deg — which flips ``dock_side`` to the far
+#: end and makes the seed refuse its own geometry gate (reproduced on video004 seg01: "S3 failed …
+#: vanishing point x=-5678 vs origin x=478 with the dock on the left").  M1, which fits each short
+#: end as a line through one crossing per band, finds the 12.2 deg dock waterline instead.
+SHORT_EDGE_METHOD = (os.environ.get("DD_SHORT_EDGE_METHOD") or "M1").strip()
+
+#: Band scan shared by methods A and B.  Bands are laid ABOVE the near waterline (towards the far
+#: one), band 0 nearest the near waterline — the band an overhanging banner cannot reach, which is
+#: where the domain statement puts the always-visible water/wall contact.
+BAND_COUNT = 8
+PLATEAU_LEVEL = 0.75          # occupancy that counts as "inside the pool" (method A)
+CROSS_LEVEL = 0.50            # the crossing that is called the short edge (method A)
+BAND_X_TOL = 20.0             # original px a band's answer may sit from the consensus
+MIN_BAND_POINTS = 3           # bands that must agree before a line is claimed
+STEP_WINDOW = 18              # columns either side of a candidate change point (method B)
+STEP_RATIO_MIN = 1.30         # level ratio that counts as a real step (method B)
+
+#: Method ``M1`` (the four-line fit) gates.  A short edge is a LINE fitted through one boundary
+#: crossing per band — measured on video004 seg01 the dock edge is a single line at RMS 5.0 px with
+#: dx/dy = 4.71, i.e. 12 deg from horizontal, so "near-vertical" is the wrong test for it.  What *is*
+#: disqualifying is an edge parallel to the long waterlines (the far/near boundary continuing) or one
+#: with too little support to fit.
+MIN_SHORT_CROSSINGS = 3
+MIN_SHORT_ANGLE_DEG = 8.0
+SHORT_MAX_RMS_PX = 6.0
+
 #: The pool's two SHORT ends (the water against each end wall).  ``dock`` is whichever of these the
 #: detector believes X = 0 is on; the other one is the image of X = anchor.
 
@@ -104,6 +139,10 @@ class EdgeFit:
     inlier_fraction: float = 0.0
     stability_px: float | None = None                # None = not checkable (no second sample)
     reason: str = ""
+    #: ``observed`` (a fitted line from agreeing evidence), ``partial`` (fitted to the visible span
+    #: only, the rest of the line is the extension of that fit) or ``off_shot`` (no line: the water
+    #: runs off the frame at this end).  Only ``observed`` may be gated on as a measurement.
+    status: str = "observed"
 
     @property
     def rms(self) -> float:
@@ -122,8 +161,9 @@ class EdgeFit:
 
     def as_dict(self) -> dict[str, Any]:
         if not self.found or self.fit is None:
-            return {"found": False, "reason": self.reason}
-        return {"found": True, "n": int(len(self.points)), "rms_px": round(self.rms, 2),
+            return {"found": False, "status": self.status, "reason": self.reason}
+        return {"found": True, "status": self.status,
+                "n": int(len(self.points)), "rms_px": round(self.rms, 2),
                 "p95_px": round(float(self.fit["p95_residual"]), 2),
                 "inlier_fraction": round(float(self.inlier_fraction), 3),
                 "stability_px": (None if self.stability_px is None
@@ -157,6 +197,7 @@ class WaterlineEdges:
     dock_side: str = "unknown"                       # "left" | "right" | "unknown"
     dock_side_evidence: str = ""
     method: str = "detrended"
+    short_method: str = "current"                    # "current" | "A" | "B" — how the short ends were placed
     fisher: float = float("nan")
     fisher_by_method: dict[str, float] = field(default_factory=dict)
     threshold: float = float("nan")
@@ -199,6 +240,9 @@ class WaterlineEdges:
     @property
     def level(self) -> str:
         got = set(self.found)
+        ends = {e.name for e in self.ends if e.found}
+        if {"far", "near", "dock"} <= got and ends == {"left", "right"}:
+            return "L4"
         if {"far", "near", "dock"} <= got:
             return "L3"
         if {"far", "dock"} <= got:
@@ -210,7 +254,8 @@ class WaterlineEdges:
         return "none"
 
     def as_dict(self) -> dict[str, Any]:
-        return {"method": self.method, "fisher": round(float(self.fisher), 3),
+        return {"method": self.method, "short_method": self.short_method,
+                "fisher": round(float(self.fisher), 3),
                 "fisher_by_method": {k: round(float(v), 3)
                                      for k, v in self.fisher_by_method.items()},
                 "threshold": round(float(self.threshold), 1),
@@ -400,6 +445,19 @@ def fit_run(run: np.ndarray, *, vertical: bool = False) -> dict[str, Any] | None
     return fit
 
 
+def _rms_limit(span_px: float) -> float:
+    """RMS tolerance for a run, scaled by its length.
+
+    A fixed 3.0 px gate is length-blind: half a degree of angular error over a 480 px waterline is
+    2 px of RMS, so the longest and best-supported boundary in the frame is rejected in favour of a
+    short clean fragment.  Measured on video004 seg01: the true far waterline is a 240-point run at
+    RMS 3.17 (rejected by 0.17 px) and the run that won instead is a 44-point piece of a mask step
+    at -22 deg.  The tolerance therefore grows gently with the span and never shrinks below the
+    original absolute value.
+    """
+    return float(MAX_RMS_PX) + 0.01 * float(max(span_px, 0.0))
+
+
 def _best_run(runs: Sequence[np.ndarray], *, vertical: bool,
               min_points: int = MIN_RUN_POINTS) -> tuple[np.ndarray, dict] | None:
     """The run that survives S1 best: enough points, straight enough, most inliers."""
@@ -410,7 +468,8 @@ def _best_run(runs: Sequence[np.ndarray], *, vertical: bool,
         fit = fit_run(run, vertical=vertical)
         if fit is None:
             continue
-        if fit["rms_residual"] > MAX_RMS_PX:
+        span = float(np.ptp(run[:, 1 if vertical else 0]))
+        if fit["rms_residual"] > _rms_limit(span):
             continue
         score = float(fit["n"]) * float(fit["inlier_fraction"])
         if best is None or score > best[0]:
@@ -478,6 +537,317 @@ def _edge(name: str, runs: Sequence[np.ndarray], *, vertical: bool,
 
 
 # ---------------------------------------------------------------------------
+# The two short ends, methods A and B
+# ---------------------------------------------------------------------------
+def _contiguous(idx: np.ndarray) -> list[np.ndarray]:
+    """Split an increasing index array into contiguous runs."""
+    if idx.size == 0:
+        return []
+    out, start = [], 0
+    for g in np.nonzero(np.diff(idx) > 1)[0]:
+        out.append(idx[start:g + 1])
+        start = g + 1
+    out.append(idx[start:])
+    return out
+
+
+def _strip_height(near_fit: dict, far_fit: dict | None, w: int, scale: float) -> float:
+    """Vertical extent of the water strip between the long waterlines, in working px."""
+    xs = np.linspace(0.05 * w, 0.95 * w, 11)
+    if far_fit is None:
+        return 60.0
+    d = ((near_fit["slope"] - far_fit["slope"]) * xs
+         + (near_fit["intercept"] - far_fit["intercept"]) * scale)
+    d = d[np.isfinite(d) & (d > 1.0)]
+    return float(np.clip(np.median(d), 12.0, 240.0)) if d.size else 60.0
+
+
+def _band_profile(image: np.ndarray, near_fit: dict, k: int, thickness: float, *,
+                  scale: float, h: int, w: int) -> np.ndarray:
+    """Mean of ``image`` across band ``k`` (band 0 is nearest the near waterline), per column.
+
+    The bands are laid in the water strip along the near waterline's own slope, so a tilted camera
+    does not smear one band into the next, and band 0 is the part of the short edge a banner hanging
+    over the dock cannot cover.
+    """
+    xs = np.arange(w, dtype=float)
+    yn = near_fit["slope"] * xs + near_fit["intercept"] * scale
+    r_hi = np.rint(yn - k * thickness).astype(int)
+    r_lo = np.rint(yn - (k + 1) * thickness).astype(int)
+    prof = np.full(w, np.nan, dtype=float)
+    for x in range(w):
+        r0, r1 = max(0, int(r_lo[x])), min(h, int(r_hi[x]))
+        if r1 - r0 >= 2:
+            prof[x] = float(image[r0:r1, x].mean())
+    return prof
+
+
+def _end_crossing(prof: np.ndarray, side: str, *, plateau: float = PLATEAU_LEVEL,
+                  level: float = CROSS_LEVEL) -> tuple[float | None, str]:
+    """Method A: where the band's water occupancy leaves its in-pool plateau (working px, sub-pixel).
+
+    Works from the *plateau*, not from the outermost water pixel: an occluder that juts out past the
+    wall (a ramp leg, a banner) is a second, narrower high region, not the end of the pool.
+    """
+    q = np.asarray(prof, dtype=float)
+    good = np.isfinite(q)
+    if good.sum() < 10:
+        return None, "band has too few usable columns"
+    q = np.where(good, q, 0.0)
+    if q.size >= 5:
+        q = np.convolve(q, np.ones(5) / 5.0, mode="same")
+    inside = np.nonzero(q >= plateau)[0]
+    if inside.size < 5:
+        return None, "no in-pool plateau in this band"
+    run = max(_contiguous(inside), key=len)
+    i = int(run[-1]) if side == "right" else int(run[0])
+    step = 1 if side == "right" else -1
+    j = i
+    while 0 <= j + step < q.size and q[j + step] >= level:
+        j += step
+    jn = j + step
+    if not (0 <= jn < q.size):
+        return None, "water runs off the frame border"
+    a, b = float(q[j]), float(q[jn])
+    frac = 0.0 if a == b else (a - level) / (a - b)
+    return float(j) + step * float(np.clip(frac, 0.0, 1.0)), "occupancy crossing"
+
+
+def _end_step(prof: np.ndarray, side: str, *, window: int = STEP_WINDOW,
+              min_ratio: float = STEP_RATIO_MIN) -> tuple[float | None, str]:
+    """Method B: the change point of the continuous noise profile (working px, sub-pixel).
+
+    A two-sample median ratio, not a threshold: shade scales the water level *and* the structure
+    level down together, so the ratio and therefore the step's position survive it.  This is the
+    estimator for the shaded short edge, where a global Otsu cut halves the dock band.
+    """
+    q = np.asarray(prof, dtype=float)
+    good = np.isfinite(q)
+    if good.sum() < 2 * window + 6:
+        return None, "band too short for a step fit"
+    q = np.clip(np.where(good, q, float(np.nanmedian(q))), 0.0, None)
+    best: tuple[float, int, float, float] | None = None
+    for i in range(window, q.size - window):
+        left = float(np.median(q[i - window:i]))
+        right = float(np.median(q[i:i + window]))
+        hi, lo = (left, right) if side == "right" else (right, left)
+        ratio = hi / max(lo, 1e-9)
+        if best is None or ratio > best[0]:
+            best = (ratio, i, left, right)
+    if best is None:
+        return None, "band has no usable columns"
+    ratio, i, left, right = best
+    if ratio < min_ratio:
+        return None, f"no step (best level ratio {ratio:.2f} < {min_ratio})"
+    level = 0.5 * (left + right)
+    lo_i, hi_i = max(1, i - window), min(q.size - 1, i + window)
+    cand = [j for j in range(lo_i, hi_i + 1)
+            if (q[j - 1] - level) * (q[j] - level) <= 0.0]
+    if not cand:
+        return float(i), f"step {ratio:.2f}x"
+    j = min(cand, key=lambda c: abs(c - i))
+    a, b = float(q[j - 1]), float(q[j])
+    frac = 0.0 if a == b else (level - a) / (b - a)
+    return float(j - 1) + float(np.clip(frac, 0.0, 1.0)), f"step {ratio:.2f}x"
+
+
+def short_end_edges(image: np.ndarray, near: "EdgeFit", far: "EdgeFit | None", *,
+                    method: str, scale: float,
+                    roi_mask: np.ndarray | None = None) -> dict[str, "EdgeFit"]:
+    """Both short ends from one band scan: ``image`` is the water mask (A) or the noise map (B).
+
+    Both methods run the *same* bands and the same consensus rule, so a difference between them is
+    the estimator (thresholded occupancy vs continuous step), not the geometry.  A band that times
+    out at the frame border says the end is off-shot; bands that disagree say an occluder got in the
+    way — neither is turned into a line.
+    """
+    h, w = image.shape[:2]
+    if near is None or not near.found or near.fit is None:
+        return {s: EdgeFit(name=s, found=False, status="off_shot",
+                           reason="no near waterline to lay the bands against")
+                for s in ("left", "right")}
+    scale = float(scale) or 1.0
+    back = 1.0 / scale
+    strip = _strip_height(near.fit, far.fit if (far is not None and far.found) else None, w, scale)
+    thickness = max(3.0, strip / float(BAND_COUNT))
+    out: dict[str, EdgeFit] = {}
+    for side in ("left", "right"):
+        hits: list[tuple[int, float, float]] = []        # (band, x, y) in original px
+        notes: list[str] = []
+        band0_off = False
+        for k in range(BAND_COUNT):
+            prof = _band_profile(image, near.fit, k, thickness, scale=scale, h=h, w=w)
+            pos, why = _end_crossing(prof, side) if method == "A" else _end_step(prof, side)
+            if pos is None:
+                notes.append(f"band {k}: {why}")
+                if k == 0 and "off the frame border" in why:
+                    band0_off = True
+                continue
+            y_w = near.fit["slope"] * pos + near.fit["intercept"] * scale - (k + 0.5) * thickness
+            hits.append((k, pos * back, y_w * back))
+        if not hits:
+            off = any("off the frame border" in n for n in notes)
+            out[side] = EdgeFit(
+                name=side, found=False, status="off_shot" if off else "declined",
+                reason=f"0/{BAND_COUNT} bands gave a position"
+                       + ("; the water runs off the frame at this end" if off else "")
+                       + (f" · {notes[0]}" if notes else ""))
+            continue
+        # Bottom-up: the band nearest the waterline is the one a banner hanging over the dock
+        # cannot reach, so it sets the answer and the bands above it are kept only while they agree.
+        # A median across all bands would let the ramp/banner diagonal outvote the wall.
+        hits.sort(key=lambda t: t[0])
+        base_x = hits[0][1]
+        keep: list[tuple[int, float, float]] = []
+        for hit in hits:
+            if abs(hit[1] - base_x) > BAND_X_TOL:
+                break
+            keep.append(hit)
+        arr = np.asarray([(x, y) for _k, x, y in keep], dtype=float)
+        spread = float(np.max(np.abs(arr[:, 0] - base_x)))
+        # A crossing that lands on the edge of the search region is the region ending, not the pool:
+        # the Calibrate pane passes the quad grown 30 %, and on video004 seg01 that region stops at
+        # x ~ 698 with the water still running to x = 958 — which read as a perfect four-band edge.
+        if roi_mask is not None and roi_mask.any():
+            cols = np.nonzero(roi_mask.any(axis=0))[0]
+            lim = (float(cols.max()) * back) if side == "right" else (float(cols.min()) * back)
+            if (side == "right" and base_x >= lim - 3.0) or (side == "left" and base_x <= lim + 3.0):
+                out[side] = EdgeFit(
+                    name=side, found=False, status="declined",
+                    reason=f"x={base_x:.0f} px is the edge of the search region (ROI ends at "
+                           f"x={lim:.0f}), not the end of the water — widen the ROI")
+                continue
+        if len(keep) >= 2:
+            fit = fit_run(arr, vertical=True)
+            status = "observed" if len(keep) >= MIN_BAND_POINTS else "partial"
+            why = (f"{len(keep)}/{BAND_COUNT} bands agree from band {keep[0][0]}: x={base_x:.0f} px, "
+                   f"spread {spread:.1f} px")
+        elif keep[0][0] <= 1:
+            # Exactly one band saw a termination, and it is one of the two nearest the waterline —
+            # the position is evidence, the tilt is not, so the line is emitted vertical through that
+            # point and labelled unconfirmed.
+            fit = fit_run(np.array([[base_x, arr[0][1] - 30.0], [base_x, arr[0][1] + 30.0]]),
+                          vertical=True)
+            status = "partial"
+            why = (f"only band {keep[0][0]} shows a termination (x={base_x:.0f} px)"
+                   + ("; band 0 runs to the frame border" if band0_off else "")
+                   + " — position only, tilt not measured")
+        else:
+            # A lone hit in an upper band is the corner where the far waterline meets the frame, or
+            # the top of an occluder.  It is not the water/wall contact and must not become a line.
+            out[side] = EdgeFit(
+                name=side, found=False, status="declined",
+                reason=f"only band {keep[0][0]} (x={base_x:.0f} px) terminated, above the bands where "
+                       f"the wall contact can be seen — not treated as a short edge")
+            continue
+        if fit is None:
+            out[side] = EdgeFit(name=side, found=False, status="declined",
+                                reason="too few band points to fit a line")
+            continue
+        out[side] = EdgeFit(name=side, found=True, points=arr, fit=fit,
+                            inlier_fraction=float(fit["inlier_fraction"]),
+                            stability_px=spread, status=status, reason=why)
+    return out
+
+
+def short_end_lines(image: np.ndarray, near: "EdgeFit", far: "EdgeFit | None", *,
+                    scale: float, roi_mask: np.ndarray | None = None,
+                    frame_w: float | None = None) -> dict[str, "EdgeFit"]:
+    """Method M1 — each short edge is a **line** fitted through one boundary crossing per band.
+
+    The estimator is Method A's occupancy crossing; what changes is the model.  A band's crossing is
+    one point *on* the short edge, and the edge slants: measured on video004 seg01 the dock edge's
+    crossings are (951,369) (855,351) (741,333) (724,315) — one line, RMS 5.0 px, dx/dy = 4.71, i.e.
+    **12 deg from horizontal**.  Requiring a common x across bands (``BAND_X_TOL``) therefore rejected
+    the correct edge by construction, which is why this method drops that test and keeps only:
+    enough crossings, straight enough, and not parallel to the long waterlines.
+
+    When the water leaves the frame at an end, the edge is **cut at the frame border** and labelled
+    ``frame_cut``: that is not a claim about the pool, it is the honest boundary of what is visible,
+    and it is what lets a complete quad be generated for an end whose wall is off shot.
+    """
+    h, w = image.shape[:2]
+    if near is None or not near.found or near.fit is None:
+        return {s: EdgeFit(name=s, found=False, status="off_shot",
+                           reason="no near waterline to lay the bands against")
+                for s in ("left", "right")}
+    scale = float(scale) or 1.0
+    back = 1.0 / scale
+    fw = float(frame_w) if frame_w else float(w) * back
+    strip = _strip_height(near.fit, far.fit if (far is not None and far.found) else None, w, scale)
+    thickness = max(3.0, strip / float(BAND_COUNT))
+    near_angle = float(near.angle_deg)
+    lo_ok, hi_ok = 0.0, fw - 1.0
+    if roi_mask is not None and roi_mask.any():
+        cols = np.nonzero(roi_mask.any(axis=0))[0]
+        lo_ok, hi_ok = float(cols.min()) * back, float(cols.max()) * back
+    out: dict[str, EdgeFit] = {}
+    for side in ("left", "right"):
+        pts: list[tuple[float, float]] = []
+        notes: list[str] = []
+        border = 0
+        for k in range(BAND_COUNT):
+            prof = _band_profile(image, near.fit, k, thickness, scale=scale, h=h, w=w)
+            pos, why = _end_crossing(prof, side)
+            if pos is not None and not (lo_ok + 3.0 <= pos * back <= hi_ok - 3.0):
+                pos, why = None, "the crossing is the edge of the search region (ROI), not the water"
+            if pos is None:
+                if "off the frame border" in why:
+                    border += 1
+                notes.append(f"band {k}: {why}")
+                continue
+            y_w = near.fit["slope"] * pos + near.fit["intercept"] * scale - (k + 0.5) * thickness
+            pts.append((pos * back, y_w * back))
+        if len(pts) >= MIN_SHORT_CROSSINGS:
+            arr = np.asarray(pts, dtype=float)
+            fit = fit_run(arr, vertical=True)
+            if fit is not None:
+                ang = float(fit["angle_deg"])
+                off = abs((ang - near_angle + 90.0) % 180.0 - 90.0)
+                if float(fit["rms_residual"]) > SHORT_MAX_RMS_PX:
+                    out[side] = EdgeFit(name=side, found=False, status="declined",
+                                        reason=f"{len(pts)} crossings but RMS "
+                                               f"{fit['rms_residual']:.1f} px > {SHORT_MAX_RMS_PX}")
+                    continue
+                if off < MIN_SHORT_ANGLE_DEG:
+                    out[side] = EdgeFit(name=side, found=False, status="declined",
+                                        reason=f"the line is {off:.1f} deg off the long waterlines "
+                                               f"(< {MIN_SHORT_ANGLE_DEG}) — that is the same edge, "
+                                               f"not a short end")
+                    continue
+                out[side] = EdgeFit(name=side, found=True, points=arr, fit=fit,
+                                    inlier_fraction=float(fit["inlier_fraction"]),
+                                    stability_px=None,
+                                    status="observed",
+                                    reason=f"{len(pts)} band crossings, one line: RMS "
+                                           f"{fit['rms_residual']:.1f} px, {off:.0f} deg off the "
+                                           f"long waterlines, dx/dy "
+                                           f"{1.0 / max(abs(math.tan(np.radians(ang))), 1e-9):.2f}")
+                continue
+        if border >= max(2, BAND_COUNT // 2):
+            # The water runs off this end of the frame: cut the quad at the border and say so.  The
+            # cut is the vertical at that column, spanning the strip from the far waterline to the
+            # near one — a real quad edge, and explicitly not a claim about the pool.
+            x_b = 0.0 if side == "left" else fw - 1.0
+            y_n = near.fit["slope"] * x_b + near.fit["intercept"]
+            if far is not None and far.found and far.fit is not None:
+                y_f = far.fit["slope"] * x_b + far.fit["intercept"]
+            else:
+                y_f = y_n - 90.0
+            seg = np.array([[x_b, y_f], [x_b, y_n]], dtype=float)
+            fit = fit_run(seg, vertical=True)
+            out[side] = EdgeFit(name=side, found=True, points=seg, fit=fit,
+                                inlier_fraction=1.0, stability_px=None, status="frame_cut",
+                                reason=f"{border}/{BAND_COUNT} bands run off the frame at x={x_b:.0f} "
+                                       f"— the quad is CUT at the frame here, not at a wall")
+            continue
+        out[side] = EdgeFit(name=side, found=False, status="declined",
+                            reason=f"{len(pts)}/{MIN_SHORT_CROSSINGS} crossings needed"
+                                   + (f" · {notes[0]}" if notes else ""))
+    return out
+
+
+# ---------------------------------------------------------------------------
 # The detection
 # ---------------------------------------------------------------------------
 def analyze(frames: np.ndarray, *, scale: float = 1.0,
@@ -486,7 +856,8 @@ def analyze(frames: np.ndarray, *, scale: float = 1.0,
             threshold_mode: str = "otsu", threshold_value: float | None = None,
             pre_blur: int = 3, post_blur: int = 5, diff_lag: int = 1,
             open_size: int = 5, close_size: int = 15,
-            window: tuple[int, int] = (0, 0), window_reason: str = "") -> WaterlineEdges:
+            window: tuple[int, int] = (0, 0), window_reason: str = "",
+            short_method: str | None = None) -> WaterlineEdges:
     """Detect the three edges in an in-memory stack of frames.
 
     ``frames`` are the *working* resolution (already scaled); every coordinate returned is multiplied
@@ -551,17 +922,37 @@ def analyze(frames: np.ndarray, *, scale: float = 1.0,
     # Both short ends are kept (operator order 2026-10-21): the pool's two end walls are the images
     # of X = 0 and X = anchor, and which is which is the operator's orientation choice, not a score
     # contest.  ``dock`` stays the detector's own vote so every existing consumer keeps working.
-    sides = {
-        "left": _edge("left", split_runs(left, vertical=True), vertical=True,
-                      min_points=MIN_DOCK_POINTS),
-        "right": _edge("right", split_runs(right, vertical=True), vertical=True,
-                       min_points=MIN_DOCK_POINTS),
-    }
+    short_how = (short_method or SHORT_EDGE_METHOD or "M1").strip()
+    if short_how == "M1":
+        # Method M1 (2026-10-27): each short edge is a LINE through one crossing per band.  The
+        # dock edge measured on video004 seg01 is 12 deg from horizontal, so the old near-vertical
+        # test and the common-x consensus both rejected the correct edge by construction.
+        sides = short_end_lines((mask > 0).astype(np.float32), near, far, scale=float(scale),
+                                roi_mask=roi_mask if roi_poly is not None else None,
+                                frame_w=float(frame_size[0]) if frame_size else None)
+    elif short_how in ("A", "B"):
+        # Methods A/B (2026-10-27): the extreme-pixel row scan above is what latched onto the
+        # building and the ramp on video004 seg01, so these scan the water strip in bands instead.
+        sides = short_end_edges((mask > 0).astype(np.float32) if short_how == "A" else norm_map,
+                               near, far, method=short_how, scale=float(scale),
+                               roi_mask=roi_mask if roi_poly is not None else None)
+    else:
+        sides = {
+            "left": _edge("left", split_runs(left, vertical=True), vertical=True,
+                          min_points=MIN_DOCK_POINTS),
+            "right": _edge("right", split_runs(right, vertical=True), vertical=True,
+                           min_points=MIN_DOCK_POINTS),
+        }
     for side, e in sides.items():
-        if e.found and abs(e.angle_deg) < MIN_DOCK_ANGLE_DEG:
+        # Legacy near-vertical test — ONLY for the original scan.  Measured on video004 seg01 a
+        # correct short edge is 12 deg from horizontal, so methods A/B/M1 carry their own,
+        # geometry-aware checks and this one would reject the right answer.
+        if short_how == "current" and e.found and abs(e.angle_deg) < MIN_DOCK_ANGLE_DEG:
             e.found = False
             e.reason = f"line is {e.angle_deg:.0f}deg from horizontal, not vertical enough"
-    ranked = sorted(sides.items(), key=lambda kv: (kv[1].found, _score(kv[1])), reverse=True)
+    ranked = sorted(sides.items(),
+                    key=lambda kv: (kv[1].status == "observed", kv[1].found, _score(kv[1])),
+                    reverse=True)
     dock_side, winner = ranked[0]
     dock = dataclasses.replace(winner, name="dock")      # provisional; rebuilt after stability
     if not winner.found:
@@ -571,7 +962,10 @@ def analyze(frames: np.ndarray, *, scale: float = 1.0,
     # a comparison of the seed against the line it came from would be ~0 px by construction.
     h = len(frames)
     halves = [frames[: h // 2], frames[h // 2:]] if h >= 4 else []
-    for side, e in (("", far), ("", near), ("left", sides["left"]), ("right", sides["right"])):
+    # Methods A/B supply their own second sample (the spread of the per-band answers), so the
+    # half-window refit — which re-runs the *old* row scan — would compare unlike things.
+    short_edges = () if short_how in ("A", "B", "M1") else (("left", sides["left"]), ("right", sides["right"]))
+    for side, e in (("", far), ("", near), *short_edges):
         if not e.found or not halves:
             continue
         offsets: list[float] = []
@@ -614,7 +1008,8 @@ def analyze(frames: np.ndarray, *, scale: float = 1.0,
     return WaterlineEdges(
         far=far, near=near, dock=dock, left=sides["left"], right=sides["right"],
         dock_side=dock_side, dock_side_evidence=evidence,
-        method=best, fisher=fisher[best], fisher_by_method=fisher, threshold=float(thr),
+        method=best, short_method=short_how, fisher=fisher[best], fisher_by_method=fisher,
+        threshold=float(thr),
         window=(int(window[0]), int(window[1])), window_reason=window_reason,
         scale=float(scale), water_fraction=float(np.mean(mask > 0)),
         n_components=int(comp["n_components"]), components_kept=int(kept),
@@ -624,6 +1019,7 @@ def analyze(frames: np.ndarray, *, scale: float = 1.0,
                 "open_size": open_size, "close_size": close_size,
                 "threshold_mode": threshold_mode, "threshold_value": threshold_value,
                 "roi": "poly" if roi_poly is not None else "frame",
+                "short_edge_method": short_how,
                 "scale": float(scale)})
 
 
@@ -644,6 +1040,7 @@ def detect_edges(clip: str | Path, *, first_accepted: int | None = None,
                  scale: float = DEFAULT_SCALE, step: int = 1,
                  roi_poly: np.ndarray | None = None,
                  threshold_mode: str = "otsu", threshold_value: float | None = None,
+                 short_method: str | None = None,
                  ) -> WaterlineEdges:
     """Load a calm window from ``clip`` and detect the three edges.
 
@@ -666,7 +1063,7 @@ def detect_edges(clip: str | Path, *, first_accepted: int | None = None,
     frames = wl.load_frames(clip, start, end, False, int(step), float(scale))
     out = analyze(frames, scale=scale, frame_size=(info.width, info.height), roi_poly=roi_poly,
                   threshold_mode=threshold_mode, threshold_value=threshold_value,
-                  window=(start, end), window_reason=reason)
+                  window=(start, end), window_reason=reason, short_method=short_method)
     out.params["step"] = int(step)
     return out
 

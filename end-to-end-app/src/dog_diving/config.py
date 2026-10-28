@@ -270,7 +270,7 @@ POOL_FOCAL_RATIO = 1.0                # f / max(image_width, image_height)
 # Phase 3 — the plan's "standard dock diving pool dimensions (e.g. 14 to 20 feet wide)".  A PRIOR,
 # and route B's only transverse anchor; ``homography.width_sensitivity`` prices it in inches per
 # foot of width so the cost is reported rather than assumed.
-POOL_WIDTH_FT = 16.0
+POOL_WIDTH_FT = 20.0
 POOL_WIDTH_PRIOR_BAND_FT = (14.0, 20.0)
 # 2026-10-20 operator order — the metric axis is FIXED: +X always runs from the dock lip to 35 ft.
 # ``PlaneSession.length_ft`` is no longer the measured pool length; it is only the anchor saying

@@ -323,9 +323,10 @@ def test_route_b_needs_three_marks():
 def test_width_prior_sensitivity_is_measured_not_asserted():
     """How many inches ride on the plan's "14 to 20 ft" allowance.
 
-    Measured on this scene: 6.0 in of distance per foot of pool width, i.e. **36 in across the
-    plan's full 6 ft prior band** — against a ±2 in accuracy criterion.  That is the number that
-    decides whether route B can be quoted without an independent width measurement.
+    Measured on this scene at the operator's 20 ft default: **4.8 in of distance per foot of pool
+    width**, i.e. 28.8 in across the plan's full 6 ft prior band — against a ±2 in accuracy
+    criterion.  The number scales as 1/width (it was 6.0 in/ft when the default was 16 ft), which is
+    why it is measured from the scene rather than written down as a constant.
     """
     sc = deck_marks_scene()
     _, across = _edge_families(sc)
@@ -333,8 +334,8 @@ def test_width_prior_sensitivity_is_measured_not_asserted():
     marks = _undistorted_marks(sc)
     s = H.width_sensitivity(marks, vp_transverse=vpy.v, edge_image_line=sc.edge_line(sc.width_ft),
                             width_ft=sc.width_ft, probe_world_xy=[(31.0, 8.0)])
-    assert s["in_per_ft_of_width"] == pytest.approx(6.0, rel=0.1)
-    assert s["in_across_prior_band"] == pytest.approx(36.0, rel=0.1)
+    assert s["in_per_ft_of_width"] == pytest.approx(4.8, rel=0.1)
+    assert s["in_across_prior_band"] == pytest.approx(28.8, rel=0.1)
     assert any("prior band" in n for n in s["notes"])
 
 

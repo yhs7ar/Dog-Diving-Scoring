@@ -335,12 +335,13 @@ def test_the_exported_still_draws_the_same_x_as_the_pane():
 # ===========================================================================
 # 5. the lattice follows the opacity rule, and the mark is drawn once
 # ===========================================================================
-def test_the_grid_is_a_canvas_layer_that_follows_the_slider():
-    """Operator order 2026-10-21: *"the grid does not adhere to the opacity rule."*"""
+def test_the_grid_is_a_canvas_layer_that_follows_its_own_slider():
+    """Operator order 2026-10-21 *"the grid does not adhere to the opacity rule"* — and 2026-10-28
+    *"add another opacity slider for the grid and only the grid"*."""
     root = _root_or_skip()
     try:
         app, _pts = _app_with_review(root)
-        app.entry_opacity.set(100)
+        app.grid_opacity.set(100)
         app.review_view.redraw_overlay()
         items = _grid_items(app)
         assert len(items) > 20, f"the lattice is not on the canvas: {len(items)} item(s)"
@@ -348,14 +349,56 @@ def test_the_grid_is_a_canvas_layer_that_follows_the_slider():
         strong = {c.itemcget(i, "fill") for i in items if c.type(i) == "line"}
         assert len(strong) > 2, strong
 
-        app.entry_opacity.set(20)
+        app.grid_opacity.set(20)
         app.review_view.redraw_overlay()
         faint = {c.itemcget(i, "fill") for i in _grid_items(app) if c.type(i) == "line"}
         assert not (strong & faint), "the lattice colour did not change with the slider"
 
-        app.entry_opacity.set(0)                     # 0 %: none of the overlay is left
+        app.grid_opacity.set(0)                      # 0 %: the lattice is gone
         app.review_view.redraw_overlay()
         assert not _grid_items(app)
+    finally:
+        root.destroy()
+
+
+def test_the_two_opacity_sliders_are_independent():
+    """The grid's slider moves the grid only; the element slider moves the elements only.
+
+    Order 2026-10-28: *"one opacity slider should control the opacity of the entire grid.  The other
+    opacity slider should control the trajectory, points, entry point, etc."*
+    """
+    root = _root_or_skip()
+    try:
+        app, _pts = _app_with_review(root)
+        assert app.grid_opacity_scale.cget("from") == 0
+        assert app.grid_opacity_scale.cget("to") == 100
+        assert float(app.grid_opacity.get()) == pytest.approx(app_gui.GRID_OPACITY_DEFAULT_PCT)
+        assert app.grid_opacity_scale is not app.opacity_scale
+
+        # elements OFF, grid ON: the lattice is drawn, nothing else is
+        app.entry_opacity.set(0)
+        app.grid_opacity.set(100)
+        app.review_view.redraw_overlay()
+        assert len(_grid_items(app)) > 20, "element opacity 0 took the grid with it"
+        assert not _overlay_lines(app), "element opacity 0 still drew the trajectory"
+
+        # grid OFF, elements ON: the reverse
+        app.entry_opacity.set(100)
+        app.grid_opacity.set(0)
+        app.review_view.redraw_overlay()
+        assert not _grid_items(app), "grid opacity 0 still drew the lattice"
+        assert _overlay_lines(app), "element opacity 100 drew nothing"
+
+        # and the element slider does not repaint the grid at a different weight
+        app.grid_opacity.set(100)
+        app.entry_opacity.set(100)
+        app.review_view.redraw_overlay()
+        c = app.review_view.canvas
+        full = {c.itemcget(i, "fill") for i in _grid_items(app) if c.type(i) == "line"}
+        app.entry_opacity.set(15)
+        app.review_view.redraw_overlay()
+        at15 = {c.itemcget(i, "fill") for i in _grid_items(app) if c.type(i) == "line"}
+        assert full == at15, "the element slider moved the grid's colours"
     finally:
         root.destroy()
 

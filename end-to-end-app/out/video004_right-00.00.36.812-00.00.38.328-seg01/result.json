@@ -3,6 +3,7 @@
     "annotated": "annotated.mp4",
     "calib_used": "calib_used.json",
     "meta": "run_meta.json",
+    "pool_translation": "pool_translation.json",
     "report": "report.txt",
     "result": "result.json",
     "still": "final_frame.png",
@@ -42,21 +43,29 @@
     "imgsz": 1280,
     "kp_conf": 0.3,
     "max_det": 1,
-    "model_path": "C:\\Users\\harri\\Downloads\\best.pt",
+    "model_path": "C:\\Users\\harri\\Dog-Diving-Scoring\\end-to-end-app\\models\\yolo26n-pose_dogs_v5.pt",
     "track_coverage_min": 0.5,
     "tracker": "bytetrack.yaml"
   },
   "contact": {
-    "arc_is_freefall": false,
-    "arc_reason": "no fitted arc (fewer than three accepted points in one run)",
+    "arc_is_freefall": true,
+    "arc_reason": "arc turns from rising to falling: cy2 = 0.0132 > 0, image-y minimum (apex) at frame 1.6",
     "candidates": [
       {
-        "available": false,
-        "confident": false,
-        "evidence": {},
-        "frame": null,
+        "available": true,
+        "confident": true,
+        "evidence": {
+          "frames_after_last_arc": 0,
+          "inside_flight_run": true,
+          "kp_conf": 0.9866892695426941,
+          "last_arc_frame": 86,
+          "n_accepted": 55,
+          "x": 527.3207397460938,
+          "y": 311.88922119140625
+        },
+        "frame": 86,
         "rank": 1,
-        "reason": "no accepted tailset detection in this clip",
+        "reason": "last accepted tailset detection (frame 86, keypoint conf 0.99); inside the fitted flight run; the tailset is occluded or confused once the splash starts, so this proxy is systematically EARLY",
         "source": "last_accepted"
       },
       {
@@ -74,48 +83,49 @@
         "available": false,
         "confident": false,
         "evidence": {
-          "apex_frame": null,
-          "curvature_min": 0.0,
-          "cx2": null,
-          "cy2": null,
-          "model_slopes_px_per_frame": [],
-          "n_flight_points": 0,
-          "y_span_px": null
+          "apex_frame": 1.596770504069923,
+          "box_conf_floor": null,
+          "collapse_end": 3,
+          "collapse_start": 2,
+          "kp_conf_at_start": null,
+          "kp_conf_threshold": 0.3,
+          "min_descent_px_per_frame": 1.0,
+          "run_length": 2,
+          "slope_at_collapse_px_per_frame": 0.010642715070842357
         },
         "frame": null,
         "rank": 3,
-        "reason": "unavailable: no fitted arc (fewer than three accepted points in one run)",
+        "reason": "unavailable: the fitted arc is not descending at frame 2 (dy/dt = 0.01 px/frame < 1), so this confidence gap is not a water entry",
         "source": "conf_collapse"
       },
       {
-        "available": false,
+        "available": true,
         "confident": false,
         "evidence": {
-          "apex_frame": null,
-          "curvature_min": 0.0,
-          "cx2": null,
-          "cy2": null,
-          "model_slopes_px_per_frame": [],
-          "n_flight_points": 0,
-          "y_span_px": null
+          "departure_frame": null,
+          "n_pairs": 54,
+          "vel_tol_px": 20.0
         },
-        "frame": null,
+        "frame": 86,
         "rank": 4,
-        "reason": "unavailable: no fitted arc (fewer than three accepted points in one run)",
+        "reason": "the observed dy/dt stays within 20 px/frame of the free-fall fit across the whole observed run, so the last frame before departure is the last observed frame 86",
         "source": "velocity_reversal"
       }
     ],
-    "chosen_frame": null,
-    "chosen_source": "last_accepted",
+    "chosen_frame": 86,
+    "chosen_source": "final-detection",
     "n_frames": 92,
     "waterline_y": null,
-    "window": null
+    "window": [
+      86,
+      86
+    ]
   },
   "detection": {
-    "cache_key_hash": "643e2867d944846f",
+    "cache_key_hash": "5d69e6f0e6c59705",
     "dominant_track": null,
-    "n_accepted": 0,
-    "n_detections": 0,
+    "n_accepted": 55,
+    "n_detections": 55,
     "n_frames_clip": 92,
     "n_frames_processed": 92,
     "track_coverage": 0.0,
@@ -136,57 +146,55 @@
     ],
     "min_points": 0,
     "n_low_conf_points": 0,
-    "n_points": 0,
+    "n_points": 55,
     "rungs": []
   },
   "measurement": {
-    "arc_is_freefall": false,
-    "arc_reason": "no fitted arc (fewer than three accepted points in one run)",
+    "arc_is_freefall": null,
+    "arc_reason": null,
     "calib_fit_type": null,
     "calib_residual_rms_in": null,
     "calib_setup_id": null,
-    "cfg": {
-      "kp_mode": "literal",
-      "kp_window": 5,
-      "mark_sigma_px": null,
-      "rounding": "nearest",
-      "waterline_tol_in": 6
-    },
-    "contact_source": "last_accepted",
-    "display": null,
+    "cfg": null,
+    "contact_source": null,
+    "display": "8' 1\"",
     "feet": null,
-    "flags": {},
-    "frame": null,
-    "gates": {},
+    "flags": {
+      "negative_distance": false,
+      "outside_extent": false
+    },
+    "frame": 86,
+    "gates": null,
     "in_per_px": null,
     "inches": null,
-    "kp_frames": [],
-    "kp_k": 0,
+    "kp_frames": null,
+    "kp_k": null,
     "model_point": null,
     "point_origin": "detection",
     "point_source": "model",
     "rounded_inches": null,
-    "sigma_complete": false,
+    "sigma_complete": null,
     "sigma_in": null,
     "sigma_kp_detrended_in": null,
     "sigma_kp_literal_in": null,
     "sigma_terms": null,
     "splash_gap_in": null,
     "splash_gap_px": null,
-    "splash_gap_tol_in": 6.0,
-    "total_inches": null,
+    "splash_gap_tol_in": null,
+    "total_inches": 97.0056585329481,
     "waterline_y": null,
-    "x_px": null,
-    "y_px": null
+    "x_px": 527.3207397460938,
+    "y_px": 311.88922119140625
   },
+  "measurement_route": "plane",
   "model": {
-    "layout": "",
-    "path": "C:\\Users\\harri\\Downloads\\best.pt",
-    "sha256": "45252fc7ce305c336e9b05f05d3eb2cb6b169cdb9f5f2f98a236d13cb6a7f0c7",
+    "layout": "dog-2kpt",
+    "path": "C:\\Users\\harri\\Dog-Diving-Scoring\\end-to-end-app\\models\\yolo26n-pose_dogs_v5.pt",
+    "sha256": "e6e0005e1c94b0d2a22236b3a279c8dedeaa37da66c947a474d5b44be6cef0ba",
     "tailset_derived": false
   },
   "overrides": {
-    "contact_source": "last_accepted",
+    "contact_source": "final-detection",
     "manual_point": false,
     "point_source": "model"
   },
@@ -201,27 +209,624 @@
     "trajectory": "m4",
     "video": "m1"
   },
-  "still_frame": 0,
+  "still_frame": 86,
   "trajectory": {
-    "airborne_frame_range": null,
-    "arc_rms_all_px": null,
-    "arc_rms_px": null,
-    "coeffs": null,
-    "flight_points": [],
-    "flight_run": null,
-    "inliers": [],
-    "last_arc_frame": null,
-    "last_contact_candidate": null,
-    "max_inlier_res_px": null,
+    "airborne_frame_range": [
+      5,
+      86
+    ],
+    "arc_rms_all_px": 19.450719802444432,
+    "arc_rms_px": 9.701679905843974,
+    "coeffs": {
+      "t_ref": 47.018181818181816,
+      "x": [
+        -0.05923423501595347,
+        -4.809931304808908,
+        791.0770256604023
+      ],
+      "y": [
+        0.013196845937936916,
+        1.1988387347919989,
+        240.95332592682803
+      ]
+    },
+    "flight_points": [
+      {
+        "frame": 5,
+        "kp_conf": 0.9890475869178772,
+        "x": 877.17626953125,
+        "y": 221.9127960205078
+      },
+      {
+        "frame": 7,
+        "kp_conf": 0.9915453791618347,
+        "x": 883.9209594726562,
+        "y": 215.7757568359375
+      },
+      {
+        "frame": 8,
+        "kp_conf": 0.9937360286712646,
+        "x": 889.5714721679688,
+        "y": 210.84457397460938
+      },
+      {
+        "frame": 10,
+        "kp_conf": 0.99339759349823,
+        "x": 892.8640747070312,
+        "y": 216.03814697265625
+      },
+      {
+        "frame": 11,
+        "kp_conf": 0.9948930740356445,
+        "x": 908.8667602539062,
+        "y": 208.0340118408203
+      },
+      {
+        "frame": 12,
+        "kp_conf": 0.9943933486938477,
+        "x": 883.9387817382812,
+        "y": 213.96359252929688
+      },
+      {
+        "frame": 13,
+        "kp_conf": 0.9951978325843811,
+        "x": 878.9337158203125,
+        "y": 212.06268310546875
+      },
+      {
+        "frame": 14,
+        "kp_conf": 0.9948990941047668,
+        "x": 877.8173217773438,
+        "y": 213.55917358398438
+      },
+      {
+        "frame": 15,
+        "kp_conf": 0.9944857954978943,
+        "x": 878.799560546875,
+        "y": 214.03973388671875
+      },
+      {
+        "frame": 16,
+        "kp_conf": 0.9944837689399719,
+        "x": 894.6538696289062,
+        "y": 209.5451202392578
+      },
+      {
+        "frame": 17,
+        "kp_conf": 0.9931786060333252,
+        "x": 891.91259765625,
+        "y": 211.2163848876953
+      },
+      {
+        "frame": 18,
+        "kp_conf": 0.9954121708869934,
+        "x": 877.9993286132812,
+        "y": 218.51231384277344
+      },
+      {
+        "frame": 19,
+        "kp_conf": 0.996577799320221,
+        "x": 871.472412109375,
+        "y": 218.8597869873047
+      },
+      {
+        "frame": 20,
+        "kp_conf": 0.9945396780967712,
+        "x": 873.1533203125,
+        "y": 220.6419219970703
+      },
+      {
+        "frame": 21,
+        "kp_conf": 0.9924613833427429,
+        "x": 888.9530639648438,
+        "y": 216.2061767578125
+      },
+      {
+        "frame": 22,
+        "kp_conf": 0.9932876229286194,
+        "x": 894.9741821289062,
+        "y": 217.79159545898438
+      },
+      {
+        "frame": 23,
+        "kp_conf": 0.9927652478218079,
+        "x": 885.6185302734375,
+        "y": 220.71624755859375
+      },
+      {
+        "frame": 26,
+        "kp_conf": 0.9917757511138916,
+        "x": 880.1083374023438,
+        "y": 221.20181274414062
+      },
+      {
+        "frame": 29,
+        "kp_conf": 0.9922575950622559,
+        "x": 892.913330078125,
+        "y": 220.13621520996094
+      },
+      {
+        "frame": 33,
+        "kp_conf": 0.9955370426177979,
+        "x": 877.2940673828125,
+        "y": 214.3075714111328
+      },
+      {
+        "frame": 34,
+        "kp_conf": 0.9955936074256897,
+        "x": 869.1026611328125,
+        "y": 221.4275665283203
+      },
+      {
+        "frame": 35,
+        "kp_conf": 0.9963679313659668,
+        "x": 866.8440551757812,
+        "y": 223.8284912109375
+      },
+      {
+        "frame": 38,
+        "kp_conf": 0.9944156408309937,
+        "x": 892.2205810546875,
+        "y": 210.74693298339844
+      },
+      {
+        "frame": 39,
+        "kp_conf": 0.9942014813423157,
+        "x": 878.42578125,
+        "y": 216.59112548828125
+      },
+      {
+        "frame": 43,
+        "kp_conf": 0.9939414262771606,
+        "x": 811.3528442382812,
+        "y": 240.54356384277344
+      },
+      {
+        "frame": 44,
+        "kp_conf": 0.9952937960624695,
+        "x": 804.422119140625,
+        "y": 238.29139709472656
+      },
+      {
+        "frame": 45,
+        "kp_conf": 0.9945068955421448,
+        "x": 801.2534790039062,
+        "y": 240.7624053955078
+      },
+      {
+        "frame": 46,
+        "kp_conf": 0.9935110211372375,
+        "x": 797.6217651367188,
+        "y": 246.5741729736328
+      },
+      {
+        "frame": 47,
+        "kp_conf": 0.9934385418891907,
+        "x": 787.48388671875,
+        "y": 249.39056396484375
+      },
+      {
+        "frame": 48,
+        "kp_conf": 0.9933028221130371,
+        "x": 787.9752197265625,
+        "y": 247.05899047851562
+      },
+      {
+        "frame": 49,
+        "kp_conf": 0.9924840331077576,
+        "x": 777.2074584960938,
+        "y": 247.1173095703125
+      },
+      {
+        "frame": 54,
+        "kp_conf": 0.9956421852111816,
+        "x": 767.3859252929688,
+        "y": 253.87380981445312
+      },
+      {
+        "frame": 64,
+        "kp_conf": 0.9988808035850525,
+        "x": 675.6024780273438,
+        "y": 250.8449249267578
+      },
+      {
+        "frame": 65,
+        "kp_conf": 0.9989727735519409,
+        "x": 665.1837158203125,
+        "y": 249.5482635498047
+      },
+      {
+        "frame": 66,
+        "kp_conf": 0.9953587651252747,
+        "x": 658.2224731445312,
+        "y": 249.67233276367188
+      },
+      {
+        "frame": 67,
+        "kp_conf": 0.998324453830719,
+        "x": 651.1221923828125,
+        "y": 254.05311584472656
+      },
+      {
+        "frame": 68,
+        "kp_conf": 0.9969382286071777,
+        "x": 636.791748046875,
+        "y": 254.66326904296875
+      },
+      {
+        "frame": 69,
+        "kp_conf": 0.9936536550521851,
+        "x": 631.2041625976562,
+        "y": 257.6946716308594
+      },
+      {
+        "frame": 70,
+        "kp_conf": 0.9979141354560852,
+        "x": 632.65625,
+        "y": 260.1101989746094
+      },
+      {
+        "frame": 71,
+        "kp_conf": 0.998623251914978,
+        "x": 632.0101318359375,
+        "y": 265.8055114746094
+      },
+      {
+        "frame": 72,
+        "kp_conf": 0.9989081621170044,
+        "x": 625.4215087890625,
+        "y": 269.3105163574219
+      },
+      {
+        "frame": 73,
+        "kp_conf": 0.9986957907676697,
+        "x": 613.3972778320312,
+        "y": 270.3132019042969
+      },
+      {
+        "frame": 74,
+        "kp_conf": 0.9972835779190063,
+        "x": 603.3519287109375,
+        "y": 271.7267761230469
+      },
+      {
+        "frame": 75,
+        "kp_conf": 0.9950923919677734,
+        "x": 599.8951416015625,
+        "y": 276.46588134765625
+      },
+      {
+        "frame": 76,
+        "kp_conf": 0.9989681243896484,
+        "x": 599.0908203125,
+        "y": 282.6361999511719
+      },
+      {
+        "frame": 77,
+        "kp_conf": 0.9971747398376465,
+        "x": 586.7247314453125,
+        "y": 285.29034423828125
+      },
+      {
+        "frame": 78,
+        "kp_conf": 0.9979808926582336,
+        "x": 578.3303833007812,
+        "y": 288.9469299316406
+      },
+      {
+        "frame": 79,
+        "kp_conf": 0.9954740405082703,
+        "x": 578.47021484375,
+        "y": 293.922607421875
+      },
+      {
+        "frame": 80,
+        "kp_conf": 0.9966949224472046,
+        "x": 569.0980834960938,
+        "y": 295.7248229980469
+      },
+      {
+        "frame": 81,
+        "kp_conf": 0.9969712495803833,
+        "x": 562.7330932617188,
+        "y": 301.0111999511719
+      },
+      {
+        "frame": 82,
+        "kp_conf": 0.9978006482124329,
+        "x": 556.4210815429688,
+        "y": 306.1822814941406
+      },
+      {
+        "frame": 83,
+        "kp_conf": 0.9978601336479187,
+        "x": 548.48583984375,
+        "y": 307.6447448730469
+      },
+      {
+        "frame": 84,
+        "kp_conf": 0.9979503750801086,
+        "x": 536.8984375,
+        "y": 310.38519287109375
+      },
+      {
+        "frame": 85,
+        "kp_conf": 0.9977169036865234,
+        "x": 534.4403076171875,
+        "y": 311.4192810058594
+      },
+      {
+        "frame": 86,
+        "kp_conf": 0.9866892695426941,
+        "x": 527.3207397460938,
+        "y": 311.88922119140625
+      }
+    ],
+    "flight_run": 0,
+    "inliers": [
+      {
+        "frame": 5,
+        "kp_conf": 0.9890475869178772,
+        "x": 877.17626953125,
+        "y": 221.9127960205078
+      },
+      {
+        "frame": 7,
+        "kp_conf": 0.9915453791618347,
+        "x": 883.9209594726562,
+        "y": 215.7757568359375
+      },
+      {
+        "frame": 8,
+        "kp_conf": 0.9937360286712646,
+        "x": 889.5714721679688,
+        "y": 210.84457397460938
+      },
+      {
+        "frame": 10,
+        "kp_conf": 0.99339759349823,
+        "x": 892.8640747070312,
+        "y": 216.03814697265625
+      },
+      {
+        "frame": 12,
+        "kp_conf": 0.9943933486938477,
+        "x": 883.9387817382812,
+        "y": 213.96359252929688
+      },
+      {
+        "frame": 13,
+        "kp_conf": 0.9951978325843811,
+        "x": 878.9337158203125,
+        "y": 212.06268310546875
+      },
+      {
+        "frame": 14,
+        "kp_conf": 0.9948990941047668,
+        "x": 877.8173217773438,
+        "y": 213.55917358398438
+      },
+      {
+        "frame": 15,
+        "kp_conf": 0.9944857954978943,
+        "x": 878.799560546875,
+        "y": 214.03973388671875
+      },
+      {
+        "frame": 16,
+        "kp_conf": 0.9944837689399719,
+        "x": 894.6538696289062,
+        "y": 209.5451202392578
+      },
+      {
+        "frame": 17,
+        "kp_conf": 0.9931786060333252,
+        "x": 891.91259765625,
+        "y": 211.2163848876953
+      },
+      {
+        "frame": 18,
+        "kp_conf": 0.9954121708869934,
+        "x": 877.9993286132812,
+        "y": 218.51231384277344
+      },
+      {
+        "frame": 19,
+        "kp_conf": 0.996577799320221,
+        "x": 871.472412109375,
+        "y": 218.8597869873047
+      },
+      {
+        "frame": 20,
+        "kp_conf": 0.9945396780967712,
+        "x": 873.1533203125,
+        "y": 220.6419219970703
+      },
+      {
+        "frame": 21,
+        "kp_conf": 0.9924613833427429,
+        "x": 888.9530639648438,
+        "y": 216.2061767578125
+      },
+      {
+        "frame": 23,
+        "kp_conf": 0.9927652478218079,
+        "x": 885.6185302734375,
+        "y": 220.71624755859375
+      },
+      {
+        "frame": 26,
+        "kp_conf": 0.9917757511138916,
+        "x": 880.1083374023438,
+        "y": 221.20181274414062
+      },
+      {
+        "frame": 43,
+        "kp_conf": 0.9939414262771606,
+        "x": 811.3528442382812,
+        "y": 240.54356384277344
+      },
+      {
+        "frame": 44,
+        "kp_conf": 0.9952937960624695,
+        "x": 804.422119140625,
+        "y": 238.29139709472656
+      },
+      {
+        "frame": 45,
+        "kp_conf": 0.9945068955421448,
+        "x": 801.2534790039062,
+        "y": 240.7624053955078
+      },
+      {
+        "frame": 46,
+        "kp_conf": 0.9935110211372375,
+        "x": 797.6217651367188,
+        "y": 246.5741729736328
+      },
+      {
+        "frame": 47,
+        "kp_conf": 0.9934385418891907,
+        "x": 787.48388671875,
+        "y": 249.39056396484375
+      },
+      {
+        "frame": 48,
+        "kp_conf": 0.9933028221130371,
+        "x": 787.9752197265625,
+        "y": 247.05899047851562
+      },
+      {
+        "frame": 49,
+        "kp_conf": 0.9924840331077576,
+        "x": 777.2074584960938,
+        "y": 247.1173095703125
+      },
+      {
+        "frame": 54,
+        "kp_conf": 0.9956421852111816,
+        "x": 767.3859252929688,
+        "y": 253.87380981445312
+      },
+      {
+        "frame": 71,
+        "kp_conf": 0.998623251914978,
+        "x": 632.0101318359375,
+        "y": 265.8055114746094
+      },
+      {
+        "frame": 72,
+        "kp_conf": 0.9989081621170044,
+        "x": 625.4215087890625,
+        "y": 269.3105163574219
+      },
+      {
+        "frame": 73,
+        "kp_conf": 0.9986957907676697,
+        "x": 613.3972778320312,
+        "y": 270.3132019042969
+      },
+      {
+        "frame": 74,
+        "kp_conf": 0.9972835779190063,
+        "x": 603.3519287109375,
+        "y": 271.7267761230469
+      },
+      {
+        "frame": 75,
+        "kp_conf": 0.9950923919677734,
+        "x": 599.8951416015625,
+        "y": 276.46588134765625
+      },
+      {
+        "frame": 76,
+        "kp_conf": 0.9989681243896484,
+        "x": 599.0908203125,
+        "y": 282.6361999511719
+      },
+      {
+        "frame": 77,
+        "kp_conf": 0.9971747398376465,
+        "x": 586.7247314453125,
+        "y": 285.29034423828125
+      },
+      {
+        "frame": 78,
+        "kp_conf": 0.9979808926582336,
+        "x": 578.3303833007812,
+        "y": 288.9469299316406
+      },
+      {
+        "frame": 79,
+        "kp_conf": 0.9954740405082703,
+        "x": 578.47021484375,
+        "y": 293.922607421875
+      },
+      {
+        "frame": 80,
+        "kp_conf": 0.9966949224472046,
+        "x": 569.0980834960938,
+        "y": 295.7248229980469
+      },
+      {
+        "frame": 81,
+        "kp_conf": 0.9969712495803833,
+        "x": 562.7330932617188,
+        "y": 301.0111999511719
+      },
+      {
+        "frame": 82,
+        "kp_conf": 0.9978006482124329,
+        "x": 556.4210815429688,
+        "y": 306.1822814941406
+      },
+      {
+        "frame": 83,
+        "kp_conf": 0.9978601336479187,
+        "x": 548.48583984375,
+        "y": 307.6447448730469
+      },
+      {
+        "frame": 84,
+        "kp_conf": 0.9979503750801086,
+        "x": 536.8984375,
+        "y": 310.38519287109375
+      },
+      {
+        "frame": 85,
+        "kp_conf": 0.9977169036865234,
+        "x": 534.4403076171875,
+        "y": 311.4192810058594
+      },
+      {
+        "frame": 86,
+        "kp_conf": 0.9866892695426941,
+        "x": 527.3207397460938,
+        "y": 311.88922119140625
+      }
+    ],
+    "last_arc_frame": 86,
+    "last_contact_candidate": {
+      "frame": 86,
+      "kp_conf": 0.9866892695426941,
+      "x": 527.3207397460938,
+      "y": 311.88922119140625
+    },
+    "max_inlier_res_px": 18.565269947466724,
     "n_before_entry": 0,
     "n_before_leave": 0,
-    "n_inliers": 0,
-    "n_outliers": 0,
-    "n_points": 0,
-    "runs": []
+    "n_inliers": 40,
+    "n_outliers": 15,
+    "n_points": 55,
+    "runs": [
+      {
+        "end_frame": 86,
+        "i0": 0,
+        "i1": 55,
+        "n": 55,
+        "start_frame": 5
+      }
+    ]
   },
-  "warnings": [
-    "no measurement point \u2014 there is nothing to convert (the chosen frame has no accepted detection; an arc prediction is no longer substituted for one)",
-    "no contact frame is chosen (PLAN \u00a75 D4: the operator confirms or nudges the auto-suggestion before a distance is reported)"
-  ]
+  "warnings": []
 }

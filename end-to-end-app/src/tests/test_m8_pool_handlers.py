@@ -255,7 +255,9 @@ def test_start_plane_aligns_and_builds_a_gate_passing_document(monkeypatch) -> N
         # the surviving "one sequence at a time" guard is that the plane drops any loaded document.
         assert app.pool_calib is None and app.pool_calib_path is None, (
             "a started plane left a previously loaded document live")
-        assert "pool plane" in app.calib_prompt.cget("text")
+        # The old "pool plane: drag corners…" prompt was removed (2026-10-27); the plane panel and
+        # the log carry the state instead.
+        assert not hasattr(app, "calib_prompt")
 
         _align(app, sc, start=False)          # the session was already started above
         assert app.plane_session is s, "Start plane created a second session"

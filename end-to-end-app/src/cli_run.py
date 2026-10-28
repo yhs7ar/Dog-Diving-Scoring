@@ -245,7 +245,8 @@ def run_clip(
 
     # 2. trajectory ---------------------------------------------------------
     report_stage("trajectory")
-    traj = trajectory_mod.build_trajectory(det, clip_id=clip.stem)
+    traj = trajectory_mod.build_trajectory(det, clip_id=clip.stem,
+                                           frame_size=(int(info.width), int(info.height)))
 
     # 3. contact candidates + the operator's frame -------------------------
     report_stage("contact")

@@ -101,9 +101,19 @@ def test_seed_recovers_a_model_consistent_quad_exactly():
                             frame_shape=(H, W_PX), current=session)
     assert not res.refused, res.reason
     assert res.level == "L3"
-    for tag in S.CORNER_TAGS:
+    # The FAR edge is the detected far waterline, untouched.
+    for tag in ("00", "10"):
         got = np.asarray(res.corners[tag], float)
         assert np.linalg.norm(got - np.asarray(corners[tag], float)) < 1e-6, tag
+    # The NEAR edge is the detected near waterline DROPPED by NEAR_WALL_DROP_PX: that line is the
+    # top of the pool wall, and the water meets the wall below it (order 2026-10-27).
+    p = np.asarray(near.fit["point"], float) + np.array([0.0, float(S.NEAR_WALL_DROP_PX)])
+    d = np.asarray(near.fit["direction"], float)
+    d = d / np.linalg.norm(d)
+    for tag in ("01", "11"):
+        q = np.asarray(res.corners[tag], float)
+        assert abs(float((q - p) @ np.array([-d[1], d[0]]))) < 1e-6, tag
+    assert np.linalg.norm(np.asarray(res.corners["01"]) - np.asarray(corners["01"], float)) > 1.0
     assert res.gates["S4"]["pass"]
 
 
@@ -302,7 +312,8 @@ def test_fit_run_scores_inliers_and_rejects_a_bent_run():
 
 def test_analyze_finds_all_three_edges_on_a_synthetic_stack():
     frames = _synthetic_stack()
-    out = W.analyze(frames, scale=1.0, frame_size=(320, 240), window=(0, 40))
+    out = W.analyze(frames, scale=1.0, frame_size=(320, 240), window=(0, 40),
+                    short_method="current")      # the legacy path this test pins
     assert out.far.found and out.near.found and out.dock.found
     assert out.far.midpoint is not None and abs(out.far.midpoint[1] - 120) <= 2
     assert out.near.midpoint is not None and abs(out.near.midpoint[1] - 219) <= 2

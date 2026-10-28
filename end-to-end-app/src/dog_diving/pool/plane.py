@@ -181,7 +181,7 @@ class PlaneSession:
             p = self.corners.get(which)
             if p is None:
                 return False
-            self.corners[which] = (float(p[0]) + float(dx), float(p[1]) + float(dy))
+            self.corners[which] = self._clamp_xy(p[0] + float(dx), p[1] + float(dy))
             self._touch()
             return True
         if which in SIDE_TAGS:
@@ -189,8 +189,8 @@ class PlaneSession:
             pa, pb = self.corners.get(a), self.corners.get(b)
             if pa is None or pb is None:
                 return False
-            self.corners[a] = (pa[0] + float(dx), pa[1] + float(dy))
-            self.corners[b] = (pb[0] + float(dx), pb[1] + float(dy))
+            self.corners[a] = self._clamp_xy(pa[0] + float(dx), pa[1] + float(dy))
+            self.corners[b] = self._clamp_xy(pb[0] + float(dx), pb[1] + float(dy))
             self._touch()
             return True
         return False
@@ -261,7 +261,11 @@ class PlaneSession:
         # (the near one).  Both span the pool's length, so the comparison is like for like.
         far_px = float(np.hypot(p10[0] - p00[0], p10[1] - p00[1]))
         near_px = float(np.hypot(p11[0] - p01[0], p11[1] - p01[1]))
-        if near_px <= 0.0 or far_px <= near_px * (1.0 + 1e-6):
+        # A MARGIN, not one float epsilon: in a side-on capture the two long edges are within a
+        # percent of each other, and swapping on that noise flips which waterline "Top" holds.
+        # Measured on video004 seg01: 645.5 vs 640.8 px (0.7 %) — a real down-the-pool quad differs
+        # by tens of percent, so 10 % costs nothing and stops the false swap (order 2026-10-27).
+        if near_px <= 0.0 or far_px <= near_px * 1.10:
             return False
         for a, b in (("00", "01"), ("10", "11")):
             self.corners[a], self.corners[b] = self.corners[b], self.corners[a]
@@ -361,8 +365,10 @@ class PlaneSession:
         if not self.placed:
             for tag in CORNER_TAGS:
                 if self.corners[tag] is None:
-                    # x/y arrive in DISPLAY px (the padded canvas); corners live in image px
-                    self.corners[tag] = self.from_display(x, y)
+                    # x/y arrive in DISPLAY px (the padded canvas); corners live in image px, and a
+                    # click in the padding is clamped to the frame so a corner can never be placed
+                    # out of reach.
+                    self.corners[tag] = self._clamp_xy(*self.from_display(x, y))
                     self.selected = tag
                     return True
             return False
@@ -401,14 +407,30 @@ class PlaneSession:
             return None
         return (0.5 * (pa[0] + pb[0]), 0.5 * (pa[1] + pb[1]))
 
+    def _clamp_xy(self, x: float, y: float) -> tuple[float, float]:
+        """Clamp an image point to the frame.
+
+        An *automatic* placement may sit outside it — the near corner of a side-on pool is past the
+        border — but an operator DRAG may not: a corner dragged off the canvas is a corner the
+        operator cannot get back to.  Operator order 2026-10-27.
+        """
+        h, w = int(self.frame_shape[0]), int(self.frame_shape[1])
+        return (min(max(float(x), 0.0), float(w - 1)),
+                min(max(float(y), 0.0), float(h - 1)))
+
     def drag_to(self, x: float, y: float) -> bool:
-        """Move the grabbed handle to a display point.  A corner moves freely (giving perspective);
-        a side translates both of its corners, so the edge stays straight and parallel to itself."""
+        """Move the grabbed handle to a display point, inside the frame.
+
+        A corner moves freely (that is what gives the perspective); a side moves both of its corners
+        so the edge stays straight.  The two LONG edges are PULLED rather than dragged — only the
+        component of the cursor motion along the edge's own normal is applied, so a waterline cannot
+        be slid sideways or rotated by accident (operator order 2026-10-27).
+        """
         if self.dragging is None:
             return False
         ix, iy = self.from_display(x, y)
         if self.dragging in CORNER_TAGS:
-            self.corners[self.dragging] = (ix, iy)
+            self.corners[self.dragging] = self._clamp_xy(ix, iy)
             self._touch()
             return True
         name = self.dragging
@@ -418,8 +440,14 @@ class PlaneSession:
             return False
         mx, my = 0.5 * (pa[0] + pb[0]), 0.5 * (pa[1] + pb[1])
         dx, dy = ix - mx, iy - my
-        self.corners[a] = (pa[0] + dx, pa[1] + dy)
-        self.corners[b] = (pb[0] + dx, pb[1] + dy)
+        if name in ("back", "front"):
+            ex, ey = float(pb[0] - pa[0]), float(pb[1] - pa[1])
+            n = float(np.hypot(ex, ey)) or 1.0
+            nx, ny = -ey / n, ex / n
+            t = dx * nx + dy * ny
+            dx, dy = t * nx, t * ny
+        self.corners[a] = self._clamp_xy(pa[0] + dx, pa[1] + dy)
+        self.corners[b] = self._clamp_xy(pb[0] + dx, pb[1] + dy)
         self._touch()
         return True
 
@@ -447,6 +475,50 @@ class PlaneSession:
             out.append({"X_ft": off + X, "Y_ft": Y,
                         "x_px": float(p[0]), "y_px": float(p[1])})
         return out
+
+    def apply_anchors(self, near_ft: float, far_ft: float) -> dict[str, float]:
+        """Slide the quad's two SHORT edges to ``X = near_ft`` / ``X = far_ft``, leaving the PLANE fixed.
+
+        The corners are the images of those X values under the CURRENT homography, so the mapping is
+        reproduced exactly: relabelling the same plane at 10..15 ft instead of 0..35 ft moves the
+        quad's short edges — and its two far/dock corners with them — but not one pixel of the plane.
+        That is what lets the anchors be a manual adjustment of the *selectable* quad without
+        disturbing the fit the waterlines produced.
+
+        Returns the evidence: how far the corners moved and how far the plane moved (the latter is
+        the disagreement between the homography before and after, probed on the world plane).
+        """
+        if not self.placed:
+            raise ValueError(f"the plane is not placed — {self.prompt}")
+        if float(far_ft) <= float(near_ft):
+            raise ValueError("the anchor opposite the dock must be beyond the near one")
+        H = self.homography()
+        w = float(self.width_ft)
+        new = {"00": project(H, float(near_ft), 0.0), "10": project(H, float(far_ft), 0.0),
+               "11": project(H, float(far_ft), w), "01": project(H, float(near_ft), w)}
+        before = {t: self.corners[t] for t in CORNER_TAGS}
+        moved = max(float(np.hypot(new[t][0] - before[t][0], new[t][1] - before[t][1]))
+                    for t in CORNER_TAGS)
+        self.corners = {t: (float(new[t][0]), float(new[t][1])) for t in CORNER_TAGS}
+        self.dock_offset_ft = float(near_ft)
+        self.length_ft = float(far_ft) - float(near_ft)
+        # Prove the plane did not move: the rebuilt homography must agree with the old one on the
+        # world plane.  A large number here means the anchors did something they should not have.
+        try:
+            H2 = self.homography()
+        except Exception:                                                # noqa: BLE001
+            H2 = None
+        worst = 0.0
+        if H2 is not None:
+            for X, Y in ((0.0, 0.0), (5.0, 5.0), (17.5, w / 2.0), (float(METRIC_LENGTH_FT), w),
+                         (float(near_ft), 0.0)):
+                a = project(H, X, Y)
+                b = project(H2, X, Y)
+                if all(np.isfinite(v) for v in a + b):
+                    worst = max(worst, float(np.hypot(a[0] - b[0], a[1] - b[1])))
+        self._touch()
+        return {"moved_px": float(moved), "plane_shift_px": float(worst),
+                "near_ft": float(near_ft), "far_ft": float(far_ft)}
 
     def homography(self) -> np.ndarray:
         if not self.placed:
@@ -666,10 +738,18 @@ def validate_plane(doc: dict[str, Any], plane: PlaneSession | None = None) -> di
         near = float(np.linalg.norm(p1 - p0))
         far = float(np.linalg.norm(q1 - q0))
         ratio = far / max(near, 1e-9)
-        ok = ratio < 1.0
-        g["P4"] = {"pass": bool(ok), "warn": bool(0.9 <= ratio < 1.0),
+        # 5 % of slack, because a SIDE-ON capture has the two long edges nearly parallel: the seed
+        # copies the missing short edge's direction from the dock waterline, so the quad's two short
+        # ends are parallel to 4 decimals (both 12.2182 deg on video004 seg01) and one foot subtends
+        # 18.22 px at the dock against 18.54 px at the far end — ratio 1.0171, the SAME length
+        # measured twice.  A strict ratio < 1 failed every legitimate plane this camera produces,
+        # and the log read "any distance it produces is wrong by an unmeasured amount".  A genuinely
+        # reversed down-the-pool quad scores far above 1.05, so the gate keeps its teeth where it
+        # can actually see (measured 2026-10-27).
+        ok = ratio < 1.05
+        g["P4"] = {"pass": bool(ok), "warn": bool(1.0 <= ratio < 1.05),
                    "detail": f"1 ft subtends {near:.1f} px at the dock edge and {far:.1f} px at "
-                             f"the far end (ratio {ratio:.2f}x) — a reversed plane scores > 1"}
+                             f"the far end (ratio {ratio:.2f}x) — a reversed plane scores > 1.05"}
     except Exception as exc:                                     # noqa: BLE001
         g["P4"] = {"pass": False, "warn": False, "detail": f"orientation not checkable: {exc}"}
     return g

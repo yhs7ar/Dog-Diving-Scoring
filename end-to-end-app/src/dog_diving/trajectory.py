@@ -102,6 +102,91 @@ class TrajConfig:
         return asdict(self)
 
 
+# --- the fork's trajectory algorithm (authoritative) -------------------------
+#: Where the algorithm comes from.  This is the fork's own pipeline script, and the app runs its fit
+#: rather than a lookalike, so the curve drawn in Review is the curve that script draws:
+#:
+#:     C:\\Users\\harri\\Documents\\GitHub\\Dog-Diving-Scoring\\Final_pipeline_w_json.py
+#:     -> fit_parabolic_trajectory(points, frame_width, frame_height, min_points=6)
+#:
+#: (``draw_parabolic_trajectory.py`` carries the same function with a 40 px x-span gate; the pipeline
+#: -- the one that produces the JSON results -- uses 30 px, and that is the number used here.)
+REFERENCE_TRAJECTORY_SCRIPT = "Final_pipeline_w_json.py:fit_parabolic_trajectory"
+LAST_N_POINTS = 20           # operator order 2026-10-28: fit the last 20 detected points only
+X_SPAN_MIN_PX = 30.0         # the pipeline's gate (the draw script uses 40)
+PARABOLA_MIN_POINTS = 6      # the pipeline's min_points=6
+EXTRAPOLATE_STEP_PX = 3      # the pipeline's ±3 px walk
+
+
+def fit_parabolic_trajectory(
+    points: Sequence[Any],
+    frame_width: int,
+    frame_height: int,
+    *,
+    min_points: int = PARABOLA_MIN_POINTS,
+    x_span_min_px: float = X_SPAN_MIN_PX,
+    x_end: float | None = None,
+) -> tuple[list[tuple[int, int]] | None, tuple[int, int] | None, dict[str, float] | None]:
+    """``y = A·x² + B·x + C`` in PIXEL space, extrapolated to the bottom edge of the frame.
+
+    A port of the fork's ``fit_parabolic_trajectory``, kept line for line so the two agree: same
+    two gates (``min_points``, then an x-span of at least ``x_span_min_px``), same ``np.polyfit``
+    degree 2, same walk from the FIRST fitted point in ±3 px steps, and the same contact rule — the
+    point where the curve leaves the bottom of the picture (``y >= frame_height - 1``).
+
+    ``x_end`` is the one addition (operator order 2026-10-28): the walk stops there, so the drawn
+    arc runs from the earliest fitted detection to the ENTRY detection's x instead of continuing to
+    the edge of the picture.  ``None`` restores the fork's behaviour exactly, which is what the
+    parity tests exercise.
+
+    ``points`` may be ``{x, y}`` dicts (this project's point records) or ``(x, y)`` pairs (what the
+    fork passes).  Returns ``(curve, contact, coeffs)``; ``(None, None, None)`` when the gates fail —
+    the caller keeps whatever it had rather than drawing a line through nothing.
+    """
+    pts = list(points)
+    if len(pts) < int(min_points):
+        return None, None, None
+    if isinstance(pts[0], dict):
+        x = np.asarray([float(p["x"]) for p in pts], dtype=np.float64)
+        y = np.asarray([float(p["y"]) for p in pts], dtype=np.float64)
+    else:
+        x = np.asarray([float(p[0]) for p in pts], dtype=np.float64)
+        y = np.asarray([float(p[1]) for p in pts], dtype=np.float64)
+    if float(np.max(x) - np.min(x)) < float(x_span_min_px):
+        return None, None, None
+    try:
+        coeffs = np.polyfit(x, y, 2)
+        parabola = np.poly1d(coeffs)
+    except Exception:                                            # noqa: BLE001
+        return None, None, None
+
+    # flight direction decides which way the walk goes — the fork's own rule
+    dx = float(x[-1] - x[0])
+    step = EXTRAPOLATE_STEP_PX if dx >= 0 else -EXTRAPOLATE_STEP_PX
+
+    curve: list[tuple[int, int]] = []
+    contact: tuple[int, int] | None = None
+    curr_x = int(x[0])
+    while 0 <= curr_x < int(frame_width):
+        curr_y = float(parabola(curr_x))
+        if curr_y >= float(frame_height) - 1.0:
+            contact = (int(curr_x), int(frame_height) - 1)
+            curve.append(contact)
+            break
+        if curr_y >= 0.0:
+            curve.append((int(curr_x), int(curr_y)))
+        curr_x += step
+        # Stop at the ENTRY detection (order 2026-10-28): the arc has to end on the x of the point
+        # the dog entered at, not on the edge of the picture.  Checked after the step, so the curve
+        # always contains at least the first fitted point.
+        if x_end is not None and ((step > 0 and curr_x > int(x_end)) or
+                                  (step < 0 and curr_x < int(x_end))):
+            curve.append((int(x_end), int(parabola(int(x_end)))))
+            break
+    return curve, contact, {"a": float(coeffs[0]), "b": float(coeffs[1]),
+                            "c": float(coeffs[2])}
+
+
 # --- points -----------------------------------------------------------------
 def _point_from_record(r: dict, kp_conf: float | None) -> dict | None:
     """A single accepted detection -> ``{frame, x, y, kp_conf}`` (or ``None``)."""
@@ -297,19 +382,96 @@ class Trajectory:
     last_arc_frame: int | None
     last_contact_candidate: dict | None
     cfg: dict[str, Any] = field(default_factory=dict)
+    # --- the fork's parabolic arc (``fit_parabolic_trajectory``) ---------------
+    #: A, B, C of the pixel-space quadratic — the algorithm the fork's pipeline runs.
+    parabola: dict | None = None
+    #: Its extrapolated points, in image px, from the launch end towards the water.
+    curve: list[list[float]] = field(default_factory=list)
+    #: Where that curve leaves the bottom edge of the frame (the fork's water contact).
+    contact_point: list[float] | None = None
+    #: The window actually fitted — the LAST ``LAST_N_POINTS`` accepted detections.
+    fit_points: list[dict] = field(default_factory=list)
+    fit_rms_px: float | None = None
+    #: Why the parabola is missing, when it is (a gate failed, or no frame size was known).
+    fit_note: str = ""
 
     def as_dict(self) -> dict[str, Any]:
         return asdict(self)
 
 
+def window_frames(traj: Any) -> list[int]:
+    """The frames the trajectory was actually fitted on — ``Trajectory.fit_points``, the last 20.
+
+    Review uses this to keep exactly those detections selected (order 2026-10-28: *"automatically
+    deselect the points not being used for the trajectory"*).  Empty when the parabola gates
+    rejected the window or the frame size was unknown — then there is no "used" set to keep.
+    """
+    pts = list(getattr(traj, "fit_points", None) or [])
+    if not pts:
+        pts = list(((getattr(traj, "parabola", None) or {}).get("fit_points") or []))
+    out: list[int] = []
+    for p in pts:
+        try:
+            out.append(int(p["frame"]))
+        except (KeyError, TypeError, ValueError):
+            continue
+    return out
+
+
+def _parabola_block(pts: Sequence[dict], frame_size: tuple[int, int] | None) -> dict[str, Any]:
+    """The fork's fit over the LAST ``LAST_N_POINTS`` accepted detections (order 2026-10-28).
+
+    Window first, then the fit: the reference accumulates every detection of the clip, and on a clip
+    that starts with the dog standing on the dock that early tail pushes the quadratic around.  The
+    operator asked for the last twenty, which is the flight plus its run-up, so that is the input.
+
+    Returns ``{}``-shaped keys ready to splat into :class:`Trajectory`; every value is ``None``/empty
+    when the gates fail or the frame size is unknown, so a caller without a size (most unit tests)
+    gets exactly the behaviour it had before.
+    """
+    empty = {"parabola": None, "curve": [], "contact_point": None, "fit_points": [],
+             "fit_rms_px": None, "fit_note": ""}
+    window = list(pts)[-LAST_N_POINTS:]
+    if not window:
+        return {**empty, "fit_note": "no accepted detections"}
+    if not frame_size or int(frame_size[0]) <= 0 or int(frame_size[1]) <= 0:
+        return {**empty, "fit_note": "frame size unknown — the arc needs the picture's edges"}
+    curve, contact, coeffs = fit_parabolic_trajectory(
+        window, int(frame_size[0]), int(frame_size[1]),
+        # begin at the earliest of the window, end on the ENTRY detection's x (order 2026-10-28)
+        x_end=float(window[-1]["x"]))
+    if coeffs is None:
+        return {**empty, "fit_note": (f"the fork's gates rejected the last {len(window)} point(s) "
+                                      f"(needs >= {PARABOLA_MIN_POINTS} points and an x-span of "
+                                      f">= {X_SPAN_MIN_PX:g} px)")}
+    xs = np.asarray([float(p["x"]) for p in window], dtype=np.float64)
+    ys = np.asarray([float(p["y"]) for p in window], dtype=np.float64)
+    resid = coeffs["a"] * xs * xs + coeffs["b"] * xs + coeffs["c"] - ys
+    return {"parabola": coeffs,
+            "curve": [[float(a), float(b)] for a, b in curve],
+            "contact_point": None if contact is None else [float(contact[0]), float(contact[1])],
+            "fit_points": window,
+            "fit_rms_px": float(np.sqrt(np.mean(resid * resid))),
+            "fit_note": f"{REFERENCE_TRAJECTORY_SCRIPT} on the last {len(window)} point(s), "
+                        f"x {int(window[-len(window)]['x'])} → {int(window[-1]['x'])} px "
+                        f"(first of the window → entry)"}
+
+
 def build_trajectory(source: Any, cfg: TrajConfig | None = None,
-                     clip_id: str | None = None, kp_conf: float | None = None
+                     clip_id: str | None = None, kp_conf: float | None = None,
+                     frame_size: tuple[int, int] | None = None
                      ) -> Trajectory:
-    """Full pipeline: assemble -> runs -> flight run -> robust arc fit."""
+    """Full pipeline: assemble -> runs -> flight run -> robust arc fit -> the fork's parabola.
+
+    ``frame_size`` is ``(width, height)`` in px.  It is what the fork's extrapolation needs to know
+    where the water is (the bottom edge of the picture); without it the parabola is skipped and the
+    trajectory is exactly what it was before it existed.
+    """
     cfg = cfg or TrajConfig()
     if clip_id is None:
         clip_id = str(getattr(source, "clip_id", "") or "")
     pts = assemble(source, kp_conf=kp_conf)
+    arc = _parabola_block(pts, frame_size)
     runs_idx = temporal_runs(pts, cfg.max_frame_gap)
     runs = [{"i0": i0, "i1": i1, "start_frame": pts[i0]["frame"],
              "end_frame": pts[i1 - 1]["frame"], "n": i1 - i0} for i0, i1 in runs_idx]
@@ -361,6 +523,7 @@ def build_trajectory(source: Any, cfg: TrajConfig | None = None,
                 max_inlier_res_px=fit["max_inlier_res_px"], residuals=residuals,
                 flight_points=flight_points, last_arc_frame=last_arc_frame,
                 last_contact_candidate=(pts[-1] if pts else None), cfg=cfg.as_dict(),
+                **arc,
             )
 
     return Trajectory(
@@ -370,6 +533,7 @@ def build_trajectory(source: Any, cfg: TrajConfig | None = None,
         arc_rms_all_px=None, max_inlier_res_px=None, residuals=None,
         flight_points=[], last_arc_frame=None,
         last_contact_candidate=(pts[-1] if pts else None), cfg=cfg.as_dict(),
+        **arc,
     )
 
 
@@ -380,7 +544,6 @@ def build_trajectory(source: Any, cfg: TrajConfig | None = None,
 # confidence makes the difference explicit rather than a matter of taste.
 CONF_MIN_SPACING_PX = 24     # suppress a label this close to the previous one; 0 = all
 CONF_FONT_SCALE = 0.45
-
 
 def conf_colour(kp_conf: float) -> tuple[int, int, int]:
     """BGR for one point's confidence: green trusted, orange ok, red marginal."""
@@ -422,21 +585,27 @@ def conf_labels(
     return out
 
 
-def refit(points: Sequence[dict], cfg: "TrajConfig | None" = None) -> dict[str, Any]:
+def refit(points: Sequence[dict], cfg: "TrajConfig | None" = None,
+          frame_size: tuple[int, int] | None = None) -> dict[str, Any]:
     """Fit the arc to an explicit point list — Review's include/exclude.
 
     Review lets the operator click a detection out of the arc (a handler's leg, a splash point, a box
     that latched onto a banner).  This is the same robust fit :func:`build_trajectory` uses, over
     whatever subset survives, so the arc panel and the arc drawn on the frame agree by construction.
+    The fork's parabola is re-run on the same subset (last ``LAST_N_POINTS`` of it), so the drawn
+    curve follows the points the operator kept.
 
-    Returns ``{coeffs, inliers, frame_range, n, rms_px}``; ``coeffs`` is ``None`` when the remaining
-    points cannot determine a quadratic (fewer than 3 distinct frames) — the caller should then keep
-    the previous arc rather than draw a line through nothing.
+    Returns ``{coeffs, inliers, frame_range, n, rms_px, parabola, curve, contact}``; ``coeffs`` is
+    ``None`` when the remaining points cannot determine a quadratic (fewer than 3 distinct frames) —
+    the caller should then keep the previous arc rather than draw a line through nothing.
     """
     cfg = cfg or TrajConfig()
     pts = list(points)
+    arc = _parabola_block(pts, frame_size)
     out: dict[str, Any] = {"coeffs": None, "inliers": [], "frame_range": None, "n": len(pts),
-                           "rms_px": None}
+                           "rms_px": None,
+                           "parabola": arc["parabola"], "curve": arc["curve"],
+                           "contact": arc["contact_point"]}
     if len(pts) < 3:
         return out
     t = np.array([p["frame"] for p in pts], float)

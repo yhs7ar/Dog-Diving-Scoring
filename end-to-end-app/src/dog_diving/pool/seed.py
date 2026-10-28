@@ -51,6 +51,11 @@ CORNER_TAGS = plane_mod.CORNER_TAGS
 
 #: Gate thresholds.
 MIN_WIDTH_FRAC = 0.15             # |p01 - p00| as a fraction of frame height
+
+#: How far BELOW the detected near waterline the quad's near edge is placed, in original px.  The
+#: near long edge the detector finds is the top of the pool wall (the coping); the wall stands above
+#: the water, so the water surface meets it this far lower in the image.  Operator order 2026-10-27.
+NEAR_WALL_DROP_PX = 30.0
 MAX_ANCHOR_PROJECTIVE = 0.995     # s(L) must stay short of the vanishing point
 AREA_RATIO_BAND = (0.15, 5.0)     # seeded area vs the default quad's area
 RHO_BAND = (0.2, 5.0)             # px/ft(X) / px/ft(Y) inherited from the session
@@ -397,6 +402,30 @@ def x_scale_from_extent(edge: Any, p00: np.ndarray, vp: np.ndarray, *, anchor_ft
                        f"{px_per_ft:.1f} px/ft along X at the dock edge")
 
 
+def _ground_truth_line(edges: Any, name: str):
+    """The fitted line for one end — or ``None`` when it is a FRAME CUT, not a waterline.
+
+    A ``frame_cut`` is the honest boundary of what is visible: a vertical at the picture's edge,
+    invented so a quad could still be closed.  It must never enter the FIT.  Measured on
+    video004 seg01: with the cut (a fabricated 90 deg line at x=0) in the homography, the
+    extrapolated X=const edges came out at 16.8 and 20.7 deg while the detected dock waterline is
+    **12.2 deg** — the mapping was sweeping from the real edge towards the invented one.  Three real
+    waterlines fix the geometry; the fourth edge is then extrapolated from it (order 2026-10-27).
+    """
+    e = getattr(edges, name, None)
+    if e is None or not getattr(e, "found", False):
+        return None
+    if getattr(e, "status", "") == "frame_cut":
+        return None
+    return line_of(e)
+
+
+#: How narrow the constructed opposite short edge may get before it is widened (px).  A vertical
+#: bridging the two long edges needs the far waterline to actually END somewhere: when its visible end
+#: sits on top of the dock corner, the quad would collapse and the homography with it.
+MIN_OPP_WIDTH_PX = 30.0
+
+
 def seed_from_edges(edges: Any, *, length_ft: float, width_ft: float,
                     frame_shape: tuple[int, int],
                     current: plane_mod.PlaneSession | None = None,
@@ -414,8 +443,17 @@ def seed_from_edges(edges: Any, *, length_ft: float, width_ft: float,
     catches it.
     """
     res = SeedResult(anchor_ft=float(length_ft), width_ft=float(width_ft))
-    far, near = line_of(edges.far), line_of(edges.near)
-    dock = line_of(edges.dock)
+    far = _ground_truth_line(edges, "far")
+    near = _ground_truth_line(edges, "near")
+    near_raw = near          # the DETECTED near waterline, kept for anything that reasons about the
+                             # vanishing point: the wall drop must not move the far edge
+    dock = _ground_truth_line(edges, "dock")
+    near_dropped = False
+    if near is not None and NEAR_WALL_DROP_PX:
+        # The near long edge the detector returns is the coping (the top of the wall); the water
+        # surface meets that wall below it, so the quad's near edge is dropped by that much.
+        near = (near[0] + np.array([0.0, float(NEAR_WALL_DROP_PX)]), near[1])
+        near_dropped = True
     side = dock_side or getattr(edges, "dock_side", "unknown")
     res.dock_side = side
     # The orientation control beats the detector's vote (operator order 2026-10-21): *"+x = 0 snaps to
@@ -434,6 +472,50 @@ def seed_from_edges(edges: Any, *, length_ft: float, width_ft: float,
                 res.notes.append(f"X=0 snapped to the {dock_side} waterline because that is the "
                                  f"orientation selected; the detector had the dock on the "
                                  f"{edges.dock_side}")
+    # --- the pool's OTHER short end: a VERTICAL line bridging the two long waterlines ----------
+    # Order 2026-10-28: *"simplify the opposite short edge rule immensely: the opposite short edge of
+    # the pool should be placed as a vertical line bridging the near and far long edges."*  So it is
+    # one x and two intersections — no vanishing point, no direction borrowed from the dock edge, no
+    # detector line whose status might be wrong (a border line reported `observed` was making this
+    # side a vertical at x = 0, which is the picture, not the pool).
+    opp_side = {"left": "right", "right": "left"}.get(side)
+    cut = [n for n in ("left", "right")
+           if getattr(getattr(edges, n, None), "status", "") == "frame_cut"]
+    opp = None
+    e_opp = getattr(edges, opp_side, None) if opp_side else None
+    p_dock = intersect(dock, far) if (dock is not None and far is not None) else None
+    far_ends = [np.asarray(p, float) for p in (getattr(edges.far, "fit", None) or {})
+                .get("endpoints", [])]
+    if e_opp is not None and p_dock is not None and far_ends:
+        # The x is where the far waterline ends away from the dock: the far end of the water we can
+        # see.  (Not a detected short-side line — the vertical is constructed, so its status cannot
+        # matter.)
+        far_end = max(far_ends, key=lambda p: float(np.linalg.norm(p - p_dock)))
+        cand = float(far_end[0])
+        if abs(cand - float(p_dock[0])) >= MIN_OPP_WIDTH_PX:
+            opp_x = cand
+            opp = (np.array([cand, 0.0]), np.array([0.0, 1.0]))      # vertical: x = cand
+            res.notes.append(
+                f"the opposite short edge is the VERTICAL x = {cand:.0f} bridging the far and near "
+                f"waterlines (the far end of the visible water, {abs(float(p_dock[0]) - cand):.0f} px "
+                f"from the dock corner)")
+        else:
+            res.notes.append(
+                f"the far waterline ends only {abs(cand - float(p_dock[0])):.0f} px from the dock "
+                f"corner — too narrow to bridge, so X = 35 is placed at the minimum span")
+            opp_x = float(p_dock[0]) + (-MIN_OPP_WIDTH_PX if cand < float(p_dock[0])
+                                        else MIN_OPP_WIDTH_PX)
+            opp = (np.array([opp_x, 0.0]), np.array([0.0, 1.0]))
+    if cut:
+        res.notes.append(
+            f"the {' and '.join(cut)} end is a FRAME CUT (the water leaves the picture there), not a "
+            f"waterline — excluded from the fit; the opposite side is the constructed vertical")
+
+    if near_dropped:
+        res.notes.append(
+            f"the quad's near edge sits {NEAR_WALL_DROP_PX:g} px BELOW the detected near waterline: "
+            f"that line is the top of the pool wall, and the water meets the wall below it")
+
     res.gates["S1"] = gate_edges_found(edges)
     res.gates["S2"] = gate_mask(edges)
 
@@ -454,7 +536,9 @@ def seed_from_edges(edges: Any, *, length_ft: float, width_ft: float,
     cur_c = ({t: np.asarray(cur.corners[t], float) for t in CORNER_TAGS}
              if cur is not None and cur.placed else None)
 
-    if far is not None and near is not None and dock is not None:
+    if far is not None and near is not None and dock is not None and opp is not None:
+        res.level = "L4"
+    elif far is not None and near is not None and dock is not None:
         res.level = "L3"
     elif far is not None and dock is not None:
         res.level = "L2"
@@ -472,15 +556,48 @@ def seed_from_edges(edges: Any, *, length_ft: float, width_ft: float,
     px_per_ft_y = float("nan")
     px_per_ft_x = float("nan")
 
-    if res.level == "L3":
+    if res.level == "L4":
+        # Four detected lines -> four corners.  No vanishing point, no anchor, no px/ft: the quad is
+        # the visible water's own quadrilateral, and the metric layer stays untouched.
+        p00, p01 = intersect(dock, far), intersect(dock, near)
+        p10, p11 = intersect(opp, far), intersect(opp, near)
+        missing = [n for n, p in (("00", p00), ("01", p01), ("10", p10), ("11", p11))
+                   if p is None]
+        if missing:
+            res.reason = (f"the four detected lines do not meet pairwise at corner(s) {missing} "
+                          f"— a short edge is parallel to a long one")
+            return res
+        corners = {"00": p00, "01": p01, "10": p10, "11": p11}
+        stat = {e.name: e.status for e in getattr(edges, "all_edges", ())}
+        res.notes.append(
+            f"L4: the quad's four edges ARE the four detected waterlines — far/near long, "
+            f"dock side {side} ({stat.get(side, '?')}), opposite side {opp_side} "
+            f"({stat.get(opp_side, '?')})")
+        cut = [n for n in (side, opp_side) if stat.get(n) == "frame_cut"]
+        if cut:
+            res.notes.append(
+                f"the {' and '.join(cut)} edge is CUT AT THE FRAME: the water leaves the picture there, "
+                f"so that side is the boundary of the visible water, not a measured pool wall")
+        res.gates["S3"] = _gate(True, "not used at L4 — four lines determine the quad; "
+                                     "no vanishing point or px/ft is involved")
+        res.geometry = {"route": "four_lines", "dock": side, "opposite": opp_side,
+                        "corner_source": "line intersections",
+                        "corners": {k: [round(float(v), 1) for v in p] for k, p in corners.items()}}
+
+    elif res.level == "L3":
         p00 = intersect(dock, far)
         p01 = intersect(dock, near)
-        vp = intersect(far, near)
+        vp = intersect(far, near_raw)
         if p00 is None or p01 is None or vp is None:
             res.gates["S3"] = gate_geometry(p00, p01, vp, 0.0, frame_shape, side)
             res.reason = "S3 failed: the three detected lines are not pairwise concurrent"
             return res
-        px_per_ft_y = float(np.linalg.norm(p01 - p00)) / max(float(width_ft), 1e-6)
+        # The X scale comes from the DETECTED width, not the wall-dropped one: the drop is a
+        # placement of the near edge, and letting it rescale the pool would move the far edge too.
+        p01_raw = intersect(dock, near_raw)
+        if p01_raw is None:
+            p01_raw = p01
+        px_per_ft_y = float(np.linalg.norm(p01_raw - p00)) / max(float(width_ft), 1e-6)
         # X scale: the detected far extent when the water runs out of shot, otherwise the session's
         # anisotropy prior.  See x_scale_from_extent for why the extent wins when it applies.
         _ext = x_scale_from_extent(edges.far, p00, vp, anchor_ft=float(length_ft),
@@ -552,7 +669,7 @@ def seed_from_edges(edges: Any, *, length_ft: float, width_ft: float,
             res.reason = ("the dock edge was not found and there is no placed quad to inherit X=0 "
                           "from")
             return res
-        vp = intersect(far, near)
+        vp = intersect(far, near_raw)
         if vp is None:
             res.reason = "the far and near lines are parallel: no vanishing point"
             return res
@@ -566,7 +683,10 @@ def seed_from_edges(edges: Any, *, length_ft: float, width_ft: float,
         if p01 is None:
             p01 = p00 + dock_dir
             res.notes.append("near waterline is parallel to the dock edge — width taken from the quad")
-        px_per_ft_y = float(np.linalg.norm(p01 - p00)) / max(float(width_ft), 1e-6)
+        # Scale from the DETECTED near waterline (the wall drop is placement, not a rescale).
+        p01_raw = intersect(near_raw, (p00, dock_dir))
+        px_per_ft_y = (float(np.linalg.norm((p01_raw if p01_raw is not None else p01) - p00))
+                       / max(float(width_ft), 1e-6))
         # X scale: the detected far extent when the water runs out of shot, otherwise the session's
         # anisotropy prior.  See x_scale_from_extent for why the extent wins when it applies.
         _ext = x_scale_from_extent(edges.far, p00, vp, anchor_ft=float(length_ft),
@@ -616,9 +736,21 @@ def seed_from_edges(edges: Any, *, length_ft: float, width_ft: float,
     # --- quad-level gates, identical at every level -------------------------
     res.gates["S4"] = gate_quad(corners, length_ft=float(length_ft), width_ft=float(width_ft),
                                 frame_shape=frame_shape)
-    ref = _default_quad(frame_shape, float(length_ft), float(width_ft))
-    res.gates["S5"] = gate_area(corners, quad_area({t: np.asarray(ref.corners[t], float)
-                                                    for t in CORNER_TAGS}))
+    if res.level == "L4":
+        # S5 compares the quad's area with the frame-filling default quad's.  At L4 the quad is the
+        # visible water, which on a side-on view is a wide thin band — a legitimate shape that the
+        # default's area band was never written for, so it is reported and not enforced.
+        res.gates["S5"] = _gate(True, "not applied at L4 — the quad is the visible water, not a fit "
+                                      "to the frame-filling default", warn=True)
+        # P1-P4 encode a down-the-pool geometry (far edge shorter than the near one).  On a side-on
+        # view they can fire on a correct quad, so at L4 they are advisory rather than a refusal.
+        if not res.gates["S4"]["pass"]:
+            res.gates["S4"]["warn"] = True
+            res.notes.append("the P-gates are advisory at L4: " + res.gates["S4"]["detail"][:160])
+    else:
+        ref = _default_quad(frame_shape, float(length_ft), float(width_ft))
+        res.gates["S5"] = gate_area(corners, quad_area({t: np.asarray(ref.corners[t], float)
+                                                        for t in CORNER_TAGS}))
     # S6 is a WARNING, not a refusal: at L1/L0 the plane is still usable, but its origin is inherited
     # rather than measured, and the operator has to drag the dock-side edge onto the dock lip.
     res.gates["S6"] = (_gate(True, "X=0 is a measured intersection (dock waterline detected)")
