@@ -3,15 +3,22 @@ import shutil
 from pathlib import Path
 import random
 
-# Path to the newly exported folder from CVAT
-NEW_DATA_DIR = Path(r"I:\Capstone\Dog-Diving-Scoring\unscored_Pose_9-30-2026")
+# Path to the NEW folder from CVAT / Roboflow
+NEW_DATA_DIR = Path(r"I:\Capstone\Dog-Diving-Scoring\paws_to_swim_Pose_10-2-2026")
 
-# Path to the existing dataset
+# Path to your master 2-keypoint dataset
 TARGET_DATASET = Path(r"I:\Capstone\Dog-Diving-Scoring\dog-pose-2kpt")
 
+# Unique prefix to prevent overwriting existing merged images (e.g., custom_frame_001.jpg)
+DATASET_PREFIX = "paws"
+
 def merge():
-    print("Starting dataset merge")
+    print(f"Starting dataset merge from: {NEW_DATA_DIR.name}")
     
+    if not NEW_DATA_DIR.exists():
+        print(f"Error: Directory not found: {NEW_DATA_DIR}")
+        return
+
     # Index all .txt label files by filename (ignoring list files like train.txt)
     ignore_files = {"train.txt", "val.txt", "test.txt", "README.txt"}
     label_map = {}
@@ -40,10 +47,10 @@ def merge():
     if len(matched_pairs) == 0:
         print("\nError: Could not match image filenames to .txt filenames.")
         if all_images:
-            print(f"Sample image path: {all_images[0]}")
+            print(f"  Sample image path: {all_images[0]}")
         if label_map:
             sample_stem = next(iter(label_map.keys()))
-            print(f"Sample label path: {label_map[sample_stem]}")
+            print(f"  Sample label path: {label_map[sample_stem]}")
         return
 
     # Shuffle and split 85% train / 15% val
@@ -63,7 +70,8 @@ def merge():
         
         copied_count = 0
         for img_path, lbl_path in pairs:
-            unique_name = f"custom_{img_path.stem}"
+            # Use unique prefix to guarantee no overwrites
+            unique_name = f"{DATASET_PREFIX}_{img_path.stem}"
             
             # Copy Image
             shutil.copy2(img_path, dst_img_dir / f"{unique_name}{img_path.suffix}")
@@ -73,14 +81,14 @@ def merge():
             
         print(f"Added {copied_count} samples to {split_name} split.")
 
-    # Clear old cache files
+    # Clear old cache files so YOLO rescans
     print("\nClearing old cache files...")
     for cache_file in [TARGET_DATASET / "labels" / "train.cache", TARGET_DATASET / "labels" / "val.cache"]:
         if cache_file.exists():
             os.remove(cache_file)
-            print(f"Removed: {cache_file}")
+            print(f"  Removed: {cache_file}")
 
-    print("\nMerge complete! Your dataset is updated and ready for training.")
+    print("\nMerge complete! Your dataset is updated and ready.")
 
 if __name__ == "__main__":
     merge()

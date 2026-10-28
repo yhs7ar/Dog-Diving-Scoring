@@ -1,0 +1,7 @@
+kpt_shape:
+- 2
+- 3
+names:
+  0: dog_skeleton
+path: .
+train: train.txt
