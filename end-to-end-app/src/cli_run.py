@@ -63,6 +63,7 @@ from dog_diving.config import (  # noqa: E402
     MIN_ACCEPTED_POINTS,
     OUT_DIR,
     POOL_EXTENT_MARGIN_FT,
+    TRAJ_SPACE,
 )
 
 # The 3-D route's own artifact.  Separate from ``result.json`` on purpose: PLAN §11 requires the
@@ -215,6 +216,7 @@ def run_clip(
     pool_calib: dict | None = None,
     pool_calib_path: str | None = None,
     pool_height_ft: float = 0.0,
+    trajectory_space: str | None = None,
     argv: Sequence[str] | None = None,
     min_points: int | None = None,
 ) -> dict[str, Any]:
@@ -288,7 +290,8 @@ def run_clip(
             det.records, doc=pool_calib,
             contact_frame=None if plane_mode else chosen.chosen_frame,
             manual_point=entry_point, height_ft=float(pool_height_ft),
-            legacy_calib=calib, clip_id=clip.stem, margin_ft=float(POOL_EXTENT_MARGIN_FT))
+            legacy_calib=calib, clip_id=clip.stem, margin_ft=float(POOL_EXTENT_MARGIN_FT),
+            trajectory_space=trajectory_space)
         pool_path = cdir / POOL_NAME
         pool_path.write_text(report_mod.dumps_strict(pool_res), encoding="utf-8")
 
@@ -397,6 +400,10 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--no-traj-conf", action="store_true",
                     help="omit the per-point confidence labels on the yellow trajectory polyline")
     ap.add_argument("--fourcc", default=annotate_mod.DEFAULT_FOURCC)
+    ap.add_argument("--trajectory-space", choices=("2d", "3d"), default=TRAJ_SPACE,
+                    help="which space the arc is fitted in: '2d' = the fork's image-space "
+                         "convention (default), '3d' = world feet, entry where Z(t) meets the "
+                         "water plane (intersection-algo.txt phases 1-5)")
     ap.add_argument("--quiet", action="store_true")
     return ap
 
@@ -433,6 +440,7 @@ def main(argv: list[str] | None = None) -> int:
                          subclip=frame_range, use_cache=not args.no_cache, draw=not args.no_draw,
                          fourcc=args.fourcc, show_traj_conf=not args.no_traj_conf, argv=argv,
                          pool_calib=pool_calib, pool_calib_path=pool_calib_path,
+                         trajectory_space=args.trajectory_space,
                          min_points=(None if args.min_points is None
                                      else max(int(args.min_points), 0)))
         except Exception as exc:  # noqa: BLE001 - one bad clip must not kill a batch

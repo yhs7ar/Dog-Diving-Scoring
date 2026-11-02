@@ -246,6 +246,27 @@ ARC_OUTLIER_PX = 20          # drop arc points with residual > this (PLAN §6)
 TRAJ_MAX_FRAME_GAP = 10      # split accepted points into runs at a larger frame gap
 TRAJ_SEED = 0                # fixed RANSAC seed -> reproducible arc fits
 
+# --- the 3-D trajectory route (intersection-algo.txt phases 1-5) -------------
+#: Which space the arc is fitted in.  ``"2d"`` is the fork's image-space convention
+#: (``fit_parabolic_trajectory``, pixel x/y vs time); ``"3d"`` fits ``X, Y, Z`` in world feet
+#: against time and finds the water entry where ``Z(t) = z_water``, with no waterline row
+#: anywhere in the arithmetic.  Both paths live side by side and this flag selects one —
+#: the 2-D path is the reference implementation the parity test pins, so it is kept whole.
+TRAJ_SPACE = "2d"
+#: The 3-D analogue of ``ARC_OUTLIER_PX``: an inlier gate in world feet (4 in).  A pixel
+#: residual cannot be reused here, because px/ft varies across the frame and with the lens.
+ARC_OUTLIER_FT = 0.35
+#: The 3-D analogue of ``CONTACT_VEL_TOL_PX``: a departure tolerance on the world descent rate.
+CONTACT_VEL_TOL_FT = 0.40    # ft per frame
+#: The 3-D analogue of ``CONTACT_MIN_DESCENT_PX_PER_FRAME``: how fast the tail-set must still be
+#: falling in world Z for a confidence gap to count as an entry rather than a lost detection.
+#: 0.02 ft/frame is ~2 mm per frame — well below any real fall, so this gate excludes only a
+#: curve that is flat or rising at the collapse.
+CONTACT_MIN_DESCENT_FT_PER_FRAME = 0.02
+#: A flight run whose horizontal track misses a single vertical plane by more than this is not
+#: a jump in one plane; the 3-D route reports the number and refuses to pretend otherwise.
+TRAJ_PLANE_MAX_RMS_FT = 0.5
+
 # distance.py (PLAN §6 lists waterline_tol_in; the rest are M6's knobs)
 WATERLINE_TOL_IN = 6             # PLAN §6 / §5: splash-centre gap warning threshold, inches
 DISTANCE_KP_WINDOW = 5           # K of PLAN §4.4's sigma_kp: "the last K accepted tailset frames"

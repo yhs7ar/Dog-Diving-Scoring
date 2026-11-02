@@ -58,7 +58,9 @@ import numpy as np
 
 from .geometry import (
     Ray,
+    intersect_curve_with_elevation,
     intersect_ray_plane,
+    project_point,
     ray_from_pixel,
     world_from_pixel,
 )
@@ -76,18 +78,146 @@ __all__ = [
 
 
 # ============================================================================
+# The 3-D route: a fitted world curve against the water plane
+# ============================================================================
+def _curve_apex(coeffs: dict) -> float | None:
+    """Frame of the fitted ``Z(t)`` maximum, from the coefficients alone.
+
+    Duplicated from :func:`dog_diving.contact.world_apex_frame` on purpose: this module must not
+    import ``contact`` (contact imports the pool's geometry, and a cycle there would be invisible
+    until something reordered an import).  Five lines of quadratic, twice, beats an import edge
+    that turns the pool layer and the frame-decision layer into one knot.
+    """
+    if not coeffs or coeffs.get("z") is None:
+        return None
+    a2, a1, _ = (float(v) for v in coeffs["z"])
+    if a2 == 0.0:
+        return None
+    return float(coeffs["t_ref"]) - a1 / (2.0 * a2)
+
+
+def _entry_from_arc3d(
+    pose: PlanePose,
+    water: WaterPlane,
+    trajectory: Any,
+    *,
+    t_min: float | None = None,
+    homography: Any | None = None,
+) -> dict[str, Any]:
+    """The fitted 3-D trajectory ∩ ``Z = water.z_ft`` -> an entry record (Phase 4).
+
+    Returns ``{"status", "detail", "fields", "notes", "flags"}``.  ``fields`` is what
+    :func:`entry_coordinate` folds in, so both routes emit **one** record shape — a consumer that
+    has to branch on the route to find the distance is a consumer that will eventually read the
+    wrong key.
+
+    The only input besides the curve is the water's height.  ``t_min`` defaults to the apex, which
+    selects the descending branch without any arithmetic about what "descending" looks like in an
+    image: a ballistic curve crosses any height twice and the entry is the second one.
+
+    **This arithmetic is exact; the numbers it is fed are not.**  Given a genuinely 3-D curve the
+    crossing reproduces ground truth to a rounding error (``test_m30``: 0.000 in).  The curve
+    normally comes from :func:`pipeline.track_to_world`'s single-pass bootstrap, whose heights are
+    biased by tens of inches — so the record carries ``flags["arc3d_unverified_bootstrap"]`` and a
+    note stating the measured bias rather than leaving a precise-looking number to be trusted.
+    """
+    coeffs = getattr(trajectory, "coeffs", None)
+    if not coeffs:
+        return {"status": "no_fit", "fields": {}, "notes": [], "flags": {},
+                "detail": "the trajectory has no fitted arc (fewer than three points in one run)"}
+    if coeffs.get("z") is None:
+        return {"status": "not_3d", "fields": {}, "notes": [], "flags": {},
+                "detail": "the trajectory was fitted in image space (no world Z axis) — build it "
+                          "with space='3d' to use the geometric route"}
+    apex = _curve_apex(coeffs)
+    tm = float(t_min) if t_min is not None else apex
+    cross = intersect_curve_with_elevation(coeffs, float(water.z_ft), t_min=tm)
+    if cross["status"] != "ok":
+        return {"status": cross["status"], "fields": {}, "notes": [], "flags": {},
+                "detail": cross["detail"]}
+
+    P = np.asarray(cross["point"], dtype=float)
+    t_cross = float(cross["t"])
+    px = project_point(pose, P)
+    fields: dict[str, Any] = {
+        "x_px": (None if not np.all(np.isfinite(px)) else float(px[0])),
+        "y_px": (None if not np.all(np.isfinite(px)) else float(px[1])),
+        "X_ft": float(P[0]), "Y_ft": float(P[1]), "Z_ft": float(water.z_ft),
+        "distance_ft": float(P[0]), "transverse_ft": float(P[1]),
+        "ray_depth_ft": None,
+        "homography_agreement_ft": None,
+        "route": "arc3d",
+        "crossing_frame": t_cross,
+        "apex_frame": apex,
+        "arc_rms_ft": getattr(trajectory, "arc_rms_ft", None),
+    }
+    notes = [
+        f"the entry is where the fitted world curve crosses the water plane (z = "
+        f"{float(water.z_ft):+.2f} ft) at frame {t_cross:.2f} — X = {float(P[0]):.2f} ft, "
+        f"Y = {float(P[1]):.2f} ft",
+        "x_px/y_px are the REPROJECTION of that 3-D point, not the pixel it came from: on this "
+        "route the pixel is an output, which is what makes the 1-D cross-check comparable",
+        "UNVERIFIED BOOTSTRAP: this route's heights come from unprojecting each pixel to the water "
+        "and fitting one vertical plane through the result (pipeline.track_to_world, single pass). "
+        "That is measurably biased — 110 in on the project's shallow synthetic view and 73 in on a "
+        "steep one, where the plane gate passes and gives no warning — so read this as a "
+        "cross-check on the pixel route, not as a distance. See test_m30 for both numbers.",
+    ]
+    flags: dict[str, Any] = {"arc3d_unverified_bootstrap": True}
+    last_arc = getattr(trajectory, "last_arc_frame", None)
+    if last_arc is not None:
+        extrap = t_cross - float(last_arc)
+        fields["extrap_frames"] = float(extrap)
+        if extrap > 0.5:
+            flags["arc_extrapolated"] = True
+            notes.append(
+                f"the crossing is {extrap:+.1f} frames PAST the last accepted arc sample "
+                f"({int(last_arc)}): the arc answered where the detector had already lost the dog "
+                f"to the splash. That is the model's prediction, not an observation.")
+    roots = cross.get("t_all") or []
+    if len(roots) > 1:
+        fields["crossing_frame_all"] = [float(v) for v in roots]
+        notes.append(
+            f"the curve crosses z = {float(water.z_ft):+.2f} ft twice (frames "
+            f"{', '.join(f'{v:.1f}' for v in roots)}); the descending one was taken")
+    if not np.all(np.isfinite(px)):
+        notes.append("the entry point does not image in front of the camera, so x_px is None — "
+                     "the (X, Y) is still the curve's answer, but the 1-D cross-check cannot run")
+    if homography is not None and fields["x_px"] is not None:
+        # The plane homography is an independent map from image to pool: pushing the reprojected
+        # entry back through it says whether the curve's own 3-D point agrees with the operator's
+        # calibration. It is a cross-check, never the answer.
+        try:
+            Hw = np.asarray(homography, dtype=float).reshape(3, 3)
+            XY_h = apply_homography_inv(Hw, np.array([[fields["x_px"], fields["y_px"]]]))[0]
+            agree = float(np.linalg.norm(np.asarray(XY_h, dtype=float) - P[:2]))
+            fields["homography_agreement_ft"] = agree
+            if agree > 0.05:
+                notes.append(
+                    f"the plane homography places the reprojected entry {agree * 12:.1f} in from "
+                    f"where the 3-D curve puts it — the curve and the calibration disagree, and "
+                    f"neither is privileged over the other here")
+        except Exception as exc:                                      # noqa: BLE001
+            notes.append(f"the homography cross-check could not run: {exc}")
+    return {"status": "ok", "detail": cross["detail"], "fields": fields,
+            "notes": notes, "flags": flags}
+
+
+# ============================================================================
 # The plan's literal step
 # ============================================================================
 def entry_coordinate(
     pose: PlanePose,
     water: WaterPlane,
-    pixel: Sequence[float],
+    pixel: Sequence[float] | None,
     *,
     extent: dict[str, float] | None = None,
     margin_ft: float = 0.0,
     height_ft: float = 0.0,
     lens: LensModel | None = None,
     homography: Any | None = None,
+    trajectory: Any | None = None,
+    t_min: float | None = None,
 ) -> dict[str, Any]:
     """The tail-set pixel -> the ``(X, Y)`` water-entry coordinate.
 
@@ -113,8 +243,25 @@ def entry_coordinate(
     the synthetic scene (placeholder focal 1920 px against a true 2112), answering from the
     pose-derived matrix biased the entry by **3.9-7.9 in**, while the document's matrix was off only
     by the distortion mismatch (1.65 in worst).  Both matrices are *named* "the homography", which is
-    exactly how a route switch can look correct and change nothing.  Whichever route answered is
-    recorded in ``out["route"]``; the other stays in ``homography_agreement_ft`` as the cross-check.
+    exactly how a route switch can look correct and change nothing.
+
+    ``trajectory`` switches this function onto the 3-D route (phases 1-4 of
+    ``intersection-algo.txt``): instead of intersecting one pixel's ray with the water, it solves
+    ``Z(t) = water.z_ft`` on the fitted world-space curve and reports that point.  Three consequences
+    worth stating plainly, because they are the reason the rewrite exists:
+
+    * **``pixel`` stops being an input and becomes an output.**  On this route the entry is a point
+      in the pool, so ``x_px``/``y_px`` are filled by *reprojecting* it (:func:`geometry.project_point`).
+      That is deliberate and it is what keeps :func:`pipeline.cross_check_against_1d` working — the
+      1-D route needs an image column, and the honest one is the column the reconstructed entry
+      images to, not the last detection's.
+    * **Height needs no assumption.**  ``Z(t)`` is fitted, so the dog's height at every frame is in
+      the curve; ``height_ft`` and :func:`entry_with_height` are not used on this route (they stay
+      for the single-pixel route, where they are still the only way to price parallax).
+    * **The answer is a model prediction, not an observation.**  The crossing is normally *past* the
+      last accepted detection — the splash is why the track ends.  ``flags["arc_extrapolated"]``
+      and ``crossing_frame`` say how far past, and the caller reports it as a candidate rather than
+      as a measured pixel.
     """
     if pixel is not None and lens is not None:
         pixel = np.asarray(undistort_points(np.asarray(pixel, dtype=float).reshape(1, 2), lens),
@@ -130,57 +277,86 @@ def entry_coordinate(
         "homography_agreement_ft": None,
         "flags": {}, "notes": [],
     }
-    if pixel is None:
+    if pixel is None and trajectory is None:
         out["notes"].append("no pixel supplied — there is no point to intersect")
         out["flags"] = {"no_point": True}
         return out
 
-    # --- both routes, always computed: they are the same map only if the pose is consistent -----
-    prefer_homography = homography is not None
-    Hw = (np.asarray(homography, dtype=float).reshape(3, 3) if prefer_homography
-          else water.homography(pose))
-    XY_h = apply_homography_inv(Hw, np.array([[float(pixel[0]), float(pixel[1])]]))[0]
-    hit = world_from_pixel(pose, pixel, water.z_ft)
-
-    if hit["status"] != "ok":
-        if not prefer_homography:
-            out["notes"].append(f"ray/plane intersection failed: {hit['status']} — {hit['detail']}")
-            out["flags"] = {"intersection_failed": True}
-            return out
-        out.update({"X_ft": float(XY_h[0]), "Y_ft": float(XY_h[1]), "Z_ft": float(water.z_ft),
-                    "distance_ft": float(XY_h[0]), "transverse_ft": float(XY_h[1]),
-                    "route": "homography"})
-        out["notes"].append(
-            f"the pose route failed ({hit['status']}) so the plane homography answered; that is "
-            f"sound only because this calibration's plane *is* the water surface")
-
+    # --- the 3-D route: solve the fitted world curve against the water plane -------------------
+    arc = (_entry_from_arc3d(pose, water, trajectory, t_min=t_min, homography=homography)
+           if trajectory is not None else None)
+    if arc is not None and arc["status"] == "ok":
+        out.update(arc.pop("fields"))
+        out["notes"].extend(arc.pop("notes", []))
+        out["flags"].update(arc.pop("flags", {}))
+    elif pixel is None:
+        # A trajectory was supplied and could not answer, and there is no pixel to fall back on.
+        # Reporting the reason is the whole job; inventing a number would not be.
+        why = arc["detail"] if arc is not None else "no trajectory and no pixel supplied"
+        out["notes"].append(f"the 3-D route could not produce an entry: {why}")
+        out["flags"] = {"arc_failed" if arc is not None else "no_point": True}
+        return out
     else:
-        P = np.asarray(hit["point"], dtype=float)
-        agree = float(np.linalg.norm(XY_h - P[:2]))
-        out["homography_agreement_ft"] = agree
-        if prefer_homography:
-            chosen, z = XY_h[:2], float(water.z_ft)
-        else:
-            chosen, z = P[:2], float(P[2])
-        out.update({"X_ft": float(chosen[0]), "Y_ft": float(chosen[1]), "Z_ft": z,
-                    "distance_ft": float(chosen[0]), "transverse_ft": float(chosen[1]),
-                    "ray_depth_ft": float(hit["s"]),
-                    "route": "homography" if prefer_homography else "ray_plane"})
-        if agree > 1e-6:
+        if arc is not None:
             out["notes"].append(
-                f"the homography route and the ray/plane route disagree by {agree:.3e} ft "
-                f"({agree * 12:.3e} in); the answer came from "
-                f"{'the homography' if prefer_homography else 'the ray/plane intersection'}. They "
-                f"are the same map, so a disagreement means the pose is not self-consistent — with "
-                f"an assumed lens it is not, and on the synthetic scene that costs the ray/plane "
-                f"route several inches while the homography barely moves."
-            )
+                f"the 3-D route did not answer ({arc['detail']}), so this entry is the "
+                f"single-pixel ray/plane intersection instead — a different question, and the "
+                f"one that needs height_ft to be honest about parallax")
+
+        # --- both routes, always computed: they are the same map only if the pose is consistent ----
+        prefer_homography = homography is not None
+        Hw = (np.asarray(homography, dtype=float).reshape(3, 3) if prefer_homography
+              else water.homography(pose))
+        XY_h = apply_homography_inv(Hw, np.array([[float(pixel[0]), float(pixel[1])]]))[0]
+        hit = world_from_pixel(pose, pixel, water.z_ft)
+
+        if hit["status"] != "ok":
+            if not prefer_homography:
+                out["notes"].append(f"ray/plane intersection failed: {hit['status']} — {hit['detail']}")
+                out["flags"] = {"intersection_failed": True}
+                return out
+            out.update({"X_ft": float(XY_h[0]), "Y_ft": float(XY_h[1]), "Z_ft": float(water.z_ft),
+                        "distance_ft": float(XY_h[0]), "transverse_ft": float(XY_h[1]),
+                        "route": "homography"})
+            out["notes"].append(
+                f"the pose route failed ({hit['status']}) so the plane homography answered; that is "
+                f"sound only because this calibration's plane *is* the water surface")
+
+        else:
+            P = np.asarray(hit["point"], dtype=float)
+            agree = float(np.linalg.norm(XY_h - P[:2]))
+            out["homography_agreement_ft"] = agree
+            if prefer_homography:
+                chosen, z = XY_h[:2], float(water.z_ft)
+            else:
+                chosen, z = P[:2], float(P[2])
+            out.update({"X_ft": float(chosen[0]), "Y_ft": float(chosen[1]), "Z_ft": z,
+                        "distance_ft": float(chosen[0]), "transverse_ft": float(chosen[1]),
+                        "ray_depth_ft": float(hit["s"]),
+                        "route": "homography" if prefer_homography else "ray_plane"})
+            if agree > 1e-6:
+                out["notes"].append(
+                    f"the homography route and the ray/plane route disagree by {agree:.3e} ft "
+                    f"({agree * 12:.3e} in); the answer came from "
+                    f"{'the homography' if prefer_homography else 'the ray/plane intersection'}. They "
+                    f"are the same map, so a disagreement means the pose is not self-consistent — with "
+                    f"an assumed lens it is not, and on the synthetic scene that costs the ray/plane "
+                    f"route several inches while the homography barely moves."
+                )
 
     out["distance_in"] = float(out["distance_ft"]) * 12.0
     out["transverse_in"] = float(out["transverse_ft"]) * 12.0
 
     # --- parallax: is the literal step valid on this frame? -------------------
-    if abs(float(height_ft)) > 1e-9:
+    # The 3-D route does not need this question answered: Z(t) is fitted, so the height of the
+    # dog at the crossing frame is in the curve rather than assumed.  Saying so is better than
+    # silently skipping a correction the caller asked for.
+    if abs(float(height_ft)) > 1e-9 and out.get("route") == "arc3d":
+        out["notes"].append(
+            f"height {height_ft:.2f} ft was supplied but not applied: the 3-D route reconstructs "
+            f"the height from the fitted Z(t) (the crossing is at z = {out['Z_ft']:+.2f} ft), so "
+            f"there is no parallax left to correct. Pass a trajectory=None call to price it")
+    elif abs(float(height_ft)) > 1e-9 and pixel is not None:
         corr = entry_with_height(pose, water, pixel, height_ft=float(height_ft))
         if corr.get("status") == "ok":
             out["parallax_correction"] = corr

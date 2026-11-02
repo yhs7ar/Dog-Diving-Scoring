@@ -23,6 +23,8 @@ PLAN §5, ``app_gui.py`` — Tkinter flow (D5)::
                    drag-a-box deselect mode; Correct Entry, which arms a drag mode that moves the
                    tailset X (a small dot under the pointer) and cuts the trajectory where it is
                    dropped; Set entry frame / entry = slider frame for the frame-based override;
+                   a **scoring-method switch** — *Trajectory arc (2-D)* / *Trajectory plane (3-D)* —
+                   which changes the drawn curve, the scored number and the exported arc together;
                    export buttons.
     5. Results   — distance in ft/in with +/-, calibration residuals, stability
                    verdict, uncertainty breakdown, export annotated MP4 / still PNG
@@ -364,6 +366,29 @@ def measurement_rows(meas: dict | None) -> list[tuple[str, str]]:
             extra.append(("Entry frame (operator)",
                           f"{meas.get('frame')} — this point, not the final detection"))
         return rows + extra
+    if route == measure_mod.ROUTE_ARC3D:
+        # The 3-D trajectory-plane method: the number is the world arc's water crossing, so the
+        # rows that matter are the crossing frame, how far past the data it was extrapolated, and
+        # the two residuals (plane and arc) that say how well the inputs supported it.
+        extra = [
+            ("Scoring method", "trajectory plane (3-D)"),
+            ("Crossing frame", "—" if meas.get("crossing_frame") is None
+                else f"{float(meas['crossing_frame']):.1f}"),
+            ("Extrapolated past data", "—" if meas.get("extrap_frames") is None
+                else f"{float(meas['extrap_frames']):+.1f} frame(s)"),
+            ("Arc RMS (world)", "—" if meas.get("arc_rms_ft") is None
+                else f"{float(meas['arc_rms_ft']):.3f} ft"),
+            ("Plane RMS (horizontal)", "—" if meas.get("plane_rms_ft") is None
+                else f"{float(meas['plane_rms_ft']):.3f} ft"),
+            ("Water level", "—" if meas.get("water_z_ft") is None
+                else f"{float(meas['water_z_ft']):+.2f} ft"),
+            ("Measured at (px, reprojected)", "—" if meas.get("x_px") is None
+                else f"({meas['x_px']:.1f}, {meas['y_px']:.1f})"),
+        ]
+        if meas.get("excluded_frames"):
+            extra.append(("Deselected in Review",
+                          f"{len(meas['excluded_frames'])} point(s) out of the trajectory"))
+        return rows + extra
     return rows + [
         ("Uncertainty", "—" if meas.get("sigma_in") is None else f"± {meas['sigma_in']:.2f} in"),
         ("Uncertainty complete", str(meas.get("sigma_complete"))),
@@ -528,6 +553,50 @@ class ReviewState:
     #: When True the entry follows the frame slider, so stepping frames walks the 2D->3D translation
     #: live instead of needing a click per candidate frame.
     entry_live: bool = False
+    #: **The scoring/drawing method** (operator switch, 2026-11-01).  ``"arc"`` = the rule this class
+    #: was built around: the image-space arc, the final detection assumed on the plane.  ``"plane"`` =
+    #: the 3-D trajectory plane: the track is unprojected, a world-space arc is fitted, and the entry
+    #: is where ``Z(t)`` crosses the water.  It changes what Review DRAWS and what it SCORES, from one
+    #: flag, so the picture and the number cannot come from different methods.
+    space: str = measure_mod.SPACE_ARC
+    #: The cached 3-D fit (``measure.trajectory_plane_fit``) and the key it was computed for.  Cached
+    #: because the overlay is redrawn on every mouse move in *Correct Entry* mode, and a RANSAC fit
+    #: per motion event would be visible lag.  Invalidated by any change to the points or the cutoff.
+    _plane_fit: dict | None = field(default=None, repr=False)
+    _plane_key: Any = field(default=None, repr=False)
+
+    def _fit_key(self) -> tuple:
+        """What the cached 3-D fit depends on.  Anything that changes the points changes this."""
+        return (self.space, frozenset(self.excluded), self.cutoff(),
+                id(self.pool_doc), id(self.traj))
+
+    def plane_fit(self) -> dict:
+        """The 3-D trajectory-plane fit for the current selection, computed at most once per change.
+
+        Returns the failure dict from ``measure.trajectory_plane_fit`` when it cannot answer; callers
+        report that rather than drawing or scoring something else.
+        """
+        key = self._fit_key()
+        if self._plane_fit is not None and self._plane_key == key:
+            return self._plane_fit
+        self._plane_fit = measure_mod.trajectory_plane_fit(
+            self.traj, self.pool_doc, excluded=self.excluded, frame=self.cutoff())
+        self._plane_key = key
+        return self._plane_fit
+
+    def invalidate_plane_fit(self) -> None:
+        """Drop the cached fit.  Called whenever a mutation bypasses the key (defensive)."""
+        self._plane_fit = None
+        self._plane_key = None
+
+    def set_space(self, space: str) -> str:
+        """Switch the scoring method.  Returns the space actually set (validated, not trusted)."""
+        space = str(space).lower()
+        if space not in measure_mod.SPACES:
+            space = measure_mod.SPACE_ARC
+        self.space = space
+        self.invalidate_plane_fit()
+        return space
 
     def cutoff(self) -> int | None:
         """The frame the trajectory is drawn to and measured at, or None for the whole flight."""
@@ -559,13 +628,35 @@ class ReviewState:
         return pts
 
     def arc(self) -> dict:
-        """The fitted arc over the points the operator kept, ending at the entry frame.
+        """The curve Review draws, over the points the operator kept, ending at the entry frame.
 
         With nothing excluded and no entry frame this is the trajectory's own arc, unchanged;
         otherwise it is a refit of what is left, so what Review *draws* and what it *reports* cannot
         disagree.
+
+        On the **plane** method the drawn curve is not a parabola through pixels at all: it is the
+        fitted *world* curve projected back into the image (:func:`pool.geometry.project_curve`), so
+        the green line the operator is judging is the geometry the distance came from — including the
+        part extrapolated past the last detection.  ``coeffs`` is then 3-D (it carries ``z``), which
+        is why ``rms_ft`` is reported and ``rms_px`` is not.
         """
         pts = self.draw_points()
+        if self.space == measure_mod.SPACE_PLANE:
+            fit = self.plane_fit()
+            traj3d = fit.get("traj3d")
+            if fit.get("status") != "ok" or traj3d is None:
+                return {"coeffs": None, "inliers": [], "frame_range": None, "n": len(pts),
+                        "rms_px": None, "parabola": None, "curve": [], "contact": None,
+                        "space": self.space, "problem": fit.get("detail") or fit.get("status")}
+            return {"coeffs": getattr(traj3d, "coeffs", None),
+                    "inliers": getattr(traj3d, "inliers", []) or [],
+                    "frame_range": getattr(traj3d, "airborne_frame_range", None),
+                    "n": len(pts), "rms_px": None,
+                    "rms_ft": getattr(traj3d, "arc_rms_ft", None),
+                    "parabola": None, "contact": None,
+                    "curve": list(fit.get("curve") or []),
+                    "crossing_frame": (fit.get("entry") or {}).get("crossing_frame"),
+                    "space": self.space}
         if not self.excluded and self.cutoff() is None:
             return {"coeffs": getattr(self.traj, "coeffs", None),
                     "inliers": getattr(self.traj, "inliers", []) or [],
@@ -574,8 +665,11 @@ class ReviewState:
                     # the fork's parabola, fitted at build time on the last 20 detections
                     "parabola": getattr(self.traj, "parabola", None),
                     "curve": getattr(self.traj, "curve", []) or [],
-                    "contact": getattr(self.traj, "contact_point", None)}
-        return trajectory_mod.refit(pts, frame_size=self.image_size)
+                    "contact": getattr(self.traj, "contact_point", None),
+                    "space": self.space}
+        out = trajectory_mod.refit(pts, frame_size=self.image_size)
+        out["space"] = self.space
+        return out
 
     def point_rows(self) -> list[dict]:
         """Every accepted detection, frame order, with whether it is currently included.
@@ -654,8 +748,17 @@ class ReviewState:
         dog cannot be the point that scores: the distance falls back to the highest-frame KEPT point.
         ``cutoff()`` (the operator's entry frame) pins the sample to that frame instead — the
         operator's rule for a mistimed last detection.
+
+        On the **plane** method the number comes from :func:`measure.trajectory_plane_distance`
+        instead: the world arc's water crossing, which does not read the entry frame as a pixel at
+        all (it bounds the fit's points, and the crossing frame is the fit's own answer).  The cached
+        fit is handed over, so the drawn curve and the scored curve are one curve.
         """
         cut = self.cutoff()
+        if self.space == measure_mod.SPACE_PLANE:
+            return measure_mod.trajectory_plane_distance(
+                self.traj, self.pool_doc, manual_point=self.manual_point, excluded=self.excluded,
+                frame=cut, frame_is_operator_choice=cut is not None, fit=self.plane_fit())
         return measure_mod.plane_distance(
             self.traj, self.pool_doc, manual_point=self.manual_point, excluded=self.excluded,
             frame=cut, frame_is_operator_choice=cut is not None)
@@ -1459,6 +1562,22 @@ class App:
         self.correct_btn = ttk.Button(row, text="Correct Entry",
                                       command=self.on_toggle_correct)
         self.correct_btn.pack(side="left", padx=(4, 0))
+
+        # --- the scoring-method switch (2026-11-01) ---------------------------
+        # ONE switch for both jobs on purpose.  "Which curve is drawn" and "which number is scored"
+        # used to be separate concerns with no control at all; giving them two toggles would let the
+        # picture and the distance disagree, which is the failure mode this pane exists to prevent.
+        meth = ttk.Frame(f)
+        meth.pack(anchor="w", pady=(4, 0))
+        ttk.Label(meth, text="scoring method:").pack(side="left", padx=(10, 4))
+        self.space_var = tk.StringVar(value=measure_mod.SPACE_ARC)
+        for value, text in ((measure_mod.SPACE_ARC, "Trajectory arc (2-D)"),
+                            (measure_mod.SPACE_PLANE, "Trajectory plane (3-D)")):
+            ttk.Radiobutton(meth, text=text, value=value, variable=self.space_var,
+                            command=self.on_trajectory_space).pack(side="left", padx=(0, 12))
+        self.space_note = ttk.Label(meth, text="", font=("", 8))
+        self.space_note.pack(side="left", padx=(6, 0))
+        self._sync_space_note()
 
         self.slider = tk.Scale(f, from_=0, to=1, orient="horizontal", length=880,
                                label="frame", command=self.on_slider)
@@ -3052,6 +3171,12 @@ class App:
         # would silently measure a point this run may not even have.
         self.review.entry_frame = None
         self.review.entry_live = False
+        # The scoring method is the operator's choice, not the run's: keep whatever the switch is
+        # set to, so a run started after picking "Trajectory plane" is scored that way.
+        if hasattr(self, "space_var"):
+            self.review.set_space(self.space_var.get())
+        self._last_space = self.review.space
+        self._last_space_number = None
         if hasattr(self, "entry_live_var"):
             self.entry_live_var.set(False)
         # Order 2026-10-28: the list opens on the detections the arc actually uses — the last
@@ -3074,12 +3199,82 @@ class App:
         self._refresh_points()
         self._refresh_results()
         self._redraw_plan()
+        self._sync_space_note()
 
     def on_nudge(self, delta: int) -> None:
         if self.review is None:
             return
         self.review.nudge(delta)
         self._after_review_change()
+
+    # -- the scoring-method switch (2026-11-01) ------------------------------
+    def on_trajectory_space(self, space: str | None = None) -> str:
+        """Switch Review between the **trajectory arc** (2-D) and the **trajectory plane** (3-D).
+
+        One control for three things that must move together: the curve drawn on the canvas, the
+        number in the readout/Results, and the ``arc`` handed to every export.  They all read
+        ``ReviewState.space``, so a switch cannot leave one of them behind.
+
+        Returns the space actually in force — validated by ``ReviewState.set_space`` rather than
+        trusted from the widget, because a stale or hand-set ``StringVar`` would otherwise silently
+        select a method that does not exist.
+        """
+        want = str(space if space is not None else
+                   (self.space_var.get() if hasattr(self, "space_var") else "arc"))
+        if self.review is None:
+            # Before a run there is nothing to score; remember the choice so the first run obeys it.
+            if hasattr(self, "space_var"):
+                self.space_var.set(want if want in measure_mod.SPACES else measure_mod.SPACE_ARC)
+            self._sync_space_note()
+            return str(self.space_var.get()) if hasattr(self, "space_var") else want
+
+        got = self.review.set_space(want)
+        if hasattr(self, "space_var"):
+            self.space_var.set(got)
+        label = ("trajectory plane (3-D)" if got == measure_mod.SPACE_PLANE
+                 else "trajectory arc (2-D)")
+        meas = self.review.measurement()
+        if meas.get("total_inches") is None:
+            why = (meas.get("warnings") or ["no number"])[0]
+            self.log(f"scoring method: {label} — no distance: {why}")
+        else:
+            old = getattr(self, "_last_space_number", None)
+            note = ""
+            if old is not None and got != getattr(self, "_last_space", got):
+                note = f" (the other method gave {old})"
+            self.log(f"scoring method: {label} — {meas.get('display')}{note}")
+            self._last_space_number = meas.get("display")
+        self._last_space = got
+        self._sync_space_note()
+        self._after_review_change()
+        return got
+
+    def _sync_space_note(self) -> None:
+        """The one-line explanation next to the radio buttons, including why there is no number."""
+        note = getattr(self, "space_note", None)
+        if note is None:
+            return
+        space = (str(self.space_var.get()) if hasattr(self, "space_var")
+                 else measure_mod.SPACE_ARC)
+        try:
+            if space == measure_mod.SPACE_PLANE:
+                if self.review is None:
+                    text = ("fits one vertical flight plane in world feet and scores where Z(t) "
+                            "meets the water — needs a plane calibration and a run")
+                else:
+                    fit = self.review.plane_fit()
+                    if fit.get("status") == "ok":
+                        rms = fit.get("rms_ft")
+                        text = ("world arc; entry where Z(t) = water"
+                                + ("" if rms is None else f" (plane RMS {float(rms):.2f} ft)")
+                                + " — cross-check, see the notes")
+                    else:
+                        text = f"not available: {fit.get('status')} — {fit.get('detail', '')}"[:140]
+            else:
+                text = "image-space arc; the entry is the final detection assumed on the plane"
+        except Exception as exc:                                    # noqa: BLE001
+            text = f"(method note unavailable: {exc})"
+        note.configure(text=text)
 
     def on_slider(self, value) -> None:
         # tk.Scale.set() fires this callback too, so a programmatic sync would
@@ -3878,7 +4073,10 @@ class App:
         """Plain data for a worker thread: what Review currently changed, and the run it edits."""
         if self.review is None or self.outcome is None or self.outcome.run is None:
             return None
-        if not self.review.excluded and self.review.cutoff() is None:
+        # The 3-D method's numbers are not in the run's artifacts (the run scored the arc method), so
+        # an export in that mode must re-render even when nothing was deselected.
+        if (not self.review.excluded and self.review.cutoff() is None
+                and self.review.space == measure_mod.SPACE_ARC):
             return None
         run = self.outcome.run
         result = run.get("result") or {}
@@ -3891,6 +4089,9 @@ class App:
             "calib": self.calib, "measurement": self.review.measurement(),
             "arc": self.review.arc(), "excluded": set(self.review.excluded),
             "entry_frame": self.review.cutoff(),
+            # which method produced the numbers in this export — a report that cannot say that
+            # cannot be reviewed
+            "space": self.review.space,
             "still_frame": still, "show_grid": bool(self.grid_var.get()),
             "pool_doc": self.pool_calib if self.pool_result is not None else None,
             "pool_result": self.pool_result,

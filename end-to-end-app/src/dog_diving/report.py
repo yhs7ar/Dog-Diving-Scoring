@@ -394,10 +394,19 @@ def build_report_text(result: dict) -> str:
     L.append(f"measurement  x={m.get('x_px')} y={m.get('y_px')} "
              f"point_source={m.get('point_source')} ({m.get('point_origin')})")
     if m.get("display"):
-        bound = "" if m.get("sigma_complete") else "  [LOWER BOUND: a budget term is missing]"
-        L.append(f"distance     {m.get('display')}  +/- {m.get('sigma_in')} in{bound}")
-        L.append(f"             total_inches={m.get('total_inches')} "
-                 f"sigma_complete={m.get('sigma_complete')} terms={m.get('sigma_terms')}")
+        if m.get("route") == "arc3d":
+            # The 3-D trajectory-plane method has no sigma budget: its number comes from a fitted
+            # curve, and its honesty lives in the warnings (the bootstrap note), not in a ±.
+            L.append(f"distance     {m.get('display')}  (trajectory plane, 3-D — see warnings; "
+                     f"no uncertainty budget)")
+            L.append(f"             total_inches={m.get('total_inches')} "
+                     f"crossing_frame={m.get('crossing_frame')} "
+                     f"plane_rms_ft={m.get('plane_rms_ft')} arc_rms_ft={m.get('arc_rms_ft')}")
+        else:
+            bound = "" if m.get("sigma_complete") else "  [LOWER BOUND: a budget term is missing]"
+            L.append(f"distance     {m.get('display')}  +/- {m.get('sigma_in')} in{bound}")
+            L.append(f"             total_inches={m.get('total_inches')} "
+                     f"sigma_complete={m.get('sigma_complete')} terms={m.get('sigma_terms')}")
     else:
         L.append(f"distance     n/a — {cal.get('reason') or 'no calibration'}")
     rev = result.get("review") or {}

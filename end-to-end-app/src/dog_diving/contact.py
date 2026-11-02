@@ -67,18 +67,31 @@ from .config import (
     CONTACT_FREEFALL_CURVATURE_MIN,
     CONTACT_KP_CONF,
     CONTACT_MAX_EXTRAP_FRAMES,
+    CONTACT_MIN_DESCENT_FT_PER_FRAME,
     CONTACT_MIN_DESCENT_PX_PER_FRAME,
+    CONTACT_VEL_TOL_FT,
     CONTACT_VEL_TOL_PX,
+    TRAJ_SPACE,
 )
 
 # candidate sources — the strings that land in result.json
 S_LAST = "last_accepted"
 S_ARC = "arc_waterline"
+#: The 3-D replacement for ``S_ARC``: the fitted world-space curve against the **water plane**
+#: (``Z = z_water``) rather than the fitted image curve against a waterline **row**.  Same rank,
+#: same job, and the name says which one it did, because "the arc crosses the waterline" and "the
+#: arc crosses z = -1.625 ft" are not the same claim even when they coincide on a given clip.
+S_ARC3D = "arc_waterplane"
 S_COLLAPSE = "conf_collapse"
 S_VEL = "velocity_reversal"
 
-RANK = {S_LAST: 1, S_ARC: 2, S_COLLAPSE: 3, S_VEL: 4}
+RANK = {S_LAST: 1, S_ARC: 2, S_ARC3D: 2, S_COLLAPSE: 3, S_VEL: 4}
+#: The 2-D route's ranked four, in PLAN §5 order.  Kept as the published list (``test_m5`` pins it,
+#: and every consumer of ``result.json`` before this route existed reads it): the 3-D set has its own
+#: name below rather than quietly growing this tuple to five.
 ORDER = (S_LAST, S_ARC, S_COLLAPSE, S_VEL)
+#: The 3-D route's ranked four: candidate #2 is the water **plane** crossing, not the waterline row.
+ORDER_3D = (S_LAST, S_ARC3D, S_COLLAPSE, S_VEL)
 
 # PLAN §5: "lets the user nudge by ±1/±5/±10 frames or scrub"
 SCRUB_STEPS: tuple[int, ...] = (1, 5, 10)
@@ -96,6 +109,13 @@ class ContactConfig:
     min_descent_px_per_frame: float = CONTACT_MIN_DESCENT_PX_PER_FRAME
     max_extrap_frames: int = CONTACT_MAX_EXTRAP_FRAMES
     box_conf_floor: float | None = CONTACT_BOX_CONF_FLOOR
+    #: ``"2d"`` = the four rules read image-space metrics (``dy/dt`` in px/frame); ``"3d"`` = they
+    #: read the world Z axis (``dZ/dt`` in ft/frame) and #2 solves the water plane, not a row.
+    space: str = TRAJ_SPACE
+    #: The 3-D descent-rate tolerance for candidate #4 (ft per frame).
+    vel_tol_ft: float = CONTACT_VEL_TOL_FT
+    #: The 3-D "still descending" floor for candidate #3 (ft per frame).
+    min_descent_ft_per_frame: float = CONTACT_MIN_DESCENT_FT_PER_FRAME
 
     def as_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -160,6 +180,86 @@ def arc_is_freefall(traj: Any, cfg: ContactConfig | None = None) -> tuple[bool, 
                  f"{ev['apex_frame']:.1f}", ev
 
 
+# --- the same questions, asked of world Z (the 3-D route) --------------------
+# Why the rules are re-stated instead of re-using the image-space ones: ``dy/dt`` in px/frame is
+# not a velocity.  Its size depends on where in the frame the dog is, on the lens and on the
+# framing, so ``vel_tol_px = 20`` means different physical things at the top and the bottom of the
+# same picture.  ``dZ/dt`` in ft/frame is the actual descent rate, which is what "the dog has
+# stopped falling like a body in free fall" is a statement about.
+def world_apex_frame(coeffs: dict) -> float | None:
+    """Frame of the fitted ``Z(t)`` maximum — the top of the jump **in feet** (``None`` if flat).
+
+    For a ballistic arc ``cz2 < 0`` (world ``+Z`` is up), so this is the same extremum
+    :func:`arc_apex_frame` finds in image y — but computed from the physical height, so it does not
+    move when the camera is re-framed.
+    """
+    if not coeffs or coeffs.get("z") is None:
+        return None
+    a2, a1, _ = (float(v) for v in coeffs["z"])
+    if a2 == 0.0:
+        return None
+    return float(coeffs["t_ref"]) - a1 / (2.0 * a2)
+
+
+def world_descent_rate(coeffs: dict, frame: float) -> float:
+    """Fitted ``dZ/dframe`` at ``frame``, in ft per frame.  Negative = falling.
+
+    The sign is the opposite of :func:`arc_slope`'s convention (which is positive while falling,
+    because image y grows downward), so the two are never interchangeable — a rule written for one
+    and fed the other would invert its own gate.
+    """
+    a2, a1, _ = (float(v) for v in coeffs["z"])
+    return 2.0 * a2 * (float(frame) - float(coeffs["t_ref"])) + a1
+
+
+def arc_is_freefall_3d(traj: Any, cfg: ContactConfig | None = None
+                       ) -> tuple[bool, str, dict]:
+    """Screen for the 3-D route: does the fitted world curve fall like a body?
+
+    The image-space test asks for ``cy2 > 0`` (y turns downward).  The world-space test asks for
+    ``cz2 < 0`` (height turns downward) and reports the fitted descent rate in **ft/frame**, which
+    is a number an operator can sanity-check against ``g``: at 30 fps a free fall accelerates by
+    ``32.2 / 30² = 0.036 ft/frame²``, so ``cz2`` should be near ``-0.018`` (the quadratic's
+    half-acceleration coefficient) for a 30 fps clip.  A fit far from that is not free fall, and
+    the evidence says so.
+    """
+    cfg = cfg or ContactConfig()
+    coeffs = getattr(traj, "coeffs", None)
+    fp = list(getattr(traj, "flight_points", []) or [])
+    zs = [float(p["Z_ft"]) for p in fp if p.get("Z_ft") is not None]
+    has_z = bool(coeffs) and coeffs.get("z") is not None
+    ev: dict[str, Any] = {
+        "cz2": float(coeffs["z"][0]) if has_z else None,
+        "n_flight_points": len(fp),
+        "z_span_ft": (max(zs) - min(zs)) if zs else None,
+        "apex_frame": world_apex_frame(coeffs) if has_z else None,
+        "curvature_min": float(cfg.freefall_curvature_min),
+        "residual_unit": "ft",
+    }
+    if not coeffs:
+        ev["model_descent_ft_per_frame"] = []
+        return False, "no fitted arc (fewer than three accepted points in one run)", ev
+    if not has_z:
+        ev["model_descent_ft_per_frame"] = []
+        return (False, "the fitted arc is in image space: it carries no world Z, so no descent "
+                       "rate in feet exists. Build the trajectory with space='3d'.", ev)
+
+    cz2 = float(coeffs["z"][0])
+    ev["model_descent_ft_per_frame"] = [round(world_descent_rate(coeffs, p["frame"]), 4)
+                                        for p in fp]
+    if cz2 >= -float(cfg.freefall_curvature_min):
+        return (
+            False,
+            f"fitted world curve has no descending branch: Z-curvature cz2 = {cz2:+.5f} ft/frame² "
+            f"(needs < {-float(cfg.freefall_curvature_min):g} for the height to turn from rising "
+            f"to falling) — PLAN §5 #2/#3/#4 are each defined on a descending arc, so none of them "
+            f"can report a water-entry frame here",
+            ev,
+        )
+    return (True, f"world arc turns from rising to falling: cz2 = {cz2:+.5f} ft/frame², apex at "
+                  f"frame {ev['apex_frame']:.1f}", ev)
+
+
 # --- the candidate set ------------------------------------------------------
 @dataclass
 class Candidate:
@@ -197,6 +297,13 @@ class ContactResult:
     window: list[int] | None
     n_frames: int | None = None
     cfg: dict[str, Any] = field(default_factory=dict)
+    #: The water level in world feet when the 3-D route ran (``None`` on the 2-D route).  Carried
+    #: next to ``waterline_y`` rather than replacing it: the two are different observables — a
+    #: column of the picture versus a height in the pool — and a report that shows only one of them
+    #: cannot say which route produced the frame.
+    water_z_ft: float | None = None
+    #: ``"2d"`` or ``"3d"`` — which space the candidate frames were decided in.
+    space: str = "2d"
 
     # -- access ------------------------------------------------------------
     def by_source(self, source: str) -> Candidate:
@@ -243,6 +350,33 @@ def nudge(frame: int, delta: int, n_frames: int | None = None) -> int:
 
 
 # --- the four rules ---------------------------------------------------------
+def _first_departure_3d(traj: Any, coeffs: dict, cfg: ContactConfig
+                        ) -> tuple[int | None, dict[str, Any]]:
+    """Candidate #4 in world feet: first frame whose observed ``dZ/dt`` leaves the free-fall fit.
+
+    The 2-D rule compares ``dy/dt`` against ``vel_tol_px``; both of those are pixel quantities.  Here
+    the observed rate is ``(Z[i+1] - Z[i]) / dt`` in **ft/frame** and the tolerance is
+    ``vel_tol_ft``, so the test means the same thing at the top of the arc and at the water.
+    """
+    fp = list(getattr(traj, "flight_points", []) or [])
+    worst: dict[str, Any] = {"vel_tol_ft": float(cfg.vel_tol_ft),
+                             "n_pairs": max(len(fp) - 1, 0), "descent_unit": "ft/frame"}
+    for i in range(len(fp) - 1):
+        f1, f2 = int(fp[i]["frame"]), int(fp[i + 1]["frame"])
+        dt = f2 - f1
+        if dt <= 0 or fp[i].get("Z_ft") is None or fp[i + 1].get("Z_ft") is None:
+            continue
+        obs = (float(fp[i + 1]["Z_ft"]) - float(fp[i]["Z_ft"])) / dt
+        mod = world_descent_rate(coeffs, (f1 + f2) / 2.0)
+        if abs(obs - mod) > float(cfg.vel_tol_ft):
+            worst.update({"departure_frame": f1, "next_frame": f2,
+                          "observed_dz_per_frame": obs, "model_dz_per_frame": mod,
+                          "deviation_ft_per_frame": obs - mod})
+            return f1, worst
+    worst.update({"departure_frame": None})
+    return None, worst
+
+
 def _first_collapse(frames_desc: Sequence[int], by_frame: dict[int, dict], cfg: ContactConfig
                     ) -> tuple[int | None, dict[str, Any]]:
     """First frame of the first ``collapse_run``-long confidence gap in ``frames_desc``."""
@@ -299,18 +433,31 @@ def _first_departure(traj: Any, coeffs: dict, cfg: ContactConfig
 def contact_candidates(records: Sequence[dict] | Any, traj: Any = None,
                        waterline_y: float | None = None, cfg: ContactConfig | None = None,
                        clip_id: str | None = None, kp_conf: float | None = None,
-                       n_frames: int | None = None) -> ContactResult:
+                       n_frames: int | None = None, space: str | None = None,
+                       water_z_ft: float | None = None) -> ContactResult:
     """Build PLAN §5's ranked water-entry candidates.
 
     ``records`` is detect's record list (or a ``DetectResult``); ``traj`` a
     :class:`dog_diving.trajectory.Trajectory` — built here from ``records`` when omitted.
     ``waterline_y`` is the calibration's water row (PLAN §5 #2 needs it); without it
     that candidate is reported unavailable rather than guessed.
+
+    ``space="3d"`` switches the whole candidate set onto the world-space route: ``traj`` must be a
+    3-D trajectory (``build_trajectory(..., space="3d")``) and ``water_z_ft`` — the water level in
+    the same world frame — replaces ``waterline_y``.  Candidate #2 then solves the fitted curve
+    against the **water plane** (``contact.S_ARC3D``) instead of against an image row, and #3/#4
+    read ``dZ/dt`` in ft/frame.  The two sets are never mixed: a 3-D trajectory does not carry the
+    image-space ``cy2`` the 2-D rules gate on, and pretending otherwise would silently disable the
+    free-fall screen.
     """
     if cfg is None:
         cfg = ContactConfig()
     if kp_conf is not None:
         cfg = replace(cfg, kp_conf=float(kp_conf))
+    space = str(space if space is not None else cfg.space).lower()
+    if space not in ("2d", "3d"):
+        raise ValueError(f"space must be '2d' or '3d', got {space!r}")
+    use3d = space == "3d"
     recs = list(getattr(records, "records", records) or [])
     if traj is None:
         traj = _trajectory.build_trajectory(recs, clip_id=clip_id)
@@ -321,9 +468,13 @@ def contact_candidates(records: Sequence[dict] | Any, traj: Any = None,
         # detection would silently clamp a reviewer's scrub to the last detection.
         n_frames = getattr(records, "n_frames_clip", None)
 
-    ok_ff, reason_ff, ev_ff = arc_is_freefall(traj, cfg)
+    if use3d:
+        ok_ff, reason_ff, ev_ff = arc_is_freefall_3d(traj, cfg)
+        apex = world_apex_frame(getattr(traj, "coeffs", None)) if getattr(traj, "coeffs", None) else None
+    else:
+        ok_ff, reason_ff, ev_ff = arc_is_freefall(traj, cfg)
+        apex = arc_apex_frame(getattr(traj, "coeffs", None)) if getattr(traj, "coeffs", None) else None
     coeffs = getattr(traj, "coeffs", None)
-    apex = arc_apex_frame(coeffs) if coeffs else None
     by_frame = {int(r["frame"]): r for r in recs}
     flight = list(getattr(traj, "flight_points", []) or [])
     last_arc_frame = int(flight[-1]["frame"]) if flight else None
@@ -360,8 +511,52 @@ def contact_candidates(records: Sequence[dict] | Any, traj: Any = None,
             evidence=evidence_c1,
         ))
 
-    # 2. arc extrapolated to the waterline
-    if waterline_y is None:
+    # 2. the fitted arc against the water — a ROW on the 2-D route, a PLANE on the 3-D one
+    if use3d:
+        if water_z_ft is None:
+            cands.append(Candidate(
+                S_ARC3D, None,
+                "unavailable: no water level — the 3-D candidate solves z(t) = z_water, and no "
+                "WaterPlane (or z_ft) was supplied for this clip",
+                available=False, confident=False, evidence={"water_z_ft": None}))
+        elif not ok_ff:
+            cands.append(Candidate(
+                S_ARC3D, None, f"unavailable: {reason_ff}", available=False, confident=False,
+                evidence=dict(ev_ff, water_z_ft=float(water_z_ft))))
+        else:
+            from .pool import geometry as _geometry   # local: the pool layer is optional here
+            cross = _geometry.intersect_curve_with_elevation(
+                coeffs, float(water_z_ft), t_min=float(apex))
+            z0 = (float(np.polyval(coeffs["z"],
+                                   float(flight[0]["frame"]) - float(coeffs["t_ref"])))
+                  if flight else None)
+            if cross["status"] != "ok":
+                cands.append(Candidate(
+                    S_ARC3D, None,
+                    f"unavailable: {cross['detail']}", available=False, confident=False,
+                    evidence={"water_z_ft": float(water_z_ft), "z_at_flight_start": z0,
+                              "crossing_status": cross["status"]}))
+            else:
+                t_cross = float(cross["t"])
+                f = int(round(t_cross))
+                extrap = (t_cross - last_arc_frame) if last_arc_frame is not None else None
+                confident = (extrap is None) or (-2.0 <= extrap <= float(cfg.max_extrap_frames))
+                X_ft, Y_ft, _zc = (float(v) for v in cross["point"])
+                cands.append(Candidate(
+                    S_ARC3D, f,
+                    f"fitted world curve crosses z = {float(water_z_ft):+.2f} ft at frame "
+                    f"{t_cross:.1f}, (X, Y) = ({X_ft:.2f}, {Y_ft:.2f}) ft"
+                    + (f" ({extrap:+.1f} frames past the last observation — a model prediction, "
+                       f"not an observation)" if extrap is not None else ""),
+                    available=True, confident=confident,
+                    evidence={"water_z_ft": float(water_z_ft), "crossing_frame": float(t_cross),
+                              "apex_frame": apex, "extrap_frames": extrap,
+                              "extrap_max": int(cfg.max_extrap_frames),
+                              "z_at_flight_start": z0,
+                              "x_at_crossing": X_ft, "y_at_crossing": Y_ft,
+                              "roots_all": cross.get("t_all"),
+                              "point_ft": [X_ft, Y_ft, float(water_z_ft)]}))
+    elif waterline_y is None:
         cands.append(Candidate(
             S_ARC, None,
             "unavailable: no waterline — PLAN §5 #2 solves y(t) = waterline.y, which comes "
@@ -417,37 +612,59 @@ def contact_candidates(records: Sequence[dict] | Any, traj: Any = None,
                 f"no {cfg.collapse_run}-frame keypoint-confidence collapse in frames "
                 f"{f_start}..{f_end}", available=False, confident=False, evidence=ev))
         else:
-            slope = arc_slope(coeffs, frame)
-            ev.update({"apex_frame": apex, "slope_at_collapse_px_per_frame": slope,
-                       "min_descent_px_per_frame": float(cfg.min_descent_px_per_frame)})
-            if slope < float(cfg.min_descent_px_per_frame):
+            slope = world_descent_rate(coeffs, frame) if use3d else arc_slope(coeffs, frame)
+            if use3d:
+                ev.update({"apex_frame": apex, "descent_ft_per_frame": slope,
+                           "min_descent_ft_per_frame": float(cfg.min_descent_ft_per_frame)})
+                still_descending = slope <= -float(cfg.min_descent_ft_per_frame)
+                gate_txt = (f"dZ/dt = {slope:+.3f} ft/frame"
+                            + ("" if still_descending else
+                               f" > -{cfg.min_descent_ft_per_frame:g}"))
+                ok_txt = f"still descending (dZ/dt = {slope:+.2f} ft/frame)"
+            else:
+                ev.update({"apex_frame": apex, "slope_at_collapse_px_per_frame": slope,
+                           "min_descent_px_per_frame": float(cfg.min_descent_px_per_frame)})
+                still_descending = not (slope < float(cfg.min_descent_px_per_frame))
+                gate_txt = (f"dy/dt = {slope:.2f} px/frame"
+                            + ("" if still_descending else
+                               f" < {cfg.min_descent_px_per_frame:g}"))
+                ok_txt = f"still descending (dy/dt = {slope:.1f} px/frame)"
+            if not still_descending:
                 cands.append(Candidate(
                     S_COLLAPSE, None,
                     f"unavailable: the fitted arc is not descending at frame {frame} "
-                    f"(dy/dt = {slope:.2f} px/frame < {cfg.min_descent_px_per_frame:g}), so this "
-                    f"confidence gap is not a water entry", available=False, confident=False,
-                    evidence=ev))
+                    f"({gate_txt}), so this confidence gap is not a water entry",
+                    available=False, confident=False, evidence=ev))
             else:
                 cands.append(Candidate(
                     S_COLLAPSE, int(frame),
                     f"keypoint confidence collapses for {cfg.collapse_run} consecutive frames "
                     f"starting at frame {frame} (<= {cfg.kp_conf:g}) while the fitted arc is "
-                    f"still descending (dy/dt = {slope:.1f} px/frame)", available=True,
-                    confident=True, evidence=ev))
+                    f"{ok_txt}", available=True, confident=True, evidence=ev))
 
     # 4. vertical-velocity departure from the free-fall fit
     if not ok_ff or coeffs is None:
         cands.append(Candidate(S_VEL, None, f"unavailable: {reason_ff}", available=False,
                                confident=False, evidence=dict(ev_ff)))
     else:
-        frame, ev = _first_departure(traj, coeffs, cfg)
+        frame, ev = (_first_departure_3d(traj, coeffs, cfg) if use3d
+                     else _first_departure(traj, coeffs, cfg))
         if frame is None:
             f = last_arc_frame
+            tol, unit = ((cfg.vel_tol_ft, "ft/frame") if use3d else (cfg.vel_tol_px, "px/frame"))
             cands.append(Candidate(
                 S_VEL, f,
-                f"the observed dy/dt stays within {cfg.vel_tol_px:g} px/frame of the free-fall fit "
+                f"the observed dZ/dt stays within {tol:g} {unit} of the free-fall fit "
                 f"across the whole observed run, so the last frame before departure is the last "
                 f"observed frame {f}", available=True, confident=False, evidence=ev))
+        elif use3d:
+            cands.append(Candidate(
+                S_VEL, int(frame),
+                f"observed dZ/dt departs from the free-fall fit after frame {frame} "
+                f"(observed {ev['observed_dz_per_frame']:+.3f} vs model "
+                f"{ev['model_dz_per_frame']:+.3f} ft/frame, off by "
+                f"{ev['deviation_ft_per_frame']:+.3f})", available=True, confident=True,
+                evidence=ev))
         else:
             cands.append(Candidate(
                 S_VEL, int(frame),
@@ -465,9 +682,10 @@ def contact_candidates(records: Sequence[dict] | Any, traj: Any = None,
     c1 = next(c for c in cands if c.source == S_LAST)
     return ContactResult(
         clip_id=clip_id, candidates=cands, chosen_frame=c1.frame, chosen_source=S_LAST,
-        waterline_y=(None if waterline_y is None else float(waterline_y)),
+        waterline_y=(None if use3d or waterline_y is None else float(waterline_y)),
         arc_is_freefall=ok_ff, arc_reason=reason_ff, arc_evidence=ev_ff,
         window=window, n_frames=n_frames, cfg=cfg.as_dict(),
+        water_z_ft=(None if water_z_ft is None else float(water_z_ft)), space=space,
     )
 
 
@@ -483,7 +701,7 @@ def draw_candidates(frame, result: ContactResult, thickness: int = 2):
 
     out = frame.copy()
     h = out.shape[0]
-    colours = {S_LAST: (0, 255, 255), S_ARC: (0, 200, 0),
+    colours = {S_LAST: (0, 255, 255), S_ARC: (0, 200, 0), S_ARC3D: (0, 200, 0),
                S_COLLAPSE: (255, 160, 0), S_VEL: (255, 0, 255)}
     y = 30
     for c in result.ranked():
@@ -491,7 +709,8 @@ def draw_candidates(frame, result: ContactResult, thickness: int = 2):
             txt = f"#{c.rank} {c.source} f{c.frame}"
         else:
             txt = f"#{c.rank} {c.source} n/a"
-        cv2.putText(out, txt, (12, y), cv2.FONT_HERSHEY_SIMPLEX, 0.7, colours[c.source], thickness)
+        cv2.putText(out, txt, (12, y), cv2.FONT_HERSHEY_SIMPLEX, 0.7,
+                    colours.get(c.source, (200, 200, 200)), thickness)
         y += 30
     if result.chosen_frame is not None:
         cv2.putText(out, f"chosen f{result.chosen_frame} ({result.chosen_source})",
