@@ -362,7 +362,10 @@ def test_schema_and_json_round_trip(oracle):
     assert all(set(c) >= {"rank", "source", "frame", "reason", "available", "confident",
                           "evidence"} for c in d["candidates"])
     assert set(res.cfg) == {"kp_conf", "collapse_run", "vel_tol_px", "freefall_curvature_min",
-                            "min_descent_px_per_frame", "max_extrap_frames", "box_conf_floor"}
+                            "min_descent_px_per_frame", "max_extrap_frames", "box_conf_floor",
+                            # the 3-D route's knobs (M30): which space decided the frames, and the
+                            # world-space tolerances used when it is "3d"
+                            "space", "vel_tol_ft", "min_descent_ft_per_frame"}
     json.dumps(d)                     # result.json is written from exactly this
     assert json.loads(json.dumps(d))["chosen_frame"] == res.chosen_frame
 

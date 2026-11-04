@@ -11,6 +11,8 @@ phase                   module
 4  planar homography    :mod:`dog_diving.pool.homography`
 5  water-plane extrap.  :mod:`dog_diving.pool.surface`
 6  trajectory intersect :mod:`dog_diving.pool.intersection`
+—  the world arc        :mod:`dog_diving.pool.geometry` (``TrajectoryPlane`` + a curve crossing a Z)
+—  track -> 3-D points  :func:`dog_diving.pool.pipeline.track_to_world`
 —  shared ray/plane     :mod:`dog_diving.pool.geometry`
 —  the metric grid      :mod:`dog_diving.pool.grid`
 —  document + gates     :mod:`dog_diving.pool.calib`

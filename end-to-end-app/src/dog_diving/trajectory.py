@@ -80,7 +80,8 @@ from typing import Any, Iterable, Sequence
 
 import numpy as np
 
-from .config import ARC_OUTLIER_PX, TRAJ_MAX_FRAME_GAP, TRAJ_SEED
+from .config import (ARC_OUTLIER_FT, ARC_OUTLIER_PX, TRAJ_MAX_FRAME_GAP, TRAJ_SEED,
+                     TRAJ_SPACE)
 
 # PLAN §6 does not list a trajectory section; these two live in config.py next to
 # ARC_OUTLIER_PX (which PLAN §6 *does* list, default 20).
@@ -97,6 +98,11 @@ class TrajConfig:
     min_run_points: int = 3          # a quadratic needs three points
     ransac_iters: int = DEFAULT_RANSAC_ITERS
     seed: int = TRAJ_SEED            # fixed -> the RANSAC result is reproducible
+    #: ``"2d"`` (image space, the fork's convention) or ``"3d"`` (world feet, the geometric
+    #: route).  Both paths are kept; this selects one.
+    space: str = TRAJ_SPACE
+    #: The 3-D inlier gate in world feet — used instead of ``arc_outlier_px`` when space="3d".
+    arc_outlier_ft: float = ARC_OUTLIER_FT
 
     def as_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -128,6 +134,15 @@ def fit_parabolic_trajectory(
     x_end: float | None = None,
 ) -> tuple[list[tuple[int, int]] | None, tuple[int, int] | None, dict[str, float] | None]:
     """``y = A·x² + B·x + C`` in PIXEL space, extrapolated to the bottom edge of the frame.
+
+    **Deprecated for measurement — kept for display and parity.**  Under ``TRAJ_SPACE = "3d"``
+    the entry is the world-space crossing ``Z(t) = z_water`` (phases 1-2 of
+    ``intersection-algo.txt``) and this function's whole premise — that the water is the bottom
+    edge of the picture, and that a pixel-space quadratic is the flight — is false: the frame's
+    bottom is a property of the camera, while the water is a property of the pool.  It is retained
+    because it is the fork's own convention, pinned bit-for-bit by ``test_m29``, and because the
+    Review pane draws this curve; deleting it would delete the drawn arc with it.  Nothing on the
+    3-D route calls it for a number.
 
     A port of the fork's ``fit_parabolic_trajectory``, kept line for line so the two agree: same
     two gates (``min_points``, then an x-span of at least ``x_span_min_px``), same ``np.polyfit``
@@ -229,6 +244,12 @@ def assemble(source: Any, kp_conf: float | None = None) -> list[dict]:
         elif "x" in r and "y" in r:
             p = {"frame": int(r["frame"]), "x": float(r["x"]), "y": float(r["y"]),
                  "kp_conf": float(r.get("kp_conf", float("nan")))}
+            # The 3-D route's world columns ride along when the caller supplied them (the record is
+            # already flat); dropping them here would turn a world point back into a pixel pair and
+            # the fit would silently refuse — or worse, accept pixel columns as feet.
+            for k in WORLD_KEYS_3D:
+                if r.get(k) is not None:
+                    p[k] = float(r[k])
         else:
             p = None
         if p is not None:
@@ -262,43 +283,65 @@ def _quad(tc: np.ndarray, v: np.ndarray) -> np.ndarray:
 
 
 def _residuals(cx: np.ndarray, cy: np.ndarray, tc: np.ndarray,
-               x: np.ndarray, y: np.ndarray) -> np.ndarray:
-    return np.sqrt((y - np.polyval(cy, tc)) ** 2 + (x - np.polyval(cx, tc)) ** 2)
+               x: np.ndarray, y: np.ndarray,
+               cz: np.ndarray | None = None, z: np.ndarray | None = None) -> np.ndarray:
+    """Per-point distance from the fitted curve, in px (2-D) or ft (3-D)."""
+    r2 = (y - np.polyval(cy, tc)) ** 2 + (x - np.polyval(cx, tc)) ** 2
+    if cz is None or z is None:
+        return np.sqrt(r2)
+    return np.sqrt(r2 + (z - np.polyval(cz, tc)) ** 2)
 
 
 def robust_parabola(t: np.ndarray, x: np.ndarray, y: np.ndarray, thr: float,
-                    iters: int = DEFAULT_RANSAC_ITERS, seed: int = TRAJ_SEED
-                    ) -> dict[str, Any] | None:
-    """Robust (RANSAC + least-squares refinement) quadratic fit in centred time.
+                    iters: int = DEFAULT_RANSAC_ITERS, seed: int = TRAJ_SEED,
+                    z: np.ndarray | None = None) -> dict[str, Any] | None:
+    """Robust (RANSAC + least-squares) quadratic fit in centred time — 2-D or 3-D.
 
     ``t`` are absolute frame indices; the fit is done against ``tc = t - mean(t)``
-    and ``t_ref`` is returned so the coefficients stay interpretable.  Inliers are
-    points within ``thr`` px (Euclidean, image space) of the fitted curve.
+    and ``t_ref`` is returned so the coefficients stay interpretable.
+
+    **Two spaces, one function.** ``z=None`` is the image-space fit this project has always
+    done: ``x(t), y(t)`` in pixels, inliers within ``thr`` px of the curve.  Passing ``z``
+    switches to the 3-D route (``TRAJ_SPACE = "3d"``): the same RANSAC and the same refinement
+    loop, but three quadratics ``X(t), Y(t), Z(t)`` in **world feet** and inliers within
+    ``thr`` ft of the curve in 3-D.  Sharing the estimator is deliberate — a second, subtly
+    different RANSAC is how a "3-D" refit ends up selecting different points than the arc the
+    reviewer is looking at.
 
     Returns ``{t_ref, x:[a2,a1,a0], y:[a2,a1,a0], inliers:bool[], residuals:[...],
-    arc_rms_px, max_inlier_res_px, n_inliers}`` or ``None`` when fewer than three
-    distinct frames are supplied (a quadratic is not determined).
+    n_inliers, arc_rms_px, max_inlier_res_px, arc_rms_all_px}`` in 2-D, and the same keys with
+    ``z`` added plus ``residual_unit="ft"``, ``arc_rms_ft``, ``max_inlier_res_ft``,
+    ``arc_rms_all_ft`` (and ``arc_rms_px = None``, so a caller reading that key gets an honest
+    ``None`` instead of a pixel number that was really in feet) in 3-D.  ``None`` when fewer
+    than three distinct frames are supplied (a quadratic is not determined).
     """
     t = np.asarray(t, float)
     x = np.asarray(x, float)
     y = np.asarray(y, float)
+    z = None if z is None else np.asarray(z, float)
     n = len(t)
     if n < 3 or len(set(t.tolist())) < 3:
         return None
+    if z is not None and len(z) != n:
+        raise ValueError(f"z has {len(z)} value(s) against {n} frame(s)")
 
     t_ref = float(t.mean())
     tc = t - t_ref
 
+    def fit(idx: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray | None]:
+        return (_quad(tc[idx], x[idx]), _quad(tc[idx], y[idx]),
+                None if z is None else _quad(tc[idx], z[idx]))
+
     if n == 3:                                    # exactly determined
-        cx, cy = _quad(tc, x), _quad(tc, y)
+        cx, cy, cz = fit(np.arange(n))
         mask = np.ones(n, bool)
     else:
         rng = np.random.default_rng(seed)
         best: tuple[int, float, np.ndarray] | None = None
         for _ in range(int(iters)):
             idx = rng.choice(n, 3, replace=False)
-            cx_s, cy_s = _quad(tc[idx], x[idx]), _quad(tc[idx], y[idx])
-            r = _residuals(cx_s, cy_s, tc, x, y)
+            cx_s, cy_s, cz_s = fit(idx)
+            r = _residuals(cx_s, cy_s, tc, x, y, cz_s, z)
             m = r <= thr
             c = int(m.sum())
             if c == 0:
@@ -311,18 +354,18 @@ def robust_parabola(t: np.ndarray, x: np.ndarray, y: np.ndarray, thr: float,
         mask = best[2]
         # refinement: re-fit on the inliers until the inlier set stops growing
         for _ in range(50):
-            cx, cy = _quad(tc[mask], x[mask]), _quad(tc[mask], y[mask])
-            r = _residuals(cx, cy, tc, x, y)
+            cx, cy, cz = fit(np.flatnonzero(mask))
+            r = _residuals(cx, cy, tc, x, y, cz, z)
             m2 = r <= thr
             if int(m2.sum()) == int(mask.sum()):
                 mask = m2
                 break
             mask = m2
 
-    cx, cy = _quad(tc[mask], x[mask]), _quad(tc[mask], y[mask])
-    res = _residuals(cx, cy, tc, x, y)
+    cx, cy, cz = fit(np.flatnonzero(mask))
+    res = _residuals(cx, cy, tc, x, y, cz, z)
     in_res = res[mask]
-    return {
+    out = {
         "t_ref": t_ref,
         "x": [float(v) for v in cx],
         "y": [float(v) for v in cy],
@@ -333,6 +376,19 @@ def robust_parabola(t: np.ndarray, x: np.ndarray, y: np.ndarray, thr: float,
         "max_inlier_res_px": float(in_res.max()) if in_res.size else float("nan"),
         "arc_rms_all_px": float(np.sqrt((res ** 2).mean())),
     }
+    if z is not None:
+        # The px-named keys above are meaningless on the 3-D route; they are cleared rather than
+        # left holding feet, because a number labelled `_px` that is really in ft is exactly the
+        # kind of quietly-wrong value this codebase spends its comments on.
+        out["z"] = [float(v) for v in cz]
+        out["residual_unit"] = "ft"
+        out["arc_rms_ft"] = out["arc_rms_px"]
+        out["max_inlier_res_ft"] = out["max_inlier_res_px"]
+        out["arc_rms_all_ft"] = out["arc_rms_all_px"]
+        out["arc_rms_px"] = None
+        out["max_inlier_res_px"] = None
+        out["arc_rms_all_px"] = None
+    return out
 
 
 def predict(coeffs: dict, frame: float) -> tuple[float, float]:
@@ -341,9 +397,30 @@ def predict(coeffs: dict, frame: float) -> tuple[float, float]:
     return float(np.polyval(coeffs["x"], tc)), float(np.polyval(coeffs["y"], tc))
 
 
+def predict3(coeffs: dict, frame: float) -> tuple[float, float, float]:
+    """``(X, Y, Z)`` on the fitted 3-D curve at an absolute ``frame``, in world feet.
+
+    The 3-D counterpart of :func:`predict`: same centred-time convention, one more axis.  Raises
+    ``KeyError``-free ``ValueError`` when handed a 2-D fit, because silently returning a zero Z
+    would make a 2-D curve look like a trajectory that happens to be flat.
+    """
+    if not isinstance(coeffs, dict) or coeffs.get("z") is None:
+        raise ValueError("predict3 was handed a fit with no world Z axis (a 2-D fit)")
+    tc = float(frame) - float(coeffs["t_ref"])
+    return (float(np.polyval(coeffs["x"], tc)), float(np.polyval(coeffs["y"], tc)),
+            float(np.polyval(coeffs["z"], tc)))
+
+
 def solve_frame_for_y(coeffs: dict, y_value: float, t_min: float | None = None
                       ) -> float | None:
     """Smallest frame >= ``t_min`` where the arc reaches ``y_value`` (image y).
+
+    **Deprecated on the 3-D route.**  This is intersection (iii) of ``intersection-algo.txt``: a
+    fitted image curve against a 1-D waterline *row*, which is what candidate #2 used to do.  Under
+    ``TRAJ_SPACE = "3d"`` the crossing is solved in world space instead
+    (:func:`dog_diving.pool.geometry.intersect_curve_with_elevation`), because a row is a
+    property of one camera's picture and ``Z = z_water`` is a property of the pool.  Kept
+    unchanged for the 2-D path and for the parity/contact tests that pin it.
 
     The bridge to ``contact.py`` candidate #2 (PLAN §5): solve ``y(t) = waterline.y``.
     Returns ``None`` when the arc never reaches that row.  Image y grows downward,
@@ -394,6 +471,18 @@ class Trajectory:
     fit_rms_px: float | None = None
     #: Why the parabola is missing, when it is (a gate failed, or no frame size was known).
     fit_note: str = ""
+    # --- the 3-D route (``TRAJ_SPACE = "3d"``) --------------------------------
+    #: ``"2d"`` (image space, the fork's convention) or ``"3d"`` (world feet) — which space
+    #: ``coeffs`` lives in, and therefore what ``predict`` means downstream.
+    space: str = "2d"
+    #: RMS of the inliers in **feet**.  ``None`` on the 2-D route, where ``arc_rms_px`` speaks;
+    #: keeping one field per unit is why neither route can be read with the other's tolerance.
+    arc_rms_ft: float | None = None
+    max_inlier_res_ft: float | None = None
+    #: The vertical plane the flight run was taken to lie in — ``geometry.TrajectoryPlane.as_dict()``.
+    #: Present only on the 3-D route; its ``rms_ft`` is the evidence that "the jump happened in
+    #: one vertical plane" was a fair assumption for this clip.
+    plane: dict | None = None
 
     def as_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -457,21 +546,62 @@ def _parabola_block(pts: Sequence[dict], frame_size: tuple[int, int] | None) -> 
                         f"(first of the window → entry)"}
 
 
+#: The point keys each space fits against.  A 3-D point carries the pixel columns too (the drawn
+#: arc and the 1-D cross-check still need them); the fit only reads these three.
+WORLD_KEYS_3D = ("X_ft", "Y_ft", "Z_ft")
+
+
+def _columns(points: Sequence[dict], use3d: bool) -> tuple[np.ndarray, np.ndarray,
+                                                           np.ndarray, np.ndarray | None]:
+    """``(t, x, y[, z])`` arrays for a point list, in the space the caller asked for.
+
+    Raises rather than falling back: a 3-D fit quietly fed pixel columns would produce a curve
+    whose Z is a row index, and every number downstream would be plausible and wrong.
+    """
+    t = np.array([float(p["frame"]) for p in points], dtype=float)
+    if not use3d:
+        return (t, np.array([float(p["x"]) for p in points], dtype=float),
+                np.array([float(p["y"]) for p in points], dtype=float), None)
+    missing = [k for k in WORLD_KEYS_3D
+               if any(p.get(k) is None for p in points)]
+    if missing:
+        raise ValueError(
+            f"space='3d' needs every point to carry {', '.join(WORLD_KEYS_3D)}; {', '.join(missing)} "
+            f"is missing from at least one of {len(points)} point(s). Unproject the track first "
+            f"(pool.pipeline.track_to_world), rather than letting a pixel column stand in for a "
+            f"world coordinate.")
+    return (t, *(np.array([float(p[k]) for p in points], dtype=float) for k in WORLD_KEYS_3D))
+
+
 def build_trajectory(source: Any, cfg: TrajConfig | None = None,
                      clip_id: str | None = None, kp_conf: float | None = None,
-                     frame_size: tuple[int, int] | None = None
+                     frame_size: tuple[int, int] | None = None,
+                     space: str | None = None, plane: Any = None
                      ) -> Trajectory:
     """Full pipeline: assemble -> runs -> flight run -> robust arc fit -> the fork's parabola.
 
     ``frame_size`` is ``(width, height)`` in px.  It is what the fork's extrapolation needs to know
     where the water is (the bottom edge of the picture); without it the parabola is skipped and the
     trajectory is exactly what it was before it existed.
+
+    ``space`` picks the space the **fit** happens in — ``"2d"`` (default, image pixels, the fork's
+    convention) or ``"3d"`` (world feet).  In 3-D mode every point must carry ``X_ft``/``Y_ft``/
+    ``Z_ft``; ``plane`` is the :class:`dog_diving.pool.geometry.TrajectoryPlane` the caller fitted
+    to unproject them (passed through rather than re-fitted here, so the curve, the plane and the
+    per-frame points cannot disagree about which plane the run was in).
     """
     cfg = cfg or TrajConfig()
+    space = str(space if space is not None else cfg.space).lower()
+    if space not in ("2d", "3d"):
+        raise ValueError(f"space must be '2d' or '3d', got {space!r}")
+    use3d = space == "3d"
     if clip_id is None:
         clip_id = str(getattr(source, "clip_id", "") or "")
     pts = assemble(source, kp_conf=kp_conf)
-    arc = _parabola_block(pts, frame_size)
+    # The fork's pixel-space parabola is display + parity only; it is computed when the points
+    # still carry pixels (they do on both routes) and skipped silently when they do not.
+    pixel_pts = [p for p in pts if p.get("x") is not None and p.get("y") is not None]
+    arc = _parabola_block(pixel_pts, frame_size) if len(pixel_pts) == len(pts) else {}
     runs_idx = temporal_runs(pts, cfg.max_frame_gap)
     runs = [{"i0": i0, "i1": i1, "start_frame": pts[i0]["frame"],
              "end_frame": pts[i1 - 1]["frame"], "n": i1 - i0} for i0, i1 in runs_idx]
@@ -483,6 +613,13 @@ def build_trajectory(source: Any, cfg: TrajConfig | None = None,
     flight_run: int | None = None
     airborne: list[int] | None = None
     n_before_leave = n_before_entry = 0
+    #: The inlier gate: feet on the 3-D route, pixels on the 2-D one.  Named once so the two
+    #: fits cannot be run with each other's tolerance.
+    thr = float(cfg.arc_outlier_ft if use3d else cfg.arc_outlier_px)
+
+    def _fit(sub: Sequence[dict]) -> dict | None:
+        tt, xx, yy, zz = _columns(sub, use3d)
+        return robust_parabola(tt, xx, yy, thr, cfg.ransac_iters, cfg.seed, z=zz)
 
     # the flight run = most points, then longest span, then lowest inlier RMS
     scored = [i for i, (i0, i1) in enumerate(runs_idx)
@@ -490,23 +627,18 @@ def build_trajectory(source: Any, cfg: TrajConfig | None = None,
     if scored:
         def _score(i: int):
             i0, i1 = runs_idx[i]
-            sub = pts[i0:i1]
-            tt = np.array([p["frame"] for p in sub], float)
-            xx = np.array([p["x"] for p in sub], float)
-            yy = np.array([p["y"] for p in sub], float)
-            fit = robust_parabola(tt, xx, yy, cfg.arc_outlier_px, cfg.ransac_iters, cfg.seed)
+            fit = _fit(pts[i0:i1])
+            rms = (fit["arc_rms_ft"] if use3d else fit["arc_rms_px"]) if fit else float("inf")
             return (-(i1 - i0), -(pts[i1 - 1]["frame"] - pts[i0]["frame"]),
-                    fit["arc_rms_px"] if fit else float("inf"))
+                    float("inf") if rms is None else rms)
 
         flight_run = min(scored, key=_score)
         i0, i1 = runs_idx[flight_run]
         flight_points = pts[i0:i1]
-        tt = np.array([p["frame"] for p in flight_points], float)
-        xx = np.array([p["x"] for p in flight_points], float)
-        yy = np.array([p["y"] for p in flight_points], float)
-        fit = robust_parabola(tt, xx, yy, cfg.arc_outlier_px, cfg.ransac_iters, cfg.seed)
+        fit = _fit(flight_points)
         if fit is not None:
-            coeffs = {k: fit[k] for k in ("t_ref", "x", "y")}
+            coeffs = {k: fit[k] for k in (("t_ref", "x", "y", "z") if use3d
+                                          else ("t_ref", "x", "y"))}
             residuals = fit["residuals"]
             inliers = [p for p, keep in zip(flight_points, fit["inliers"]) if keep]
             n_outliers = len(flight_points) - int(fit["n_inliers"])
@@ -523,6 +655,9 @@ def build_trajectory(source: Any, cfg: TrajConfig | None = None,
                 max_inlier_res_px=fit["max_inlier_res_px"], residuals=residuals,
                 flight_points=flight_points, last_arc_frame=last_arc_frame,
                 last_contact_candidate=(pts[-1] if pts else None), cfg=cfg.as_dict(),
+                space=space, arc_rms_ft=fit.get("arc_rms_ft"),
+                max_inlier_res_ft=fit.get("max_inlier_res_ft"),
+                plane=(plane.as_dict() if hasattr(plane, "as_dict") else plane),
                 **arc,
             )
 
@@ -533,6 +668,7 @@ def build_trajectory(source: Any, cfg: TrajConfig | None = None,
         arc_rms_all_px=None, max_inlier_res_px=None, residuals=None,
         flight_points=[], last_arc_frame=None,
         last_contact_candidate=(pts[-1] if pts else None), cfg=cfg.as_dict(),
+        space=space, plane=(plane.as_dict() if hasattr(plane, "as_dict") else plane),
         **arc,
     )
 
@@ -586,7 +722,8 @@ def conf_labels(
 
 
 def refit(points: Sequence[dict], cfg: "TrajConfig | None" = None,
-          frame_size: tuple[int, int] | None = None) -> dict[str, Any]:
+          frame_size: tuple[int, int] | None = None,
+          space: str | None = None) -> dict[str, Any]:
     """Fit the arc to an explicit point list — Review's include/exclude.
 
     Review lets the operator click a detection out of the arc (a handler's leg, a splash point, a box
@@ -595,29 +732,40 @@ def refit(points: Sequence[dict], cfg: "TrajConfig | None" = None,
     The fork's parabola is re-run on the same subset (last ``LAST_N_POINTS`` of it), so the drawn
     curve follows the points the operator kept.
 
-    Returns ``{coeffs, inliers, frame_range, n, rms_px, parabola, curve, contact}``; ``coeffs`` is
+    ``space="3d"`` refits in world feet from ``X_ft``/``Y_ft``/``Z_ft`` with the same estimator and
+    the same gates, and reports ``rms_ft`` instead of ``rms_px`` — so deselecting a point on the 3-D
+    route moves the world curve, not a pixel-space lookalike of it.
+
+    Returns ``{coeffs, inliers, frame_range, n, rms_px, parabola, curve, contact}`` (plus ``z`` in
+    ``coeffs`` and ``rms_ft`` when ``space="3d"``); ``coeffs`` is
     ``None`` when the remaining points cannot determine a quadratic (fewer than 3 distinct frames) —
     the caller should then keep the previous arc rather than draw a line through nothing.
     """
     cfg = cfg or TrajConfig()
     pts = list(points)
-    arc = _parabola_block(pts, frame_size)
+    space = str(space if space is not None else cfg.space).lower()
+    use3d = space == "3d"
+    has_px = all(p.get("x") is not None and p.get("y") is not None for p in pts)
+    arc = (_parabola_block(pts, frame_size) if has_px
+           else {"parabola": None, "curve": [], "contact_point": None})
     out: dict[str, Any] = {"coeffs": None, "inliers": [], "frame_range": None, "n": len(pts),
                            "rms_px": None,
                            "parabola": arc["parabola"], "curve": arc["curve"],
                            "contact": arc["contact_point"]}
     if len(pts) < 3:
         return out
-    t = np.array([p["frame"] for p in pts], float)
-    x = np.array([p["x"] for p in pts], float)
-    y = np.array([p["y"] for p in pts], float)
-    fit = robust_parabola(t, x, y, cfg.arc_outlier_px, cfg.ransac_iters, cfg.seed)
+    t, x, y, z = _columns(pts, use3d)
+    thr = float(cfg.arc_outlier_ft if use3d else cfg.arc_outlier_px)
+    fit = robust_parabola(t, x, y, thr, cfg.ransac_iters, cfg.seed, z=z)
     if fit is None:
         return out
-    out["coeffs"] = {k: fit[k] for k in ("t_ref", "x", "y")}
+    out["coeffs"] = {k: fit[k] for k in (("t_ref", "x", "y", "z") if use3d
+                                         else ("t_ref", "x", "y"))}
     out["inliers"] = [p for p, keep in zip(pts, fit["inliers"]) if keep]
     out["frame_range"] = [int(min(t)), int(max(t))]
     out["rms_px"] = fit["arc_rms_px"]
+    if use3d:
+        out["rms_ft"] = fit["arc_rms_ft"]
     return out
 
 

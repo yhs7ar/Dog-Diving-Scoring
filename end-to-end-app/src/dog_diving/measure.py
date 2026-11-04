@@ -30,11 +30,25 @@ from typing import Any, Iterable, Sequence
 import numpy as np
 
 from . import distance as _distance
+from . import trajectory as _trajectory
 from .pool import calib as _calib
+from .pool import geometry as _geometry
 from .pool import intersection as _inter
 from .pool import lens as _lens
+from .pool import pipeline as _pipeline
 
 ROUTE = "plane"
+#: What ``entry_coordinate`` tags a record built from a **fitted 3-D trajectory** (the plane method's
+#: route).  Named here as well as in ``pool.intersection`` because the Results pane switches on it to
+#: decide which rows make sense, and a literal repeated in two files is a literal that will drift.
+ROUTE_ARC3D = "arc3d"
+#: The two scoring methods the operator can switch between in Review.  ``"arc"`` is the rule in the
+#: module docstring (final detection assumed on the plane); ``"plane"`` is the 3-D trajectory plane
+#: (a world-space arc extrapolated to ``Z = z_water``).  They are two *answers to different
+#: questions*, not two estimates of one, which is why they are named rather than blended.
+SPACE_ARC = "arc"
+SPACE_PLANE = "plane"
+SPACES = (SPACE_ARC, SPACE_PLANE)
 
 
 def kept_points(traj: Any, excluded: Iterable[int] | None = ()) -> list[dict[str, Any]]:
@@ -158,4 +172,197 @@ def plane_distance(
         out["warnings"].append(
             "the point maps OUTSIDE the plane's extent — it is reported, but it means either the "
             "detection or the plane is wrong")
+    return out
+
+
+# ============================================================================
+# The second scoring method: the trajectory PLANE (3-D world arc)
+# ============================================================================
+def trajectory_plane_fit(
+    traj: Any,
+    plane_doc: dict[str, Any] | None,
+    *,
+    excluded: Iterable[int] | None = (),
+    frame: int | None = None,
+    margin_ft: float = 0.0,
+) -> dict[str, Any]:
+    """Track -> world points -> world arc -> the water crossing.  One computation, two callers.
+
+    Review draws this curve **and** scores with it, so it is computed once here rather than twice in
+    the pane: a pane that drew one fit and measured another would be the exact failure this project
+    keeps finding (the arc standing in for the detection).
+
+    The chain, each step being a function that reports its own failure rather than returning a
+    placeholder:
+
+    * ``kept_points`` — Review's deselections apply, because a point the operator rejected must not
+      pull the fit (and must not be the extrapolation's anchor);
+    * ``pipeline.undistort_track`` — the document's lens, applied once, up front;
+    * ``pipeline.track_to_world`` — pixels to rays to one vertical plane to 3-D points, **single
+      pass** (see that function for its measured bias);
+    * ``trajectory.build_trajectory(space="3d")`` — the same robust estimator, in feet;
+    * ``intersection.entry_coordinate(trajectory=...)`` — where ``Z(t)`` crosses the water.
+
+    Returns ``{status, detail, plane, traj3d, entry, curve, rms_ft, n_points}``.  ``status`` is
+    ``"ok"``, ``"no_calibration"``, ``"few_points"``, ``"no_fit"``, ``"no_crossing"`` or a
+    ``track_to_world`` failure — every one of which the caller reports as a warning, because no
+    number is better than a number with a guessed input.
+    """
+    out: dict[str, Any] = {"status": None, "detail": "", "plane": None, "traj3d": None,
+                           "entry": None, "curve": [], "rms_ft": None, "n_points": 0}
+    fail, parts = _plane_doc_parts(plane_doc)
+    if fail is not None:
+        out.update(fail)
+        return out
+    pose, water, lens = parts["pose"], parts["water"], parts["lens"]
+    H, extent = parts["H"], parts["extent"]
+
+    pts = kept_points(traj, excluded)
+    if frame is not None:
+        pts = [p for p in pts if int(p["frame"]) <= int(frame)]
+    out["n_points"] = len(pts)
+    if len(pts) < 3:
+        out.update({"status": "few_points",
+                    "detail": (f"{len(pts)} kept detection(s) at or before frame {frame} — the 3-D "
+                               f"arc needs at least three to be a curve")})
+        return out
+
+    rows = _pipeline.undistort_track(pts, lens)
+    world = _pipeline.track_to_world(pose, water, rows)
+    out["plane"] = {k: (v.as_dict() if hasattr(v, "as_dict") else v)
+                    for k, v in world.items() if k != "points"}
+    out["points3d"] = world.get("points")
+    if world["status"] != "ok":
+        out.update({"status": f"world_{world['status']}", "detail": world["detail"]})
+        return out
+    out["rms_ft"] = world.get("rms_ft")
+
+    traj3d = _trajectory.build_trajectory(world["points"], space="3d", plane=world["plane"])
+    out["traj3d"] = traj3d
+    if traj3d.coeffs is None:
+        out.update({"status": "no_fit",
+                    "detail": ("the world points were built but no 3-D arc survived the fit (fewer "
+                               "than three in one run)")})
+        return out
+
+    entry = _inter.entry_coordinate(pose, water, None, extent=extent, margin_ft=margin_ft,
+                                    homography=H, trajectory=traj3d)
+    out["entry"] = entry
+    if entry.get("X_ft") is None:
+        out.update({"status": "no_crossing",
+                    "detail": "; ".join(entry.get("notes") or ["the curve never met the water"])})
+        return out
+
+    # The drawn curve: from the first flight frame to the crossing (and a little past it, so the
+    # operator can see the extrapolation land on the water rather than stop in mid-air).
+    first = (traj3d.airborne_frame_range or [0, 0])[0]
+    last = float(entry.get("crossing_frame") or (traj3d.airborne_frame_range or [0, 1])[1])
+    t0, t1 = float(first), max(last, float(first) + 1.0)
+    frames = [t0 + (t1 - t0) * i / 48.0 for i in range(49)]
+    out["curve"] = _geometry.project_curve(pose, traj3d.coeffs, frames)
+    out["status"] = "ok"
+    out["detail"] = entry.get("notes", [""])[0] if entry.get("notes") else ""
+    return out
+
+
+def _plane_doc_parts(plane_doc: dict[str, Any] | None
+                     ) -> tuple[dict[str, Any] | None, dict[str, Any]]:
+    """``(failure, parts)`` for a pool document — exactly one of the two is meaningful.
+
+    ``failure`` is ``None`` when the document can answer, and a ``{"status", "detail"}`` dict when it
+    cannot; ``parts`` carries the rebuilt ``pose``/``water``/``lens``/``H``/``extent``.  One function,
+    one contract, so the "is there a water plane at all" test cannot drift between the two places
+    that need it.
+    """
+    if not plane_doc:
+        return ({"status": "no_calibration",
+                 "detail": "no pool calibration document is loaded"}, {})
+    if not (plane_doc.get("plane") or plane_doc.get("water")):
+        return ({"status": "no_calibration",
+                 "detail": ("the loaded calibration has neither a plane block nor a water level, so "
+                            "there is no water for the arc to cross")}, {})
+    H = (np.asarray(plane_doc["homography"], dtype=float).reshape(3, 3)
+         if plane_doc.get("homography") is not None else None)
+    return None, {"pose": _calib.pose_from_document(plane_doc),
+                  "water": _calib.water_from_document(plane_doc),
+                  "lens": _calib.lens_from_document(plane_doc),
+                  "H": H, "extent": plane_doc.get("extent")}
+
+
+def trajectory_plane_distance(
+    traj: Any,
+    plane_doc: dict[str, Any] | None,
+    *,
+    manual_point: Sequence[float] | None = None,
+    frame: int | None = None,
+    margin_ft: float = 0.0,
+    excluded: Iterable[int] | None = (),
+    frame_is_operator_choice: bool = False,
+    fit: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """``X`` of the water entry where the fitted **world** arc crosses the water plane.
+
+    Same output shape as :func:`plane_distance`, so Review, the Results pane and ``result.json``
+    read one schema whichever method answered; ``route`` says which one did (``"plane"`` vs
+    ``"arc3d"``).  ``fit`` lets the caller pass a fit it already has (Review caches it for the
+    canvas), so the drawn curve and the number cannot come from two different runs.
+
+    A manual click has no track and therefore no curve: this returns a warning rather than quietly
+    falling back to the single-pixel rule, because that fallback would report the other method's
+    number under this method's name.
+    """
+    out: dict[str, Any] = {
+        "route": "arc3d", "total_inches": None, "display": "n/a", "sigma_in": None,
+        "distance_ft": None, "transverse_ft": None, "frame": None, "point_source": "unset",
+        "x_px": None, "y_px": None, "warnings": [], "point_origin": None,
+        "excluded_frames": sorted({int(f) for f in (excluded or ())}),
+        "entry_override": bool(frame_is_operator_choice and frame is not None),
+    }
+    if manual_point is not None:
+        out["point_source"], out["point_origin"] = "manual", "click"
+        out["warnings"].append(
+            "the trajectory-plane method fits a curve to the detections; a single clicked point has "
+            "no curve to fit, so it cannot answer here — switch Review back to 'Trajectory arc' for "
+            "a clicked measurement, or re-include the detections")
+        return out
+    if fit is None:
+        fit = trajectory_plane_fit(traj, plane_doc, excluded=excluded, frame=frame,
+                                   margin_ft=margin_ft)
+    if fit.get("status") != "ok":
+        out["warnings"].append(f"the trajectory-plane method could not answer ({fit.get('status')}): "
+                               f"{fit.get('detail')}")
+        return out
+
+    entry = fit["entry"]
+    inches = float(entry["distance_in"])
+    out.update({
+        "total_inches": inches,
+        "distance_ft": float(entry["X_ft"]),
+        "transverse_ft": float(entry["Y_ft"]),
+        "display": _distance.format_feet_inches(inches),
+        "x_px": (None if entry.get("x_px") is None else float(entry["x_px"])),
+        "y_px": (None if entry.get("y_px") is None else float(entry["y_px"])),
+        "water_z_ft": float(entry["Z_ft"]),
+        "homography_agreement_ft": entry.get("homography_agreement_ft"),
+        "flags": dict(entry.get("flags") or {}),
+        "frame": (None if entry.get("crossing_frame") is None
+                  else int(round(float(entry["crossing_frame"])))),
+        "point_source": "model", "point_origin": "fitted_curve",
+        "crossing_frame": entry.get("crossing_frame"),
+        "extrap_frames": entry.get("extrap_frames"),
+        "arc_rms_ft": entry.get("arc_rms_ft"),
+        "plane_rms_ft": fit.get("rms_ft"),
+    })
+    # The entry's own notes are the honest provenance; keep the two that change how the number
+    # should be read, and drop the mechanical ones.
+    for note in (entry.get("notes") or []):
+        if "UNVERIFIED" in note or "crosses the water plane" in note or "PAST the last" in note:
+            out["warnings"].append(note)
+    if out["flags"].get("arc3d_plane_too_wide"):
+        out["warnings"].append(
+            "the track fits no single vertical plane, which is what this method assumes")
+    if out["flags"].get("outside_extent"):
+        out["warnings"].append(
+            "the entry maps OUTSIDE the plane's extent — reported, but it means the detections or "
+            "the plane is wrong")
     return out
