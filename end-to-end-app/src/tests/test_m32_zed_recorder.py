@@ -15,6 +15,7 @@ import time
 from pathlib import Path
 
 import cv2
+import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -48,15 +49,19 @@ def test_recorder_defaults_reconciled() -> None:
     fake = FakeZEDRecorder()
     try:
         assert real.fps == 30
+        assert real.chunk_seconds == 10, "step 2b: the plan default is 10 s (was 5)"
         assert real.chunk_frames == real.chunk_seconds * 30
         assert real.DEFAULT_FPS == 30
+        assert real.DEFAULT_CHUNK_SECONDS == 10
         assert real.DEFAULT_RESOLUTION == "SVGA"
         assert real.DEFAULT_COMPRESSION == "LOSSLESS"
 
         assert fake.fps == 30
         assert fake.width == 1200
         assert fake.height == 720
+        assert fake.chunk_seconds == 10
         assert fake.DEFAULT_FPS == 30
+        assert fake.DEFAULT_CHUNK_SECONDS == 10
     finally:
         real.stop()
         fake.stop()
@@ -137,6 +142,87 @@ def test_fake_recorder_end_to_end_capture(tmp_path) -> None:
 def test_fake_recorder_trigger_without_start_returns_none(tmp_path) -> None:
     rec = FakeZEDRecorder(output_dir=tmp_path / "svo", clips_dir=tmp_path / "clips")
     assert rec.trigger_capture("jump02") is None
+
+
+# ---------------------------------------------------------------------------
+# Step 2b: parameterised duration + true ring (last N seconds across a wrap).
+# ---------------------------------------------------------------------------
+
+def test_fake_recorder_parameterised_duration(tmp_path) -> None:
+    fps = 10
+    seconds = 3
+    rec = _run_capture(tmp_path, fps=fps, chunk_seconds=seconds)
+    try:
+        assert rec.chunk_frames == fps * seconds
+        mp4 = rec.trigger_capture("jump_dur")
+        assert mp4 is not None and mp4.is_file()
+
+        cap = cv2.VideoCapture(str(mp4))
+        try:
+            n = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        finally:
+            cap.release()
+        assert n == fps * seconds, f"expected {fps * seconds} MP4 frames, got {n}"
+
+        meta = json.loads((tmp_path / "svo" / "jump_dur_cam1.svo2").read_text())
+        assert meta["frames"] == fps * seconds
+    finally:
+        rec.stop()
+
+
+def test_fake_recorder_ring_spans_wrap(tmp_path) -> None:
+    # chunk_frames = 5: after the ring has wrapped several times, a save must still
+    # yield exactly the LAST 5 frames — the pre-ring design returned a shorter window
+    # when the request landed just after a slot rollover.
+    rec = _run_capture(tmp_path, fps=10, chunk_seconds=0.5)
+    try:
+        assert rec.chunk_frames == 5
+        deadline = time.monotonic() + 2.0
+        while rec.frames_written < rec.chunk_frames * 5 and time.monotonic() < deadline:
+            time.sleep(0.01)
+        assert rec.frames_written >= rec.chunk_frames * 5, "ring should have wrapped several times"
+        assert rec.ring_frames == rec.chunk_frames, "ring should be full (capped) after wrapping"
+
+        mp4 = rec.trigger_capture("jump_wrap")
+        assert mp4 is not None and mp4.is_file()
+        cap = cv2.VideoCapture(str(mp4))
+        try:
+            n = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        finally:
+            cap.release()
+        assert n == rec.chunk_frames, f"expected last {rec.chunk_frames} frames, got {n}"
+
+        meta = json.loads((tmp_path / "svo" / "jump_wrap_cam1.svo2").read_text())
+        assert meta["frames"] == rec.chunk_frames
+    finally:
+        rec.stop()
+
+
+def test_fake_recorder_set_capture_seconds(tmp_path) -> None:
+    rec = _run_capture(tmp_path, fps=10, chunk_seconds=0.5)  # chunk_frames = 5
+    try:
+        assert rec.chunk_frames == 5
+        rec.set_capture_seconds(1)
+        assert rec.chunk_seconds == 1
+        assert rec.chunk_frames == 10  # 1 s * 10 fps
+
+        deadline = time.monotonic() + 2.0
+        while rec.ring_frames < rec.chunk_frames and time.monotonic() < deadline:
+            time.sleep(0.01)
+
+        mp4 = rec.trigger_capture("jump_resized")
+        assert mp4 is not None and mp4.is_file()
+        cap = cv2.VideoCapture(str(mp4))
+        try:
+            n = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        finally:
+            cap.release()
+        assert n == 10, f"resized ring should save 10 frames, got {n}"
+
+        with pytest.raises(ValueError):
+            rec.set_capture_seconds(0)
+    finally:
+        rec.stop()
 
 
 # ---------------------------------------------------------------------------

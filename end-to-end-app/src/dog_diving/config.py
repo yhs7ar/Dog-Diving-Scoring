@@ -251,6 +251,17 @@ DEFAULT_CLAHE_GRID = (8, 8)
 TAILSET_INDEX = 1
 NOSE_INDEX = 0
 
+# zed_recorder.py (live capture) — the rolling buffer's depth, in seconds.
+# ``DD_CAPTURE_SECONDS`` (env) beats the default; the GUI's duration spinbox writes the same
+# value into the recorder at startup (and live via ``set_capture_seconds``).  The recorder's
+# own ``DEFAULT_CHUNK_SECONDS`` matches this default so a bare ``DualZEDXLiveBuffer()`` agrees.
+CAPTURE_SECONDS_DEFAULT = 10
+_capture_seconds_raw = os.environ.get("DD_CAPTURE_SECONDS", "").strip()
+try:
+    CAPTURE_SECONDS = int(_capture_seconds_raw) if _capture_seconds_raw else CAPTURE_SECONDS_DEFAULT
+except ValueError:
+    CAPTURE_SECONDS = CAPTURE_SECONDS_DEFAULT
+
 # trajectory.py (PLAN §6 lists arc_outlier_px; the other two are the M4 knobs)
 ARC_OUTLIER_PX = 20          # drop arc points with residual > this (PLAN §6)
 TRAJ_MAX_FRAME_GAP = 10      # split accepted points into runs at a larger frame gap

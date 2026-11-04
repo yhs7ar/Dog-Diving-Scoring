@@ -9,18 +9,27 @@ Capture standard (see scripts/dual_recording/WORKAROUNDS_AND_LIMITATIONS.md):
     daemon / corrupt SVO2.
   * Depth: captured **NONE** and computed off-line from the recorded SVO2.
 
+The rolling buffer is a **true ring** (a ``collections.deque`` capped at
+``chunk_seconds * fps`` frames).  A save therefore always emits the **last N
+seconds ending at the request**, independent of where the request lands relative
+to an SVO2 slot boundary — the pre-ring design returned "the chunk I happen to be
+in", which shrank to a near-empty window when the trigger landed just after a
+rollover.  The duration is parameterised (default **10 s**) and live-adjustable via
+``set_capture_seconds``.
+
 The module also ships two testability aids so the recorder state machine is
 verifiable offline (no pyzed, no hardware):
 
   * ``ZEDRecorder`` — the abstract capture seam the app depends on.
   * ``FakeZEDRecorder`` — a synthetic-camera stand-in that mirrors the hardware
-    recorder's public API (rolling slot buffer, save-on-request, MP4 export).
+    recorder's public API (rolling ring, save-on-request, MP4 export).
   * ``ComputeGovernor`` — gates capture while a heavy stage (detect/measure) runs,
     plus an optional psutil-based CPU load watch.
 """
 
 from __future__ import annotations
 
+import collections
 import json
 import shutil
 import threading
@@ -74,7 +83,7 @@ class ZEDRecorder(ABC):
 
     @abstractmethod
     def trigger_capture(self, prefix: str) -> Path | None:
-        """Freeze the current rolling chunk to disk; return the MP4 path or None."""
+        """Freeze the last-N rolling window to disk; return the MP4 path or None."""
 
     @abstractmethod
     def stop(self) -> None:
@@ -147,11 +156,16 @@ class DualZEDXLiveBuffer(ZEDRecorder):
 
     Records two lossless SVO2 streams (one per camera) into alternating temp
     slots; the completed slot is committed to ``output_dir`` only when a jump
-    save is requested. Yields to scoring compute via an optional ``governor``.
+    save is requested.  Yields to scoring compute via an optional ``governor``.
+
+    The pipeline clip (MP4) is built from a **ring buffer** of the last
+    ``chunk_seconds`` of cam1 frames, snapshotted at trigger time — so the saved
+    clip is the last N seconds *ending at the request*, not "the chunk the
+    request happened to land in".
     """
 
     DEFAULT_FPS = CAPTURE_FPS
-    DEFAULT_CHUNK_SECONDS = 5
+    DEFAULT_CHUNK_SECONDS = 10   # plan default: save the last 10 s (was 5)
     DEFAULT_RESOLUTION = CAPTURE_RESOLUTION
     DEFAULT_COMPRESSION = CAPTURE_COMPRESSION
 
@@ -169,12 +183,19 @@ class DualZEDXLiveBuffer(ZEDRecorder):
 
         self.chunk_seconds = chunk_seconds
         self.fps = fps
-        self.chunk_frames = chunk_seconds * fps
+        self.chunk_frames = int(chunk_seconds * fps)
         self.governor = governor
 
         self.running = False
         self.lock = threading.Lock()
         self.last_saved_mp4: Path | None = None
+        #: Ring buffer of the most recent ``chunk_frames`` cam1 frames (BGR).  Persists
+        #: across SVO2 slot boundaries so a save always holds the last N seconds, never
+        #: just "the chunk I happen to be in".
+        self._ring: collections.deque = collections.deque(maxlen=self.chunk_frames)
+        #: The trigger-time snapshot of the ring, taken under lock so the clip is the
+        #: last N seconds *ending at the request*, not the next completed chunk.
+        self._pending_frames: list = []
 
         if not HAS_ZED_SDK:
             print("[ZED] pyzed not installed. Operating in OFFLINE / STUB mode.")
@@ -216,6 +237,16 @@ class DualZEDXLiveBuffer(ZEDRecorder):
 
     def _governor_allows(self) -> bool:
         return self.governor is None or self.governor.allow_capture()
+
+    def set_capture_seconds(self, seconds: int) -> None:
+        """Live-adjust the rolling buffer depth (the last-N window), in seconds."""
+        seconds = int(seconds)
+        if seconds <= 0:
+            raise ValueError(f"capture seconds must be positive, got {seconds}")
+        self.chunk_seconds = seconds
+        self.chunk_frames = int(seconds * self.fps)
+        with self.lock:
+            self._ring = collections.deque(self._ring, maxlen=self.chunk_frames)
 
     def start(self, cam1_sn: int | None = None, cam2_sn: int | None = None) -> bool:
         """Starts live capture. Returns True if successful, False if offline/failed."""
@@ -261,8 +292,6 @@ class DualZEDXLiveBuffer(ZEDRecorder):
             self._enable_lossless_svo(self.zed1, c1_svo)
             self._enable_lossless_svo(self.zed2, c2_svo)
 
-            recent_frames_cam1 = []
-
             frame_count = 0
             while frame_count < self.chunk_frames and self.running:
                 if not self._governor_allows():
@@ -274,19 +303,20 @@ class DualZEDXLiveBuffer(ZEDRecorder):
                 ):
                     frame_count += 1
                     self.zed1.retrieve_image(img1, sl.VIEW.LEFT)
-                    recent_frames_cam1.append(cv2.cvtColor(img1.get_data(), cv2.COLOR_BGRA2BGR))
+                    with self.lock:
+                        self._ring.append(cv2.cvtColor(img1.get_data(), cv2.COLOR_BGRA2BGR))
 
             self.zed1.disable_recording()
             self.zed2.disable_recording()
 
             with self.lock:
                 if self.save_requested:
-                    self._commit_jump_data(slot, self.save_prefix, recent_frames_cam1)
+                    self._commit_jump_data(slot, self.save_prefix)
                     self.save_requested = False
 
             self.active_slot = 1 if self.active_slot == 0 else 0
 
-    def _commit_jump_data(self, slot: int, prefix: str, frames: list) -> None:
+    def _commit_jump_data(self, slot: int, prefix: str) -> None:
         c1_src = self.temp_dir / f"chunk_{slot}_cam1.svo2"
         c2_src = self.temp_dir / f"chunk_{slot}_cam2.svo2"
         dst_c1 = self.output_dir / f"{prefix}_cam1.svo2"
@@ -297,6 +327,9 @@ class DualZEDXLiveBuffer(ZEDRecorder):
         if c2_src.exists():
             shutil.copy2(c2_src, dst_c2)
 
+        # The pipeline clip comes from the trigger-time ring snapshot — the last N
+        # seconds ending at the request, independent of which SVO2 chunk is current.
+        frames = self._pending_frames if self._pending_frames else list(self._ring)
         mp4_path = self.clips_dir / f"{prefix}.mp4"
         if frames:
             h, w = frames[0].shape[:2]
@@ -315,6 +348,9 @@ class DualZEDXLiveBuffer(ZEDRecorder):
             return None
 
         with self.lock:
+            # Snapshot the ring AT the trigger so the clip is the last N seconds ending
+            # now — not whatever the next completed chunk happens to contain.
+            self._pending_frames = list(self._ring)
             self.save_prefix = prefix
             self.save_requested = True
 
@@ -341,8 +377,8 @@ class FakeZEDRecorder(ZEDRecorder):
     """Offline stand-in for ``DualZEDXLiveBuffer``.
 
     Simulates a dual-camera rolling SVO2 buffer with synthetic frames so the
-    recorder state machine — slot rotation, save-on-request, governor
-    backpressure, and MP4 export — is testable without pyzed or hardware.
+    recorder state machine — ring wrap, save-on-request, governor backpressure,
+    and MP4 export — is testable without pyzed or hardware.
 
     The ``.svo2`` outputs are JSON metadata stubs (not real SVO2); they carry the
     synthetic capture metadata (fps / resolution / compression / frame count) so
@@ -350,6 +386,7 @@ class FakeZEDRecorder(ZEDRecorder):
     """
 
     DEFAULT_FPS = CAPTURE_FPS
+    DEFAULT_CHUNK_SECONDS = 10
     DEFAULT_RESOLUTION = CAPTURE_RESOLUTION
     DEFAULT_COMPRESSION = CAPTURE_COMPRESSION
 
@@ -357,7 +394,7 @@ class FakeZEDRecorder(ZEDRecorder):
         self,
         output_dir: str | Path = "data/svo_recordings",
         clips_dir: str | Path = "data/clips",
-        chunk_seconds: int = 5,
+        chunk_seconds: int = DEFAULT_CHUNK_SECONDS,
         fps: int = CAPTURE_FPS,
         width: int = CAPTURE_WIDTH,
         height: int = CAPTURE_HEIGHT,
@@ -372,14 +409,17 @@ class FakeZEDRecorder(ZEDRecorder):
         self.width = width
         self.height = height
         self.cam_serials = cam_serials
-        self.chunk_frames = chunk_seconds * fps
+        self.chunk_frames = int(chunk_seconds * fps)
         self.governor = governor
 
         self.running = False
         self.lock = threading.Lock()
         self.last_saved_mp4: Path | None = None
         self.frames_written = 0
-        self.slots_completed = 0
+        self._frame_seq = 0
+        #: Ring buffer of the most recent ``chunk_frames`` synthetic frames — the true
+        #: "save the last N seconds" window that survives slot (wrap) boundaries.
+        self._ring: collections.deque = collections.deque(maxlen=self.chunk_frames)
         self._started = threading.Event()
 
     @staticmethod
@@ -393,14 +433,36 @@ class FakeZEDRecorder(ZEDRecorder):
     def _governor_allows(self) -> bool:
         return self.governor is None or self.governor.allow_capture()
 
+    @property
+    def ring_frames(self) -> int:
+        """Number of frames currently in the ring (0..chunk_frames)."""
+        with self.lock:
+            return len(self._ring)
+
+    @property
+    def ring_full(self) -> bool:
+        """True once the ring holds a full last-N window."""
+        return self.ring_frames >= self.chunk_frames
+
+    def set_capture_seconds(self, seconds: int) -> None:
+        """Live-adjust the rolling buffer depth (the last-N window), in seconds."""
+        seconds = int(seconds)
+        if seconds <= 0:
+            raise ValueError(f"capture seconds must be positive, got {seconds}")
+        self.chunk_seconds = seconds
+        self.chunk_frames = int(seconds * self.fps)
+        with self.lock:
+            self._ring = collections.deque(self._ring, maxlen=self.chunk_frames)
+
     def start(self, cam1_sn: int | None = None, cam2_sn: int | None = None) -> bool:
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.clips_dir.mkdir(parents=True, exist_ok=True)
         self.temp_dir.mkdir(parents=True, exist_ok=True)
-        self.active_slot = 0
-        self.save_requested = False
-        self.save_prefix = ""
         self.running = True
+        with self.lock:
+            self._ring.clear()
+            self.frames_written = 0
+            self._frame_seq = 0
         self.thread = threading.Thread(target=self._record_worker, daemon=True)
         self.thread.start()
         return True
@@ -413,27 +475,13 @@ class FakeZEDRecorder(ZEDRecorder):
             if not self.running:
                 break
 
-            slot = self.active_slot
-            frames = []
-            frame_count = 0
-            while frame_count < self.chunk_frames and self.running:
-                if not self._governor_allows():
-                    time.sleep(0.02)
-                    continue
-                frames.append(self._synthetic_frame(frame_count, self.width, self.height))
-                frame_count += 1
-                with self.lock:
-                    self.frames_written += 1
-
+            frame = self._synthetic_frame(self._frame_seq, self.width, self.height)
+            self._frame_seq += 1
             with self.lock:
-                self.slots_completed += 1
-                if self.save_requested:
-                    self._commit_jump_data(slot, self.save_prefix, frames)
-                    self.save_requested = False
+                self._ring.append(frame)
+                self.frames_written += 1
 
-            self.active_slot = 1 if self.active_slot == 0 else 0
-
-    def _commit_jump_data(self, slot: int, prefix: str, frames: list) -> None:
+    def _commit_jump_data(self, prefix: str, frames: list) -> Path:
         dst_c1 = self.output_dir / f"{prefix}_cam1.svo2"
         dst_c2 = self.output_dir / f"{prefix}_cam2.svo2"
 
@@ -460,21 +508,21 @@ class FakeZEDRecorder(ZEDRecorder):
             writer.release()
 
         self.last_saved_mp4 = mp4_path
+        return mp4_path
 
     def trigger_capture(self, prefix: str) -> Path | None:
         if not self.running:
             return None
 
-        with self.lock:
-            self.save_prefix = prefix
-            self.save_requested = True
-
-        for _ in range(200):
+        # Wait (bounded) for the ring to fill so the save is a full last-N window rather
+        # than whatever partial buffer happens to exist at the request.
+        deadline = time.monotonic() + max(2.0, self.chunk_seconds + 1.0)
+        while not self.ring_full and time.monotonic() < deadline:
             time.sleep(0.01)
-            with self.lock:
-                if not self.save_requested and self.last_saved_mp4:
-                    return self.last_saved_mp4
-        return None
+
+        with self.lock:
+            frames = list(self._ring)
+        return self._commit_jump_data(prefix, frames)
 
     def stop(self) -> None:
         self.running = False

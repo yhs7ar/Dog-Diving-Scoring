@@ -102,6 +102,7 @@ from dog_diving import video as video_mod  # noqa: E402
 from dog_diving.pool import calib as pool_calib_mod  # noqa: E402
 from dog_diving.config import (  # noqa: E402
     CALIB_DIR,
+    CAPTURE_SECONDS,
     CLIP_DIR,
     DEFAULT_CONF,
     DEFAULT_IMGSZ,
@@ -1152,7 +1153,7 @@ class App:
                 self.zed_recorder = DualZEDXLiveBuffer(
                     output_dir="data/svo_recordings",
                     clips_dir="data/clips",
-                    chunk_seconds=5,
+                    chunk_seconds=CAPTURE_SECONDS,
                     fps=30
                 )
                 if not self.zed_recorder.start():
@@ -1177,9 +1178,20 @@ class App:
         bar = ttk.Frame(self.root, padding=(8, 6))
         bar.pack(side="top", fill="x")
         ttk.Button(bar, text="Open clip…", command=self.on_open).pack(side="left")
+        self.capture_seconds_var = tk.StringVar(value=str(CAPTURE_SECONDS))
+        ttk.Label(bar, text="capture (s):").pack(side="left", padx=(6, 2))
+        self.capture_seconds_spin = ttk.Spinbox(
+            bar,
+            from_=1,
+            to=60,
+            textvariable=self.capture_seconds_var,
+            width=4,
+            command=self.on_capture_seconds_change,
+        )
+        self.capture_seconds_spin.pack(side="left", padx=(0, 6))
         self.btn_live_score = tk.Button(
             bar,
-            text="● Score Live Jump (5s SVO)",
+            text=f"● Score Live Jump ({CAPTURE_SECONDS}s SVO)",
             bg="#b71c1c",
             fg="white",
             activebackground="#d32f2f",
@@ -1745,6 +1757,28 @@ class App:
         self.log_text.see("end")
         self.status.configure(text=msg)
 
+    # -- capture-duration setting ------------------------------------------
+    def on_capture_seconds_change(self) -> None:
+        """Apply the capture-duration spinbox to the live recorder (and button label)."""
+        try:
+            seconds = int(self.capture_seconds_var.get())
+        except ValueError:
+            return
+        if seconds < 1:
+            seconds = 1
+        self.capture_seconds_var.set(str(seconds))
+        self._update_live_button_text()
+        if self.zed_recorder is not None:
+            try:
+                self.zed_recorder.set_capture_seconds(seconds)
+            except Exception as exc:  # noqa: BLE001
+                self.log(f"could not apply capture duration {seconds}s: {exc}")
+
+    def _update_live_button_text(self) -> None:
+        self.btn_live_score.configure(
+            text=f"● Score Live Jump ({self.capture_seconds_var.get()}s SVO)"
+        )
+
     # -- Score Live Jump ----------------------------------------------------
     def on_score_live_jump(self) -> None:
         """Called when the judge clicks the '● Score Live Jump' button."""
@@ -1760,10 +1794,11 @@ class App:
         timestamp = time.strftime("%Y%m%d_%H%M%S")
         prefix = f"live_jump_{timestamp}"
 
-        self.log(f"capturing 5-second SVO2 rolling buffer: {prefix}…")
-        self.status.configure(text=f"capturing 5s live buffer: {prefix}…")
+        duration = getattr(self.zed_recorder, "chunk_seconds", CAPTURE_SECONDS)
+        self.log(f"capturing {duration}-second SVO2 rolling buffer: {prefix}…")
+        self.status.configure(text=f"capturing {duration}s live buffer: {prefix}…")
 
-        # Freeze the 5s SVO2 pair to disk & generate the 5s MP4
+        # Freeze the last-N SVO2 pair to disk & generate the last-N MP4
         clip_path = self.zed_recorder.trigger_capture(prefix)
 
         if clip_path and clip_path.is_file():
@@ -1774,7 +1809,7 @@ class App:
             # 2. Automatically launch the pipeline run
             self.root.after(300, self.on_run)
         else:
-            self.log("ERROR: failed to capture 5-second buffer from cameras")
+            self.log(f"ERROR: failed to capture {duration}-second buffer from cameras")
             self.status.configure(text="capture failed — see log")
             
     # -- Close window -------------------------------------------------------
