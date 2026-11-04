@@ -10,6 +10,30 @@ CALIB_DIR = PROJECT_ROOT / "data" / "calib"
 CLIP_DIR = PROJECT_ROOT / "data" / "clips"
 OUT_DIR = PROJECT_ROOT / "out"
 
+# calibration-capture mode (step 1a): the one known path where the app writes the
+# two-camera Fusion JSON and where ``fusion.FusionConfig.from_file`` /
+# ``calibration_capture.load_fusion_config`` reads it back.  ``DD_FUSION_JSON`` (env)
+# overrides the path so a rig run can stage it elsewhere without editing the tree.
+FUSION_JSON_PATH = CALIB_DIR / "fusion_config.json"
+_fusion_json_raw = os.environ.get("DD_FUSION_JSON", "").strip()
+if _fusion_json_raw:
+    FUSION_JSON_PATH = Path(_fusion_json_raw)
+# Where the calibration-capture recorder writes its two SVO2 (the recorder's own
+# default ``data/svo_recordings``, kept as a project constant rather than a literal).
+SVO_RECORDINGS_DIR = PROJECT_ROOT / "data" / "svo_recordings"
+
+# Score ledger (step 5a): where accepted jumps are appended (CSV) and where the remembered
+# dog names live (JSON).  Env overrides let a rig run stage them elsewhere without editing
+# the tree — same pattern as ``DD_FUSION_JSON`` above.
+LEDGER_PATH = PROJECT_ROOT / "data" / "score_ledger.csv"
+DOG_NAMES_PATH = PROJECT_ROOT / "data" / "dog_names.json"
+_ledger_raw = os.environ.get("DD_LEDGER", "").strip()
+if _ledger_raw:
+    LEDGER_PATH = Path(_ledger_raw)
+_dog_names_raw = os.environ.get("DD_DOG_NAMES", "").strip()
+if _dog_names_raw:
+    DOG_NAMES_PATH = Path(_dog_names_raw)
+
 #: The trajectory's pose checkpoint, resolved **inside** ``models/``.
 #:
 #: Declared in :data:`MODEL_REGISTRY` below.  The model of record is ``yolo26n-pose_dogs_v5.pt``:
@@ -113,14 +137,24 @@ class ModelSpec:
 #: Order is meaningful: the first ``dog`` spec of a scale is that scale's default.
 MODEL_REGISTRY: tuple[ModelSpec, ...] = (
     ModelSpec(
+        key="dogs-s-inflated-720p",
+        filename="yolo26s-pose_dogs_inflated_clahe_720p.pt",
+        scale="s",
+        label="yolo26s · dogs (inflated CLAHE 720p)",
+        layout="dog-2kpt",
+        role="model of record",
+        measured={"detected": 45, "tailset_median_px": 4.46, "within_20pct": 100.0},
+        note="50 epochs 720p inflated CLAHE fine-tune; model of record with median tailset error 4.46 px",
+    ),
+    ModelSpec(
         key="dogs-n-v5",
         filename="yolo26n-pose_dogs_v5.pt",
         scale="n",
         label="yolo26n · dogs v5",
         layout="dog-2kpt",
-        role="model of record",
+        role="alternative",
         measured={"detected": 46, "tailset_median_px": 8.18, "within_20pct": 89.1},
-        note="local real-background rotation model; default for the trajectory",
+        note="local real-background rotation model; former n-scale model of record",
     ),
     ModelSpec(
         key="dogs-s-clahe",
@@ -131,7 +165,7 @@ MODEL_REGISTRY: tuple[ModelSpec, ...] = (
         role="alternative",
         measured={"detected": 1, "tailset_median_px": 196.37, "within_20pct": 0.0,
                   "note": "at conf 0.05: 34/46, median 253 px, 0 % within 20 %"},
-        note="same 2-kpt dog labels on a yolo26s backbone; selectable, NOT a replacement for v5",
+        note="same 2-kpt dog labels on a yolo26s backbone; selectable, NOT a replacement for inflated 720p",
     ),
     ModelSpec(
         key="coco-person-s",
@@ -219,10 +253,10 @@ elif _env_scale:
         MODEL_PATH = default_for_scale(_env_scale).path
     except ValueError as exc:
         MODEL_SELECTION_NOTE = f"DD_MODEL_SCALE ignored: {exc}"
-        _default = default_for_scale("n")
+        _default = default_for_scale("s")
         MODEL_PATH = _default.path if _default.is_file() else MODELS_DIR / "best.pt"
 else:
-    _default = default_for_scale("n")
+    _default = default_for_scale("s")
     MODEL_PATH = _default.path if _default.is_file() else MODELS_DIR / "best.pt"
 
 #: Which registry entry ``MODEL_PATH`` is (``None`` for a checkpoint declared nowhere).
@@ -240,6 +274,17 @@ DEFAULT_CLAHE_CLIP = 2.5
 DEFAULT_CLAHE_GRID = (8, 8)
 TAILSET_INDEX = 1
 NOSE_INDEX = 0
+
+# zed_recorder.py (live capture) — the rolling buffer's depth, in seconds.
+# ``DD_CAPTURE_SECONDS`` (env) beats the default; the GUI's duration spinbox writes the same
+# value into the recorder at startup (and live via ``set_capture_seconds``).  The recorder's
+# own ``DEFAULT_CHUNK_SECONDS`` matches this default so a bare ``DualZEDXLiveBuffer()`` agrees.
+CAPTURE_SECONDS_DEFAULT = 10
+_capture_seconds_raw = os.environ.get("DD_CAPTURE_SECONDS", "").strip()
+try:
+    CAPTURE_SECONDS = int(_capture_seconds_raw) if _capture_seconds_raw else CAPTURE_SECONDS_DEFAULT
+except ValueError:
+    CAPTURE_SECONDS = CAPTURE_SECONDS_DEFAULT
 
 # trajectory.py (PLAN §6 lists arc_outlier_px; the other two are the M4 knobs)
 ARC_OUTLIER_PX = 20          # drop arc points with residual > this (PLAN §6)

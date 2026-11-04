@@ -1,7 +1,7 @@
 {
   "argv": null,
   "clip_id": "video004_right-00.00.36.812-00.00.38.328-seg01",
-  "created": "2026-10-28T09:08:21+00:00",
+  "created": "2026-11-04T13:59:41+00:00",
   "extra": {
     "conf": 0.12,
     "contact": "auto",
@@ -23,7 +23,7 @@
       ],
       "min_points": 0,
       "n_low_conf_points": 0,
-      "n_points": 55,
+      "n_points": 33,
       "rungs": []
     },
     "min_points": 0,
@@ -33,12 +33,12 @@
   "host": "DESKTOP-N6LE4SI",
   "platform": "Windows-10-10.0.22635-SP0",
   "timings": {
-    "cache_load_s": 0.006136299998615868,
+    "cache_load_s": 0.022836600001028273,
     "cancelled": 0.0,
-    "fps": 7.728784063499011,
+    "fps": 4.142688698175618,
     "inference_ms_per_frame": null,
-    "ms_per_frame": 129.38645869571306,
-    "projected_clip_s": 11.903554200005601,
-    "total_s": 11.903554200005601
+    "ms_per_frame": 241.3891249999996,
+    "projected_clip_s": 22.207799499999965,
+    "total_s": 22.207799499999965
   }
 }

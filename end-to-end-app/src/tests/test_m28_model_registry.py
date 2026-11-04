@@ -44,7 +44,7 @@ from dog_diving import pose_layout as PL  # noqa: E402
 #: ``MODEL_PATH`` and the GUI resolve through — a rename without updating the spec would leave the
 #: backbone selector pointing at nothing.
 N_SCALE_MODEL = "yolo26n-pose_dogs_v5.pt"
-S_SCALE_MODEL = "yolo26s-pose_dogs_clahe.pt"
+S_SCALE_MODEL = "yolo26s-pose_dogs_inflated_clahe_720p.pt"
 COCO_PERSON_MODEL = "yolo26s-pose.pt"
 
 
@@ -144,7 +144,7 @@ def test_env_scale_selects_that_backbone_and_dd_model_wins(monkeypatch) -> None:
         cfg = _reload_config(monkeypatch, scale="s")
         assert cfg.MODEL_PATH.name == S_SCALE_MODEL, cfg.MODEL_PATH
         assert cfg.MODEL_SCALE == "s"
-        assert cfg.MODEL_SPEC is not None and cfg.MODEL_SPEC.key == "dogs-s-clahe"
+        assert cfg.MODEL_SPEC is not None and cfg.MODEL_SPEC.key == "dogs-s-inflated-720p"
         assert cfg.MODEL_SELECTION_NOTE is None
         print(f"  DD_MODEL_SCALE=s -> {cfg.MODEL_PATH.name} ({cfg.MODEL_SCALE}-scale)")
 
@@ -154,14 +154,14 @@ def test_env_scale_selects_that_backbone_and_dd_model_wins(monkeypatch) -> None:
         print(f"  DD_MODEL={N_SCALE_MODEL} beats DD_MODEL_SCALE=s -> {cfg.MODEL_PATH.name}")
 
         cfg = _reload_config(monkeypatch, scale="m")
-        assert cfg.MODEL_PATH.name == N_SCALE_MODEL, "a bad scale keeps the default, never crashes"
+        assert cfg.MODEL_PATH.name == S_SCALE_MODEL, "a bad scale keeps the default, never crashes"
         assert cfg.MODEL_SELECTION_NOTE and "m" in cfg.MODEL_SELECTION_NOTE
         print(f"  DD_MODEL_SCALE=m -> kept {cfg.MODEL_PATH.name}; note: {cfg.MODEL_SELECTION_NOTE}")
     finally:
         monkeypatch.delenv("DD_MODEL", raising=False)
         monkeypatch.delenv("DD_MODEL_SCALE", raising=False)
         importlib.reload(C)
-    assert C.MODEL_PATH.name == N_SCALE_MODEL or C.MODEL_PATH.is_file()
+    assert C.MODEL_PATH.name == S_SCALE_MODEL or C.MODEL_PATH.is_file()
 
 
 # --- 5. no second list -------------------------------------------------------

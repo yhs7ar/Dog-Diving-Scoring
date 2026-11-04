@@ -179,7 +179,6 @@ MIN_NORMAL_XY = 1e-9
 @dataclass
 class TrajectoryPlane:
     """The vertical 3-D plane the dog's flight run is taken to lie in.
-
     A *vertical* plane, deliberately: the flight is ballistic in the world frame, so it has no
     reason to leave a plane that contains the vertical axis, and pinning that plane is what turns
     a single-camera pixel into one 3-D point — the ray meets the plane exactly once.  A general
@@ -187,8 +186,7 @@ class TrajectoryPlane:
 
     The plane is carried as ``normal . x = d`` in world feet, with ``normal`` horizontal, so the
     whole family of intersections reduces to :func:`intersect_ray_plane` — one implementation,
-    one sign convention.
-    """
+    one sign convention."""
 
     origin: np.ndarray            # (3,) a point on the plane, world ft
     normal: np.ndarray            # (3,) unit, horizontal (n[2] == 0)
@@ -233,6 +231,55 @@ class TrajectoryPlane:
                 "d": float(self.d), "rms_ft": float(self.rms_ft),
                 "n_points": int(self.n_points), "source": self.source,
                 "is_vertical": bool(self.is_vertical)}
+
+
+
+@dataclass
+class CurvedTrajectoryPlane(TrajectoryPlane):
+    """A vertical plane adapted to fit the trajectory curvature."""
+
+    def project_curve_surface(self, pose: PlanePose, coeffs: dict, frames: Sequence[float]) -> list[tuple[float, float]]:
+        # TODO: Implement curved surface projection
+        return []
+
+
+    @property
+    def d(self) -> float:
+        return float(self.normal @ self.origin)
+
+    @property
+    def is_vertical(self) -> bool:
+        return abs(float(self.normal[2])) <= VERTICAL_TOL
+
+    def signed_distance(self, point: Sequence[float]) -> float:
+        p = np.asarray(point, dtype=float).ravel()[:3]
+        return float(self.normal @ p) - self.d
+
+    def project(self, point: Sequence[float]) -> np.ndarray:
+        """The closest point of the plane to ``point`` (the plumb drop onto the plane)."""
+        p = np.asarray(point, dtype=float).ravel()[:3]
+        return p - self.signed_distance(p) * self.normal
+
+    def at(self, s: float) -> np.ndarray:
+        """The point ``origin + s * direction`` — ``s`` in ft along the flight direction."""
+        return self.origin + float(s) * self.direction
+
+    def coordinate(self, point: Sequence[float]) -> float:
+        """``s`` of the projection of ``point`` — the along-flight coordinate, in ft."""
+        return float((np.asarray(point, dtype=float).ravel()[:3] - self.origin) @ self.direction)
+
+    def intersect(self, ray: Ray) -> dict[str, Any]:
+        """``ray`` against this plane, with the same dict contract as :func:`intersect_ray_plane`."""
+        return intersect_ray_plane(ray, self.normal, self.d)
+
+    def as_dict(self) -> dict[str, Any]:
+        return {"origin_ft": [float(v) for v in self.origin],
+                "normal": [float(v) for v in self.normal],
+                "direction": [float(v) for v in self.direction],
+                "d": float(self.d), "rms_ft": float(self.rms_ft),
+                "n_points": int(self.n_points), "source": self.source,
+                "is_vertical": bool(self.is_vertical)}
+
 
 
 def _xy_of(point: Any) -> np.ndarray | None:

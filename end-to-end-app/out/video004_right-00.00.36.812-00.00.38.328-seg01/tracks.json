@@ -1219,8 +1219,1050 @@
         "projected_clip_s": 11.903554200005601,
         "cancelled": 0.0
       }
+    },
+    "3c1ddc02d2f806c1": {
+      "key": {
+        "detector": "predict_v1",
+        "clip_sha": "83eca603e1d9ca4295dd0cb80aff71a31e2634f0bd099a6fbd183f7c7630f06a",
+        "model_sha": "bdb7688775ee39201d4a77ef0041c7c3e9eb9202f7a5df287a11c98e80ef82e4",
+        "imgsz": 1280,
+        "conf": 0.12,
+        "kp_conf": 0.3,
+        "clahe": {
+          "enabled": true,
+          "clip": 2.5,
+          "grid": [
+            8,
+            8
+          ]
+        },
+        "track_coverage_min": 0.5,
+        "frame_range": null
+      },
+      "model_sha": "bdb7688775ee39201d4a77ef0041c7c3e9eb9202f7a5df287a11c98e80ef82e4",
+      "detector": "predict_v1",
+      "layout": "dog-2kpt",
+      "tailset_derived": false,
+      "frame_range": null,
+      "records": [
+        {
+          "frame": 0,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 1,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 2,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 3,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 4,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 5,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 6,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 7,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 8,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 9,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 10,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 11,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 12,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 13,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 14,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 15,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 16,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 17,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 18,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 19,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 20,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 21,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 22,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 23,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 24,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 25,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 26,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 27,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 28,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 29,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 30,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 31,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 32,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 33,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 34,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 35,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 36,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 37,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 38,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 39,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 40,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 41,
+          "nose": [
+            839.8125,
+            210.67269897460938,
+            0.9776725172996521
+          ],
+          "tailset": [
+            772.5693969726562,
+            256.685546875,
+            0.9319474101066589
+          ],
+          "box_conf": 0.21320611238479614,
+          "track_id": null,
+          "accepted": true
+        },
+        {
+          "frame": 42,
+          "nose": [
+            755.3811645507812,
+            262.22998046875,
+            0.9623659253120422
+          ],
+          "tailset": [
+            823.0825805664062,
+            250.90919494628906,
+            0.9686786532402039
+          ],
+          "box_conf": 0.22422651946544647,
+          "track_id": null,
+          "accepted": true
+        },
+        {
+          "frame": 43,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 44,
+          "nose": [
+            833.41796875,
+            259.58819580078125,
+            0.9822375178337097
+          ],
+          "tailset": [
+            758.0362548828125,
+            250.28875732421875,
+            0.9789314866065979
+          ],
+          "box_conf": 0.3928676247596741,
+          "track_id": null,
+          "accepted": true
+        },
+        {
+          "frame": 45,
+          "nose": [
+            829.4317016601562,
+            260.2691650390625,
+            0.9731096625328064
+          ],
+          "tailset": [
+            748.8251342773438,
+            252.58909606933594,
+            0.975978434085846
+          ],
+          "box_conf": 0.37906351685523987,
+          "track_id": null,
+          "accepted": true
+        },
+        {
+          "frame": 46,
+          "nose": [
+            828.3089599609375,
+            256.8606262207031,
+            0.9838352203369141
+          ],
+          "tailset": [
+            746.6571044921875,
+            252.9624481201172,
+            0.9751489758491516
+          ],
+          "box_conf": 0.17037619650363922,
+          "track_id": null,
+          "accepted": true
+        },
+        {
+          "frame": 47,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 48,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 49,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 50,
+          "nose": [
+            807.5758666992188,
+            258.04071044921875,
+            0.9766204357147217
+          ],
+          "tailset": [
+            724.7880249023438,
+            255.5927276611328,
+            0.9740824103355408
+          ],
+          "box_conf": 0.1409253180027008,
+          "track_id": null,
+          "accepted": true
+        },
+        {
+          "frame": 51,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 52,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 53,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 54,
+          "nose": [
+            671.1332397460938,
+            248.82276916503906,
+            0.9842960834503174
+          ],
+          "tailset": [
+            757.4609985351562,
+            257.8973693847656,
+            0.9727076292037964
+          ],
+          "box_conf": 0.16505776345729828,
+          "track_id": null,
+          "accepted": true
+        },
+        {
+          "frame": 55,
+          "nose": [
+            667.4212646484375,
+            250.1146240234375,
+            0.980231761932373
+          ],
+          "tailset": [
+            751.6810913085938,
+            256.77667236328125,
+            0.9691160917282104
+          ],
+          "box_conf": 0.1454475373029709,
+          "track_id": null,
+          "accepted": true
+        },
+        {
+          "frame": 56,
+          "nose": [
+            665.0370483398438,
+            248.84844970703125,
+            0.9830065369606018
+          ],
+          "tailset": [
+            742.2947387695312,
+            256.4383544921875,
+            0.9698916077613831
+          ],
+          "box_conf": 0.30611661076545715,
+          "track_id": null,
+          "accepted": true
+        },
+        {
+          "frame": 57,
+          "nose": [
+            668.029541015625,
+            248.44273376464844,
+            0.9817056655883789
+          ],
+          "tailset": [
+            743.8832397460938,
+            259.0273132324219,
+            0.9709926247596741
+          ],
+          "box_conf": 0.6018347144126892,
+          "track_id": null,
+          "accepted": true
+        },
+        {
+          "frame": 58,
+          "nose": [
+            666.6022338867188,
+            253.79522705078125,
+            0.9836107492446899
+          ],
+          "tailset": [
+            738.6356201171875,
+            258.93707275390625,
+            0.9654454588890076
+          ],
+          "box_conf": 0.16731424629688263,
+          "track_id": null,
+          "accepted": true
+        },
+        {
+          "frame": 59,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 60,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 61,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 62,
+          "nose": [
+            621.1565551757812,
+            255.39012145996094,
+            0.9844473600387573
+          ],
+          "tailset": [
+            696.0977172851562,
+            253.336181640625,
+            0.9739120006561279
+          ],
+          "box_conf": 0.15189656615257263,
+          "track_id": null,
+          "accepted": true
+        },
+        {
+          "frame": 63,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 64,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 65,
+          "nose": [
+            591.2825317382812,
+            257.07904052734375,
+            0.9777161478996277
+          ],
+          "tailset": [
+            668.8592529296875,
+            253.4321746826172,
+            0.9692633748054504
+          ],
+          "box_conf": 0.1327652484178543,
+          "track_id": null,
+          "accepted": true
+        },
+        {
+          "frame": 66,
+          "nose": [
+            587.0302734375,
+            260.2959289550781,
+            0.9880897402763367
+          ],
+          "tailset": [
+            661.965087890625,
+            252.9984893798828,
+            0.961641252040863
+          ],
+          "box_conf": 0.2621138095855713,
+          "track_id": null,
+          "accepted": true
+        },
+        {
+          "frame": 67,
+          "nose": [
+            579.1451416015625,
+            262.4732971191406,
+            0.9866706728935242
+          ],
+          "tailset": [
+            653.2052612304688,
+            256.0209655761719,
+            0.9726492762565613
+          ],
+          "box_conf": 0.36082959175109863,
+          "track_id": null,
+          "accepted": true
+        },
+        {
+          "frame": 68,
+          "nose": [
+            571.84619140625,
+            265.83184814453125,
+            0.9790846109390259
+          ],
+          "tailset": [
+            642.5012817382812,
+            257.8031921386719,
+            0.9724519848823547
+          ],
+          "box_conf": 0.4501478672027588,
+          "track_id": null,
+          "accepted": true
+        },
+        {
+          "frame": 69,
+          "nose": [
+            568.7223510742188,
+            265.6556701660156,
+            0.9757314324378967
+          ],
+          "tailset": [
+            640.9911499023438,
+            259.1177062988281,
+            0.9698355197906494
+          ],
+          "box_conf": 0.30817264318466187,
+          "track_id": null,
+          "accepted": true
+        },
+        {
+          "frame": 70,
+          "nose": [
+            566.6605224609375,
+            268.4765930175781,
+            0.9832409620285034
+          ],
+          "tailset": [
+            639.8267211914062,
+            263.3177490234375,
+            0.9698103070259094
+          ],
+          "box_conf": 0.4508216381072998,
+          "track_id": null,
+          "accepted": true
+        },
+        {
+          "frame": 71,
+          "nose": [
+            563.0380859375,
+            270.23712158203125,
+            0.9824697971343994
+          ],
+          "tailset": [
+            632.2510986328125,
+            263.3082580566406,
+            0.9669978618621826
+          ],
+          "box_conf": 0.3162532448768616,
+          "track_id": null,
+          "accepted": true
+        },
+        {
+          "frame": 72,
+          "nose": [
+            555.6443481445312,
+            272.2528991699219,
+            0.9870848059654236
+          ],
+          "tailset": [
+            621.2506713867188,
+            266.23052978515625,
+            0.9663107991218567
+          ],
+          "box_conf": 0.25133174657821655,
+          "track_id": null,
+          "accepted": true
+        },
+        {
+          "frame": 73,
+          "nose": [
+            548.5193481445312,
+            273.3497314453125,
+            0.9830263257026672
+          ],
+          "tailset": [
+            621.0635375976562,
+            268.8614807128906,
+            0.9669198393821716
+          ],
+          "box_conf": 0.21620185673236847,
+          "track_id": null,
+          "accepted": true
+        },
+        {
+          "frame": 74,
+          "nose": [
+            540.373046875,
+            276.6764221191406,
+            0.9839078187942505
+          ],
+          "tailset": [
+            612.17578125,
+            275.47015380859375,
+            0.9719547629356384
+          ],
+          "box_conf": 0.3462139666080475,
+          "track_id": null,
+          "accepted": true
+        },
+        {
+          "frame": 75,
+          "nose": [
+            531.5724487304688,
+            279.768798828125,
+            0.9821871519088745
+          ],
+          "tailset": [
+            602.606201171875,
+            276.8625183105469,
+            0.9684827327728271
+          ],
+          "box_conf": 0.26893746852874756,
+          "track_id": null,
+          "accepted": true
+        },
+        {
+          "frame": 76,
+          "nose": [
+            526.6873168945312,
+            282.8946533203125,
+            0.9887214303016663
+          ],
+          "tailset": [
+            595.6917114257812,
+            279.35882568359375,
+            0.9738757014274597
+          ],
+          "box_conf": 0.27635398507118225,
+          "track_id": null,
+          "accepted": true
+        },
+        {
+          "frame": 77,
+          "nose": [
+            522.0620727539062,
+            285.8874206542969,
+            0.9822684526443481
+          ],
+          "tailset": [
+            590.856689453125,
+            282.251708984375,
+            0.9689674377441406
+          ],
+          "box_conf": 0.2837410867214203,
+          "track_id": null,
+          "accepted": true
+        },
+        {
+          "frame": 78,
+          "nose": [
+            514.8488159179688,
+            285.82879638671875,
+            0.9823188185691833
+          ],
+          "tailset": [
+            586.4821166992188,
+            287.899658203125,
+            0.9612199664115906
+          ],
+          "box_conf": 0.18832463026046753,
+          "track_id": null,
+          "accepted": true
+        },
+        {
+          "frame": 79,
+          "nose": [
+            508.75341796875,
+            288.4951171875,
+            0.980186402797699
+          ],
+          "tailset": [
+            577.9549560546875,
+            290.9554443359375,
+            0.9660395383834839
+          ],
+          "box_conf": 0.214163139462471,
+          "track_id": null,
+          "accepted": true
+        },
+        {
+          "frame": 80,
+          "nose": [
+            501.591552734375,
+            290.9898376464844,
+            0.9653766751289368
+          ],
+          "tailset": [
+            571.4744873046875,
+            293.5721740722656,
+            0.9634345173835754
+          ],
+          "box_conf": 0.20911483466625214,
+          "track_id": null,
+          "accepted": true
+        },
+        {
+          "frame": 81,
+          "nose": [
+            498.20062255859375,
+            294.0859680175781,
+            0.9815158843994141
+          ],
+          "tailset": [
+            566.2351684570312,
+            301.8297424316406,
+            0.9602182507514954
+          ],
+          "box_conf": 0.41325098276138306,
+          "track_id": null,
+          "accepted": true
+        },
+        {
+          "frame": 82,
+          "nose": [
+            491.97894287109375,
+            297.0792541503906,
+            0.9792558550834656
+          ],
+          "tailset": [
+            558.9932250976562,
+            305.4773864746094,
+            0.9668370485305786
+          ],
+          "box_conf": 0.4829842150211334,
+          "track_id": null,
+          "accepted": true
+        },
+        {
+          "frame": 83,
+          "nose": [
+            482.8125,
+            300.50177001953125,
+            0.9814308881759644
+          ],
+          "tailset": [
+            548.8944702148438,
+            307.9117431640625,
+            0.9616633057594299
+          ],
+          "box_conf": 0.3922305405139923,
+          "track_id": null,
+          "accepted": true
+        },
+        {
+          "frame": 84,
+          "nose": [
+            477.9005126953125,
+            303.148681640625,
+            0.9772161245346069
+          ],
+          "tailset": [
+            543.6864624023438,
+            312.10382080078125,
+            0.9662938117980957
+          ],
+          "box_conf": 0.5005757808685303,
+          "track_id": null,
+          "accepted": true
+        },
+        {
+          "frame": 85,
+          "nose": [
+            472.7601318359375,
+            304.024658203125,
+            0.9768690466880798
+          ],
+          "tailset": [
+            532.8984985351562,
+            311.0320129394531,
+            0.968123733997345
+          ],
+          "box_conf": 0.2926384210586548,
+          "track_id": null,
+          "accepted": true
+        },
+        {
+          "frame": 86,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 87,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 88,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 89,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 90,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        },
+        {
+          "frame": 91,
+          "nose": null,
+          "tailset": null,
+          "box_conf": null,
+          "track_id": null,
+          "accepted": false
+        }
+      ],
+      "dominant_track": null,
+      "tracking_available": false,
+      "track_coverage": 0.0,
+      "n_frames_clip": 92,
+      "n_frames_processed": 92,
+      "n_detections": 33,
+      "n_accepted": 33,
+      "timings": {
+        "total_s": 22.207799499999965,
+        "ms_per_frame": 241.3891249999996,
+        "inference_ms_per_frame": NaN,
+        "fps": 4.142688698175618,
+        "projected_clip_s": 22.207799499999965,
+        "cancelled": 0.0
+      }
     }
   },
   "clip_sha": "83eca603e1d9ca4295dd0cb80aff71a31e2634f0bd099a6fbd183f7c7630f06a",
-  "model_sha": "e6e0005e1c94b0d2a22236b3a279c8dedeaa37da66c947a474d5b44be6cef0ba"
+  "model_sha": "bdb7688775ee39201d4a77ef0041c7c3e9eb9202f7a5df287a11c98e80ef82e4"
 }

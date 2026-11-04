@@ -94,6 +94,8 @@ from dog_diving import detect as detect_mod  # noqa: E402
 from dog_diving import distance as distance_mod  # noqa: E402
 from dog_diving import measure as measure_mod  # noqa: E402
 from dog_diving import report as report_mod  # noqa: E402
+from dog_diving import replay as replay_mod  # noqa: E402
+from dog_diving import ledger as ledger_mod  # noqa: E402
 from dog_diving import stability as stability_mod  # noqa: E402
 from dog_diving import waterline as waterline_mod  # noqa: E402
 from dog_diving.pool import seed as seed_mod  # noqa: E402
@@ -102,10 +104,13 @@ from dog_diving import video as video_mod  # noqa: E402
 from dog_diving.pool import calib as pool_calib_mod  # noqa: E402
 from dog_diving.config import (  # noqa: E402
     CALIB_DIR,
+    CAPTURE_SECONDS,
     CLIP_DIR,
     DEFAULT_CONF,
     DEFAULT_IMGSZ,
     DEFAULT_KP_CONF,
+    DOG_NAMES_PATH,
+    LEDGER_PATH,
     MIN_ACCEPTED_POINTS,
     MODELS_DIR,
     MODEL_SELECTION_NOTE,
@@ -1073,6 +1078,7 @@ class App:
         # --- state ---------------------------------------------------------
         self.clip: Path | None = None
         self.info = None
+        self.replay: replay_mod.ReplayScheduler | None = None
         self.stability = None
         self.stability_record: dict | None = None
         self.stability_overridden = False
@@ -1130,6 +1136,16 @@ class App:
         self._plane_shown_key: tuple[int, tuple[int, ...]] | None = None
         self.outcome: PipelineOutcome | None = None
         self.review: ReviewState | None = None
+        #: A score the judge has accepted but not yet persisted.  Step 4b parks the measurement
+        #: here (display + inches + clip + timestamp); the dog name + CSV/ledger write is step 5a's
+        #: job and reads this.  ``None`` = nothing accepted yet (or a new run discarded it).
+        self.pending_accept: dict | None = None
+        #: Step 5a — score ledger + remembered dog names.  The paths default to the config
+        #: constants but live on ``self`` so a test (or an unattended run) can redirect them
+        #: without touching the real ``data/`` tree.
+        self.ledger_path: Path = LEDGER_PATH
+        self.dog_names_path: Path = DOG_NAMES_PATH
+        self.dog_names: list[str] = ledger_mod.load_dog_names(self.dog_names_path)
         self.show_grid = True
         #: *Correct Entry* mode: while it is armed the entry X can be hovered and dragged, and the
         #: trajectory is cut where it is dropped.  (Named ``correct_point_mode`` until 2026-10-21;
@@ -1152,8 +1168,8 @@ class App:
                 self.zed_recorder = DualZEDXLiveBuffer(
                     output_dir="data/svo_recordings",
                     clips_dir="data/clips",
-                    chunk_seconds=5,
-                    fps=60
+                    chunk_seconds=CAPTURE_SECONDS,
+                    fps=30
                 )
                 if not self.zed_recorder.start():
                     self.zed_recorder = None
@@ -1177,9 +1193,20 @@ class App:
         bar = ttk.Frame(self.root, padding=(8, 6))
         bar.pack(side="top", fill="x")
         ttk.Button(bar, text="Open clip…", command=self.on_open).pack(side="left")
+        self.capture_seconds_var = tk.StringVar(value=str(CAPTURE_SECONDS))
+        ttk.Label(bar, text="capture (s):").pack(side="left", padx=(6, 2))
+        self.capture_seconds_spin = ttk.Spinbox(
+            bar,
+            from_=1,
+            to=60,
+            textvariable=self.capture_seconds_var,
+            width=4,
+            command=self.on_capture_seconds_change,
+        )
+        self.capture_seconds_spin.pack(side="left", padx=(0, 6))
         self.btn_live_score = tk.Button(
             bar,
-            text="● Score Live Jump (5s SVO)",
+            text=f"● Score Live Jump ({CAPTURE_SECONDS}s SVO)",
             bg="#b71c1c",
             fg="white",
             activebackground="#d32f2f",
@@ -1192,6 +1219,16 @@ class App:
             command=self.on_score_live_jump
         )
         self.btn_live_score.pack(side="left", padx=(6, 12))
+
+        self.btn_calibrate = tk.Button(
+            bar,
+            text="Calibrate Cameras…",
+            command=self.on_calibrate_capture,
+            relief="groove",
+            padx=10,
+            pady=2,
+        )
+        self.btn_calibrate.pack(side="left", padx=(0, 12))
 
         self.clip_label = ttk.Label(bar, text="no clip loaded")
         self.clip_label.pack(side="left", padx=12)
@@ -1590,6 +1627,12 @@ class App:
                            ("+5", +5), (">>", +10)):
             ttk.Button(row, text=txt, width=5,
                        command=lambda d=delta: self.on_nudge(d)).pack(side="left", padx=1)
+        # Playback (step 4c): one toggle that runs the slider forward at REPLAY_SPEED of
+        # real time, reusing on_slider so the overlay/measurement follow exactly as manual
+        # scrubbing does.  The speed factor lives in replay.REPLAY_SPEED (a named constant).
+        self.play_btn = ttk.Button(row, text="\u25b6 Play 0.25\u00d7", width=12,
+                                   command=self.on_play_toggle)
+        self.play_btn.pack(side="left", padx=(8, 0))
         ttk.Button(row, text="Set entry frame", command=self.on_set_entry).pack(side="left", padx=6)
         # The entry point is a 2D->3D translation, so the operator wants to see the number move as
         # they step frames: this ties the measured point to the slider until they pin it.
@@ -1738,12 +1781,64 @@ class App:
                        command=lambda k=key, e=ext: self.on_export(k, e)).pack(side="left", padx=3)
         ttk.Button(exp, text="Open output folder",
                    command=self.on_open_outdir).pack(side="left", padx=8)
+        ttk.Button(exp, text="Replay 0.25\u00d7", width=14,
+                   command=self.on_replay_from_results).pack(side="left", padx=(8, 3))
+
+        # Step 4b — Accept: park the current measurement for step 5a's ledger.  The persistence
+        # (dog name + CSV) is deliberately NOT built here; on_accept only captures into
+        # ``pending_accept`` and logs.  A distinct frame so it is visually separate from export.
+        acc = ttk.LabelFrame(f, text="accept", padding=4)
+        acc.pack(fill="x", pady=6)
+        ttk.Button(acc, text="Accept score", width=20,
+                   command=self.on_accept).pack(side="left", padx=3)
+        self.accept_label = ttk.Label(acc, text="(nothing accepted)")
+        self.accept_label.pack(side="left", padx=8)
+
+        # Step 5a — Save to ledger: a dog-name field (with remembered names) + the accepted
+        # measurement persisted to the score CSV.  Distinct from 4b's accept frame so that
+        # accept (park) and save (persist) stay two visible steps; saving re-captures the
+        # measurement directly when nothing is parked (see ``on_save_ledger``).
+        save = ttk.LabelFrame(f, text="save to ledger", padding=4)
+        save.pack(fill="x", pady=6)
+        ttk.Label(save, text="dog name").pack(side="left", padx=(0, 3))
+        self.dog_name_var = tk.StringVar()
+        self.dog_name_box = ttk.Combobox(save, textvariable=self.dog_name_var, width=18,
+                                         values=list(self.dog_names))
+        self.dog_name_box.pack(side="left", padx=3)
+        ttk.Button(save, text="Save score", width=14,
+                   command=self.on_save_ledger).pack(side="left", padx=3)
+        ttk.Button(save, text="Open ledger CSV", width=16,
+                   command=self.on_open_ledger).pack(side="left", padx=3)
+        self.save_label = ttk.Label(save, text="")
+        self.save_label.pack(side="left", padx=8)
 
     # -- logging / status ---------------------------------------------------
     def log(self, msg: str) -> None:
         self.log_text.insert("end", msg + "\n")
         self.log_text.see("end")
         self.status.configure(text=msg)
+
+    # -- capture-duration setting ------------------------------------------
+    def on_capture_seconds_change(self) -> None:
+        """Apply the capture-duration spinbox to the live recorder (and button label)."""
+        try:
+            seconds = int(self.capture_seconds_var.get())
+        except ValueError:
+            return
+        if seconds < 1:
+            seconds = 1
+        self.capture_seconds_var.set(str(seconds))
+        self._update_live_button_text()
+        if self.zed_recorder is not None:
+            try:
+                self.zed_recorder.set_capture_seconds(seconds)
+            except Exception as exc:  # noqa: BLE001
+                self.log(f"could not apply capture duration {seconds}s: {exc}")
+
+    def _update_live_button_text(self) -> None:
+        self.btn_live_score.configure(
+            text=f"● Score Live Jump ({self.capture_seconds_var.get()}s SVO)"
+        )
 
     # -- Score Live Jump ----------------------------------------------------
     def on_score_live_jump(self) -> None:
@@ -1760,10 +1855,11 @@ class App:
         timestamp = time.strftime("%Y%m%d_%H%M%S")
         prefix = f"live_jump_{timestamp}"
 
-        self.log(f"capturing 5-second SVO2 rolling buffer: {prefix}…")
-        self.status.configure(text=f"capturing 5s live buffer: {prefix}…")
+        duration = getattr(self.zed_recorder, "chunk_seconds", CAPTURE_SECONDS)
+        self.log(f"capturing {duration}-second SVO2 rolling buffer: {prefix}…")
+        self.status.configure(text=f"capturing {duration}s live buffer: {prefix}…")
 
-        # Freeze the 5s SVO2 pair to disk & generate the 5s MP4
+        # Freeze the last-N SVO2 pair to disk & generate the last-N MP4
         clip_path = self.zed_recorder.trigger_capture(prefix)
 
         if clip_path and clip_path.is_file():
@@ -1774,9 +1870,47 @@ class App:
             # 2. Automatically launch the pipeline run
             self.root.after(300, self.on_run)
         else:
-            self.log("ERROR: failed to capture 5-second buffer from cameras")
+            self.log(f"ERROR: failed to capture {duration}-second buffer from cameras")
             self.status.configure(text="capture failed — see log")
-            
+
+    # -- Calibrate Cameras (step 1a, DISTINCT from Score Live Jump) ----------
+    def on_calibrate_capture(self) -> None:
+        """Produce the two-camera Fusion JSON: two SVO2 -> extrinsics -> saved config.
+
+        Not the live-capture path — this is the once-per-rig-setup operator action
+        that populates ``config.FUSION_JSON_PATH`` for the runtime fusion.  Runs on a
+        worker thread so the UI never blocks; the rig backend refuses cleanly when
+        pyzed is absent.
+        """
+        from dog_diving.calibration_capture import (
+            RigCalibrationCaptureBackend,
+            default_prefix,
+            run_calibration_capture,
+        )
+        from dog_diving.zed_recorder import HAS_ZED_SDK as _has_zed
+
+        if not _has_zed:
+            self.log("calibration capture unavailable: ZED SDK not installed (rig-only action)")
+            return
+
+        prefix = default_prefix()
+        self.log(f"calibration capture ({prefix}): recording two SVO2, then extrinsics…")
+        self.btn_calibrate.configure(state="disabled")
+
+        def _run() -> None:
+            try:
+                result = run_calibration_capture(RigCalibrationCaptureBackend(), prefix=prefix)
+                self.q.put(("log",
+                            f"calibration complete — Fusion JSON: {result['fusion_path']} "
+                            f"(ref SN {result['reference_serial']}, method {result['method']}, "
+                            f"convention {result['rotation_convention']})"))
+            except Exception as exc:  # noqa: BLE001
+                self.q.put(("log", f"calibration capture FAILED: {type(exc).__name__}: {exc}"))
+            finally:
+                self.q.put(("calib_done", None))
+
+        threading.Thread(target=_run, daemon=True).start()
+
     # -- Close window -------------------------------------------------------
     def on_close(self) -> None:
         """Stops the background camera acquisition thread before closing."""
@@ -1785,6 +1919,8 @@ class App:
                 self.zed_recorder.stop()
             except Exception:
                 pass
+        if getattr(self, "replay", None) is not None:
+            self.replay.pause()
         self.root.destroy()
     # -- Load ---------------------------------------------------------------
     def on_open(self) -> None:
@@ -1804,6 +1940,7 @@ class App:
         except Exception as exc:  # noqa: BLE001
             self.log(f"could not open {clip}: {type(exc).__name__}: {exc}")
             return
+        self._stop_replay()
         self.clip_label.configure(text=str(clip))
         # No Load pane to print the probe into: it goes to the session log, where it stays readable.
         self.log(
@@ -3225,6 +3362,8 @@ class App:
         assert outcome.run is not None
         run = outcome.run
         self.outcome = outcome
+        # A new run is a new timeline: stop any in-flight playback before replacing review.
+        self._stop_replay()
         # The 3-D route's per-clip result, when one ran.  Read back from the run rather than from
         # anything cached, so the overlay can only ever show a translation this run actually produced.
         self.pool_result = run.get("pool_translation")
@@ -3249,10 +3388,24 @@ class App:
             image_size=(run["video"].width, run["video"].height),
             n_frames=int(run["video"].n_frames),
         )
+        # Playback (step 4c): a fresh scheduler for this run's fps + frame count.  ``on_frame``
+        # lands in on_slider, so playback and the manual slider share one code path.
+        self.replay = replay_mod.ReplayScheduler(
+            float(run["video"].fps), speed=replay_mod.REPLAY_SPEED,
+            n_frames=int(run["video"].n_frames),
+            after=self.root.after, after_cancel=self.root.after_cancel,
+        )
+        self.replay.on_frame = self._replay_frame
+        self.replay.on_finish = self._replay_finish
+        self._sync_play_btn()
         # A new run re-derives the entry point from its own detections: carrying the old frame over
         # would silently measure a point this run may not even have.
         self.review.entry_frame = None
         self.review.entry_live = False
+        # A pending accept belongs to the run it was captured from; a new run leaves nothing pending.
+        self.pending_accept = None
+        if hasattr(self, "accept_label"):
+            self.accept_label.configure(text="(nothing accepted)")
         # The scoring method is the operator's choice, not the run's: keep whatever the switch is
         # set to, so a run started after picking "Trajectory plane" is scored that way.
         if hasattr(self, "space_var"):
@@ -3288,6 +3441,139 @@ class App:
             return
         self.review.nudge(delta)
         self._after_review_change()
+
+    # -- playback (step 4c): slow-motion replay of the loaded clip -------------
+    def on_play_toggle(self) -> None:
+        """Start / pause 0.25\u00d7 playback.  One button, one state, no second control to
+        disagree with.  The scheduler emits frame indices on ``root.after``; each lands in
+        ``_replay_frame`` -> ``on_slider``, the SAME path the frame slider uses, so the
+        overlay, measurement and plan view follow playback exactly as they follow a drag."""
+        if self.review is None:
+            self.log("no run to replay")
+            return
+        rp = self.replay
+        if rp is None:
+            self.log("replay not available for this run")
+            return
+        if rp.playing:
+            rp.pause()
+        else:
+            # Start from where the operator is looking; a fresh scheduler starts at 0.
+            rp.on_frame = self._replay_frame
+            rp.on_finish = self._replay_finish
+            rp.start(from_frame=self.review.frame if self.review.frame is not None else 0)
+        self._sync_play_btn()
+
+    def _replay_frame(self, frame: int) -> None:
+        """Advance one frame — the same call the slider's command makes on a manual drag."""
+        self.on_slider(str(frame))
+
+    def _replay_finish(self) -> None:
+        """Playback reached the last frame; the button flips back to Play."""
+        self._sync_play_btn()
+
+    def _sync_play_btn(self) -> None:
+        if not hasattr(self, "play_btn"):
+            return
+        playing = self.replay is not None and self.replay.playing
+        self.play_btn.configure(text="\u23f8 Pause" if playing else "\u25b6 Play 0.25\u00d7")
+
+    def _stop_replay(self) -> None:
+        """Halt playback when the clip or the run changes (a new run is a new timeline)."""
+        if getattr(self, "replay", None) is not None:
+            self.replay.pause()
+        self._sync_play_btn()
+
+    # -- Results-pane Replay / Accept (step 4b) ------------------------------
+    def on_replay_from_results(self) -> None:
+        """Replay from the Results pane: jump to Review and start 0.25\u00d7 playback.
+
+        A thin second entry point into 4c's player — the playback loop itself lives in
+        ``on_play_toggle`` and is not duplicated here.  Same guard the rest of Review uses:
+        no run means nothing to replay, logged and returned.
+        """
+        if self.review is None:
+            self.log("no run to replay")
+            return
+        self.nb.select(self.tab_review)
+        self.on_play_toggle()
+
+    def on_accept(self) -> None:
+        """Capture the current measurement into a pending-accept state.
+
+        The distance is ``ReviewState.measurement()`` — the operator's rule (PLAN \u00a716): the
+        final accepted detection, assumed on the plane.  ``display`` / ``total_inches`` + clip +
+        timestamp are parked in ``self.pending_accept``.  The persistence (dog name + the score
+        ledger) is step 5a's job and is deliberately NOT half-built here: 5a's design names
+        ``src/dog_diving/ledger.py`` + a ``data/dog_names.json`` names list, and the CSV-vs-.xlsx
+        and ledger-location choices are still open.
+        """
+        if self.review is None:
+            self.log("no run to accept")
+            return
+        meas = self.review.measurement()
+        self.pending_accept = {
+            "clip": str(self.clip) if self.clip is not None else None,
+            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
+            "display": meas.get("display"),
+            "total_inches": meas.get("total_inches"),
+            "measurement": meas,
+        }
+        label = f"{self.pending_accept['display']} @ {self.pending_accept['clip']}"
+        if hasattr(self, "accept_label"):
+            self.accept_label.configure(text=f"pending: {label}")
+        self.log(f"accept \u2192 5a (persist pending): {label}")
+
+    # -- Results-pane Save-to-ledger (step 5a) -------------------------------
+    def on_save_ledger(self) -> None:
+        """Persist the accepted score (with a dog name) to the step-5a CSV ledger.
+
+        Reads ``pending_accept`` when it is still live; if a new run has cleared it, the
+        measurement is re-captured directly from ``ReviewState.measurement()`` so the Save
+        button is self-sufficient (Accept is a convenience, not a precondition).  An empty
+        dog name is refused rather than silently recording an unnamed score.
+        """
+        if self.review is None:
+            self.log("no run to save")
+            return
+        name = (self.dog_name_var.get() if hasattr(self, "dog_name_var") else "").strip()
+        if not name:
+            self.log("enter a dog name to save")
+            return
+        pending = self.pending_accept
+        if pending is None:
+            meas = self.review.measurement()
+            pending = {
+                "clip": str(self.clip) if self.clip is not None else None,
+                "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
+                "display": meas.get("display"),
+                "total_inches": meas.get("total_inches"),
+                "measurement": meas,
+            }
+        row = ledger_mod.ledger_row(name, pending)
+        try:
+            ledger_mod.append_ledger_row(self.ledger_path, row)
+        except Exception as exc:  # noqa: BLE001
+            self.log(f"ledger write failed: {type(exc).__name__}: {exc}")
+            return
+        self.dog_names = ledger_mod.remember_dog_name(self.dog_names_path, name)
+        if hasattr(self, "dog_name_box"):
+            self.dog_name_box.configure(values=list(self.dog_names))
+        if hasattr(self, "save_label"):
+            self.save_label.configure(text=f"saved: {row['display']} ({name})")
+        self.log(f"saved \u2192 ledger: {name} @ {row['display']}")
+
+    def on_open_ledger(self) -> None:
+        """Open the score ledger CSV with the OS default (Windows: shell-open)."""
+        import subprocess
+        path = Path(self.ledger_path)
+        try:
+            if path.exists():
+                subprocess.Popen(["explorer", str(path)], shell=False)
+            else:
+                self.log(f"ledger not yet written: {path}")
+        except Exception as exc:  # noqa: BLE001
+            self.log(f"could not open ledger: {type(exc).__name__}: {exc}")
 
     # -- the scoring-method switch (2026-11-01) ------------------------------
     def on_trajectory_space(self, space: str | None = None) -> str:
@@ -4293,6 +4579,8 @@ class App:
                     self.log(f"waterline detection failed: {payload}")
                 elif kind == "seed_done":
                     self.detect_btn.configure(state="normal")
+                elif kind == "calib_done":
+                    self.btn_calibrate.configure(state="normal")
         except queue.Empty:
             pass
         self.root.after(80, self._drain)
