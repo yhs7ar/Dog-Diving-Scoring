@@ -75,6 +75,7 @@ import queue
 import shutil
 import sys
 import threading
+import time
 import traceback
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -113,6 +114,12 @@ from dog_diving.config import (  # noqa: E402
     dog_specs,
     spec_for_path,
 )
+# Safe import: allows the app to run on Windows without pyzed installed
+try:
+    from dog_diving.zed_recorder import DualZEDXLiveBuffer, HAS_ZED_SDK
+except ImportError:
+    DualZEDXLiveBuffer = None
+    HAS_ZED_SDK = False
 
 VIDEO_SUFFIXES = (".mp4", ".mov", ".avi", ".mkv", ".m4v")
 CALIB_FRAME_DEFAULT = 0
@@ -1139,6 +1146,24 @@ class App:
         self.cancel_event = threading.Event()
         self.worker: threading.Thread | None = None
         self.q: queue.Queue = queue.Queue()
+        self.zed_recorder = None
+        if HAS_ZED_SDK and DualZEDXLiveBuffer is not None:
+            try:
+                self.zed_recorder = DualZEDXLiveBuffer(
+                    output_dir="data/svo_recordings",
+                    clips_dir="data/clips",
+                    chunk_seconds=5,
+                    fps=60
+                )
+                if not self.zed_recorder.start():
+                    self.zed_recorder = None
+            except Exception as e:
+                print(f"[ZED] Offline mode (cameras unavailable): {e}")
+                self.zed_recorder = None
+        else:
+            print("[ZED] Offline mode (ZED SDK not installed or on Windows).")
+
+        self.root.protocol("WM_DELETE_WINDOW", self.on_close)
 
         self._build_ui()
         self.root.after(80, self._drain)
@@ -1152,6 +1177,22 @@ class App:
         bar = ttk.Frame(self.root, padding=(8, 6))
         bar.pack(side="top", fill="x")
         ttk.Button(bar, text="Open clip…", command=self.on_open).pack(side="left")
+        self.btn_live_score = tk.Button(
+            bar,
+            text="● Score Live Jump (5s SVO)",
+            bg="#b71c1c",
+            fg="white",
+            activebackground="#d32f2f",
+            activeforeground="white",
+            font=("TkDefaultFont", 9, "bold"),
+            relief="flat",
+            padx=10,
+            pady=2,
+            cursor="hand2",
+            command=self.on_score_live_jump
+        )
+        self.btn_live_score.pack(side="left", padx=(6, 12))
+
         self.clip_label = ttk.Label(bar, text="no clip loaded")
         self.clip_label.pack(side="left", padx=12)
 
@@ -1704,6 +1745,47 @@ class App:
         self.log_text.see("end")
         self.status.configure(text=msg)
 
+    # -- Score Live Jump ----------------------------------------------------
+    def on_score_live_jump(self) -> None:
+        """Called when the judge clicks the '● Score Live Jump' button."""
+        if self.zed_recorder is None or not self.zed_recorder.running:
+            from tkinter import messagebox
+            messagebox.showinfo(
+                "Camera Offline",
+                "ZED X cameras are not connected (Offline Mode).\n\n"
+                "Use 'Open clip…' to select a recorded video from data/clips/."
+            )
+            return
+
+        timestamp = time.strftime("%Y%m%d_%H%M%S")
+        prefix = f"live_jump_{timestamp}"
+
+        self.log(f"capturing 5-second SVO2 rolling buffer: {prefix}…")
+        self.status.configure(text=f"capturing 5s live buffer: {prefix}…")
+
+        # Freeze the 5s SVO2 pair to disk & generate the 5s MP4
+        clip_path = self.zed_recorder.trigger_capture(prefix)
+
+        if clip_path and clip_path.is_file():
+            self.log(f"live clip captured: {clip_path.name} — loading into pipeline…")
+            # 1. Load the clip into the GUI
+            self.load_clip(clip_path)
+            
+            # 2. Automatically launch the pipeline run
+            self.root.after(300, self.on_run)
+        else:
+            self.log("ERROR: failed to capture 5-second buffer from cameras")
+            self.status.configure(text="capture failed — see log")
+            
+    # -- Close window -------------------------------------------------------
+    def on_close(self) -> None:
+        """Stops the background camera acquisition thread before closing."""
+        if getattr(self, "zed_recorder", None):
+            try:
+                self.zed_recorder.stop()
+            except Exception:
+                pass
+        self.root.destroy()
     # -- Load ---------------------------------------------------------------
     def on_open(self) -> None:
         from tkinter import filedialog
