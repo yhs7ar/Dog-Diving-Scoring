@@ -10,6 +10,18 @@ CALIB_DIR = PROJECT_ROOT / "data" / "calib"
 CLIP_DIR = PROJECT_ROOT / "data" / "clips"
 OUT_DIR = PROJECT_ROOT / "out"
 
+# calibration-capture mode (step 1a): the one known path where the app writes the
+# two-camera Fusion JSON and where ``fusion.FusionConfig.from_file`` /
+# ``calibration_capture.load_fusion_config`` reads it back.  ``DD_FUSION_JSON`` (env)
+# overrides the path so a rig run can stage it elsewhere without editing the tree.
+FUSION_JSON_PATH = CALIB_DIR / "fusion_config.json"
+_fusion_json_raw = os.environ.get("DD_FUSION_JSON", "").strip()
+if _fusion_json_raw:
+    FUSION_JSON_PATH = Path(_fusion_json_raw)
+# Where the calibration-capture recorder writes its two SVO2 (the recorder's own
+# default ``data/svo_recordings``, kept as a project constant rather than a literal).
+SVO_RECORDINGS_DIR = PROJECT_ROOT / "data" / "svo_recordings"
+
 #: The trajectory's pose checkpoint, resolved **inside** ``models/``.
 #:
 #: Declared in :data:`MODEL_REGISTRY` below.  The model of record is ``yolo26n-pose_dogs_v5.pt``:

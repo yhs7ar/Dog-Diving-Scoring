@@ -1205,6 +1205,16 @@ class App:
         )
         self.btn_live_score.pack(side="left", padx=(6, 12))
 
+        self.btn_calibrate = tk.Button(
+            bar,
+            text="Calibrate Cameras…",
+            command=self.on_calibrate_capture,
+            relief="groove",
+            padx=10,
+            pady=2,
+        )
+        self.btn_calibrate.pack(side="left", padx=(0, 12))
+
         self.clip_label = ttk.Label(bar, text="no clip loaded")
         self.clip_label.pack(side="left", padx=12)
 
@@ -1811,7 +1821,45 @@ class App:
         else:
             self.log(f"ERROR: failed to capture {duration}-second buffer from cameras")
             self.status.configure(text="capture failed — see log")
-            
+
+    # -- Calibrate Cameras (step 1a, DISTINCT from Score Live Jump) ----------
+    def on_calibrate_capture(self) -> None:
+        """Produce the two-camera Fusion JSON: two SVO2 -> extrinsics -> saved config.
+
+        Not the live-capture path — this is the once-per-rig-setup operator action
+        that populates ``config.FUSION_JSON_PATH`` for the runtime fusion.  Runs on a
+        worker thread so the UI never blocks; the rig backend refuses cleanly when
+        pyzed is absent.
+        """
+        from dog_diving.calibration_capture import (
+            RigCalibrationCaptureBackend,
+            default_prefix,
+            run_calibration_capture,
+        )
+        from dog_diving.zed_recorder import HAS_ZED_SDK as _has_zed
+
+        if not _has_zed:
+            self.log("calibration capture unavailable: ZED SDK not installed (rig-only action)")
+            return
+
+        prefix = default_prefix()
+        self.log(f"calibration capture ({prefix}): recording two SVO2, then extrinsics…")
+        self.btn_calibrate.configure(state="disabled")
+
+        def _run() -> None:
+            try:
+                result = run_calibration_capture(RigCalibrationCaptureBackend(), prefix=prefix)
+                self.q.put(("log",
+                            f"calibration complete — Fusion JSON: {result['fusion_path']} "
+                            f"(ref SN {result['reference_serial']}, method {result['method']}, "
+                            f"convention {result['rotation_convention']})"))
+            except Exception as exc:  # noqa: BLE001
+                self.q.put(("log", f"calibration capture FAILED: {type(exc).__name__}: {exc}"))
+            finally:
+                self.q.put(("calib_done", None))
+
+        threading.Thread(target=_run, daemon=True).start()
+
     # -- Close window -------------------------------------------------------
     def on_close(self) -> None:
         """Stops the background camera acquisition thread before closing."""
@@ -4328,6 +4376,8 @@ class App:
                     self.log(f"waterline detection failed: {payload}")
                 elif kind == "seed_done":
                     self.detect_btn.configure(state="normal")
+                elif kind == "calib_done":
+                    self.btn_calibrate.configure(state="normal")
         except queue.Empty:
             pass
         self.root.after(80, self._drain)
