@@ -3,3 +3,6 @@ yolo_native_amd/
 venv-yolo-surface/
 Scored dog diving videos/
 .venv_jetson/
+home/dogdiving/Documents/Captstone-Repo/end-to-end-app/run_app.cmd
+*.svo2
+data/clips
