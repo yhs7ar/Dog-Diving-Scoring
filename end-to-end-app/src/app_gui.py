@@ -94,6 +94,7 @@ from dog_diving import detect as detect_mod  # noqa: E402
 from dog_diving import distance as distance_mod  # noqa: E402
 from dog_diving import measure as measure_mod  # noqa: E402
 from dog_diving import report as report_mod  # noqa: E402
+from dog_diving import replay as replay_mod  # noqa: E402
 from dog_diving import stability as stability_mod  # noqa: E402
 from dog_diving import waterline as waterline_mod  # noqa: E402
 from dog_diving.pool import seed as seed_mod  # noqa: E402
@@ -1074,6 +1075,7 @@ class App:
         # --- state ---------------------------------------------------------
         self.clip: Path | None = None
         self.info = None
+        self.replay: replay_mod.ReplayScheduler | None = None
         self.stability = None
         self.stability_record: dict | None = None
         self.stability_overridden = False
@@ -1612,6 +1614,12 @@ class App:
                            ("+5", +5), (">>", +10)):
             ttk.Button(row, text=txt, width=5,
                        command=lambda d=delta: self.on_nudge(d)).pack(side="left", padx=1)
+        # Playback (step 4c): one toggle that runs the slider forward at REPLAY_SPEED of
+        # real time, reusing on_slider so the overlay/measurement follow exactly as manual
+        # scrubbing does.  The speed factor lives in replay.REPLAY_SPEED (a named constant).
+        self.play_btn = ttk.Button(row, text="\u25b6 Play 0.25\u00d7", width=12,
+                                   command=self.on_play_toggle)
+        self.play_btn.pack(side="left", padx=(8, 0))
         ttk.Button(row, text="Set entry frame", command=self.on_set_entry).pack(side="left", padx=6)
         # The entry point is a 2D->3D translation, so the operator wants to see the number move as
         # they step frames: this ties the measured point to the slider until they pin it.
@@ -1868,6 +1876,8 @@ class App:
                 self.zed_recorder.stop()
             except Exception:
                 pass
+        if getattr(self, "replay", None) is not None:
+            self.replay.pause()
         self.root.destroy()
     # -- Load ---------------------------------------------------------------
     def on_open(self) -> None:
@@ -1887,6 +1897,7 @@ class App:
         except Exception as exc:  # noqa: BLE001
             self.log(f"could not open {clip}: {type(exc).__name__}: {exc}")
             return
+        self._stop_replay()
         self.clip_label.configure(text=str(clip))
         # No Load pane to print the probe into: it goes to the session log, where it stays readable.
         self.log(
@@ -3308,6 +3319,8 @@ class App:
         assert outcome.run is not None
         run = outcome.run
         self.outcome = outcome
+        # A new run is a new timeline: stop any in-flight playback before replacing review.
+        self._stop_replay()
         # The 3-D route's per-clip result, when one ran.  Read back from the run rather than from
         # anything cached, so the overlay can only ever show a translation this run actually produced.
         self.pool_result = run.get("pool_translation")
@@ -3332,6 +3345,16 @@ class App:
             image_size=(run["video"].width, run["video"].height),
             n_frames=int(run["video"].n_frames),
         )
+        # Playback (step 4c): a fresh scheduler for this run's fps + frame count.  ``on_frame``
+        # lands in on_slider, so playback and the manual slider share one code path.
+        self.replay = replay_mod.ReplayScheduler(
+            float(run["video"].fps), speed=replay_mod.REPLAY_SPEED,
+            n_frames=int(run["video"].n_frames),
+            after=self.root.after, after_cancel=self.root.after_cancel,
+        )
+        self.replay.on_frame = self._replay_frame
+        self.replay.on_finish = self._replay_finish
+        self._sync_play_btn()
         # A new run re-derives the entry point from its own detections: carrying the old frame over
         # would silently measure a point this run may not even have.
         self.review.entry_frame = None
@@ -3371,6 +3394,48 @@ class App:
             return
         self.review.nudge(delta)
         self._after_review_change()
+
+    # -- playback (step 4c): slow-motion replay of the loaded clip -------------
+    def on_play_toggle(self) -> None:
+        """Start / pause 0.25\u00d7 playback.  One button, one state, no second control to
+        disagree with.  The scheduler emits frame indices on ``root.after``; each lands in
+        ``_replay_frame`` -> ``on_slider``, the SAME path the frame slider uses, so the
+        overlay, measurement and plan view follow playback exactly as they follow a drag."""
+        if self.review is None:
+            self.log("no run to replay")
+            return
+        rp = self.replay
+        if rp is None:
+            self.log("replay not available for this run")
+            return
+        if rp.playing:
+            rp.pause()
+        else:
+            # Start from where the operator is looking; a fresh scheduler starts at 0.
+            rp.on_frame = self._replay_frame
+            rp.on_finish = self._replay_finish
+            rp.start(from_frame=self.review.frame if self.review.frame is not None else 0)
+        self._sync_play_btn()
+
+    def _replay_frame(self, frame: int) -> None:
+        """Advance one frame — the same call the slider's command makes on a manual drag."""
+        self.on_slider(str(frame))
+
+    def _replay_finish(self) -> None:
+        """Playback reached the last frame; the button flips back to Play."""
+        self._sync_play_btn()
+
+    def _sync_play_btn(self) -> None:
+        if not hasattr(self, "play_btn"):
+            return
+        playing = self.replay is not None and self.replay.playing
+        self.play_btn.configure(text="\u23f8 Pause" if playing else "\u25b6 Play 0.25\u00d7")
+
+    def _stop_replay(self) -> None:
+        """Halt playback when the clip or the run changes (a new run is a new timeline)."""
+        if getattr(self, "replay", None) is not None:
+            self.replay.pause()
+        self._sync_play_btn()
 
     # -- the scoring-method switch (2026-11-01) ------------------------------
     def on_trajectory_space(self, space: str | None = None) -> str:
