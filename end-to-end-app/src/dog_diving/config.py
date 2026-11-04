@@ -113,14 +113,24 @@ class ModelSpec:
 #: Order is meaningful: the first ``dog`` spec of a scale is that scale's default.
 MODEL_REGISTRY: tuple[ModelSpec, ...] = (
     ModelSpec(
+        key="dogs-s-inflated-720p",
+        filename="yolo26s-pose_dogs_inflated_clahe_720p.pt",
+        scale="s",
+        label="yolo26s · dogs (inflated CLAHE 720p)",
+        layout="dog-2kpt",
+        role="model of record",
+        measured={"detected": 45, "tailset_median_px": 4.46, "within_20pct": 100.0},
+        note="50 epochs 720p inflated CLAHE fine-tune; model of record with median tailset error 4.46 px",
+    ),
+    ModelSpec(
         key="dogs-n-v5",
         filename="yolo26n-pose_dogs_v5.pt",
         scale="n",
         label="yolo26n · dogs v5",
         layout="dog-2kpt",
-        role="model of record",
+        role="alternative",
         measured={"detected": 46, "tailset_median_px": 8.18, "within_20pct": 89.1},
-        note="local real-background rotation model; default for the trajectory",
+        note="local real-background rotation model; former n-scale model of record",
     ),
     ModelSpec(
         key="dogs-s-clahe",
@@ -131,7 +141,7 @@ MODEL_REGISTRY: tuple[ModelSpec, ...] = (
         role="alternative",
         measured={"detected": 1, "tailset_median_px": 196.37, "within_20pct": 0.0,
                   "note": "at conf 0.05: 34/46, median 253 px, 0 % within 20 %"},
-        note="same 2-kpt dog labels on a yolo26s backbone; selectable, NOT a replacement for v5",
+        note="same 2-kpt dog labels on a yolo26s backbone; selectable, NOT a replacement for inflated 720p",
     ),
     ModelSpec(
         key="coco-person-s",
@@ -219,10 +229,10 @@ elif _env_scale:
         MODEL_PATH = default_for_scale(_env_scale).path
     except ValueError as exc:
         MODEL_SELECTION_NOTE = f"DD_MODEL_SCALE ignored: {exc}"
-        _default = default_for_scale("n")
+        _default = default_for_scale("s")
         MODEL_PATH = _default.path if _default.is_file() else MODELS_DIR / "best.pt"
 else:
-    _default = default_for_scale("n")
+    _default = default_for_scale("s")
     MODEL_PATH = _default.path if _default.is_file() else MODELS_DIR / "best.pt"
 
 #: Which registry entry ``MODEL_PATH`` is (``None`` for a checkpoint declared nowhere).
