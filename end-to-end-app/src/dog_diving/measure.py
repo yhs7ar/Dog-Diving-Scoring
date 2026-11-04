@@ -220,6 +220,9 @@ def trajectory_plane_fit(
     pts = kept_points(traj, excluded)
     if frame is not None:
         pts = [p for p in pts if int(p["frame"]) <= int(frame)]
+    # Operator order 2026-10-28: fit the last 20 detected points only.
+    if len(pts) > 20:
+        pts = pts[-20:]
     out["n_points"] = len(pts)
     if len(pts) < 3:
         out.update({"status": "few_points",
