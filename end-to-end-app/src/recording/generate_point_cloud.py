@@ -25,7 +25,7 @@ Proven SVO2-open pattern (mirrors ``sensor_placer_auto.py::open_svo`` and
 **Runs on the Jetson only** (NEURAL depth needs its GPU). On a CPU host ``HAS_ZED_SDK`` is
 False and :func:`generate` raises a clear ``RuntimeError`` rather than inventing a cloud.
 
-Usage (on the rig, ``/home/dogdiving/Desktop/scripts/dual_recording/``):
+Usage (on the rig, ``src/recording/``):
 
     python3 generate_point_cloud.py --svo /path/to/SVGA_SN40847387_19-01-49.svo2
 

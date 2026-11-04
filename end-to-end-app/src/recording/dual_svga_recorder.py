@@ -59,7 +59,7 @@ def check_svo_integrity(file_path):
 def main():
     parser = argparse.ArgumentParser(description="Hardened Python Dual ZED X SVGA SVO2 Recorder")
     parser.add_argument("-d", "--duration", type=int, default=10, help="Recording duration in seconds (0 = continuous)")
-    parser.add_argument("-o", "--output-dir", type=str, default="/home/dogdiving/Desktop/scripts/dual_recording", help="Output directory")
+    parser.add_argument("-o", "--output-dir", type=str, default="/home/dogdiving/Desktop/src/recording", help="Output directory")
     parser.add_argument("-p", "--prefix", type=str, default="py_svga", help="Filename prefix")
     args = parser.parse_args()
 

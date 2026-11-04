@@ -48,7 +48,7 @@ from dog_diving.config import FUSION_JSON_PATH, PROJECT_ROOT, SVO_RECORDINGS_DIR
 from dog_diving.fusion import FusionConfig, HAS_ZED_SDK
 
 #: Where the proven rig scripts live (in-repo, read-only reference).
-DUAL_RECORDING_DIR = PROJECT_ROOT / "scripts" / "dual_recording"
+DUAL_RECORDING_DIR = PROJECT_ROOT / "src" / "recording"
 DUAL_SVGA_RECORDER = DUAL_RECORDING_DIR / "dual_svga_recorder.py"
 ICP_CALIBRATION = DUAL_RECORDING_DIR / "run_icp_calibration.py"
 SENSOR_PLACER = DUAL_RECORDING_DIR / "sensor_placer_auto.py"
