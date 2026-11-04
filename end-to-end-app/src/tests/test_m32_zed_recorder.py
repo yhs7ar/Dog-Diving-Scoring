@@ -25,10 +25,13 @@ from dog_diving.zed_recorder import (  # noqa: E402
     CAPTURE_HEIGHT,
     CAPTURE_RESOLUTION,
     CAPTURE_WIDTH,
+    CLIP_CAM1_SUFFIX,
+    CLIP_CAM2_SUFFIX,
     ComputeGovernor,
     DualZEDXLiveBuffer,
     FakeZEDRecorder,
     ZEDRecorder,
+    clip_name,
 )
 
 
@@ -221,6 +224,125 @@ def test_fake_recorder_set_capture_seconds(tmp_path) -> None:
 
         with pytest.raises(ValueError):
             rec.set_capture_seconds(0)
+    finally:
+        rec.stop()
+
+
+# ---------------------------------------------------------------------------
+# Step 2c: one pipeline clip per camera (cam1 -> "{prefix}_right.mp4",
+# cam2 -> "{prefix}_left.mp4"), plus the backward-compatible single-clip return.
+# ---------------------------------------------------------------------------
+
+def _mp4_frame_count(path: Path) -> int:
+    cap = cv2.VideoCapture(str(path))
+    try:
+        return int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    finally:
+        cap.release()
+
+
+def _mp4_first_frame(path: Path):
+    cap = cv2.VideoCapture(str(path))
+    try:
+        ok, frame = cap.read()
+        assert ok, f"failed to read first frame of {path.name}"
+        return frame
+    finally:
+        cap.release()
+
+
+def test_clip_naming_convention() -> None:
+    assert CLIP_CAM1_SUFFIX == "right"
+    assert CLIP_CAM2_SUFFIX == "left"
+    assert clip_name("jump01", "right") == "jump01_right.mp4"
+    assert clip_name("jump01", "left") == "jump01_left.mp4"
+
+
+def test_fake_recorder_emits_two_named_clips(tmp_path) -> None:
+    rec = _run_capture(tmp_path)
+    try:
+        mp4 = rec.trigger_capture("jump01")
+        assert mp4 is not None and mp4.is_file()
+        assert mp4.name == "jump01_right.mp4", "primary return must be the cam1 (right) clip"
+
+        right = tmp_path / "clips" / "jump01_right.mp4"
+        left = tmp_path / "clips" / "jump01_left.mp4"
+        assert right.is_file(), "missing cam1 (right) clip"
+        assert left.is_file(), "missing cam2 (left) clip"
+
+        # No bare "{prefix}.mp4" may remain (the naming decision, not a silent one-sided rename).
+        assert not (tmp_path / "clips" / "jump01.mp4").exists()
+
+        assert _mp4_frame_count(right) == rec.chunk_frames
+        assert _mp4_frame_count(left) == rec.chunk_frames
+
+        # last_saved_mp4 stays the primary (backward compat) and last_saved_clips has the pair.
+        assert rec.last_saved_mp4 == right
+        assert rec.last_saved_clips == {"right": right, "left": left}
+
+        # SVO2 stubs still written per camera, each with its own frame count.
+        c1 = json.loads((tmp_path / "svo" / "jump01_cam1.svo2").read_text())
+        c2 = json.loads((tmp_path / "svo" / "jump01_cam2.svo2").read_text())
+        assert c1["frames"] == rec.chunk_frames
+        assert c2["frames"] == rec.chunk_frames
+    finally:
+        rec.stop()
+
+
+def test_fake_recorder_two_clips_have_distinct_content(tmp_path) -> None:
+    rec = _run_capture(tmp_path)
+    try:
+        rec.trigger_capture("jump01")
+        right = _mp4_first_frame(tmp_path / "clips" / "jump01_right.mp4")
+        left = _mp4_first_frame(tmp_path / "clips" / "jump01_left.mp4")
+        # The two clips come from two independent frame streams, so their frames differ
+        # (same geometry, same size — but the marker colour distinguishes cam1 from cam2).
+        assert right.shape == left.shape
+        assert not (right == left).all(), "cam2 clip must not be a copy of cam1"
+
+        # Deterministic check on the synthetic streams (no codec loss): cam1 and cam2 carry
+        # the SAME marker position but DIFFERENT colours, so the only differing pixels are
+        # the 40x40 marker block (40*40*3 channel values).
+        f1 = rec._ring[0]
+        f2 = rec._ring2[0]
+        assert (f1 != f2).any(), "cam2 ring must differ from cam1 (distinct marker colour)"
+        diff_count = int((f1 != f2).sum())
+        assert diff_count == 40 * 40 * 3, f"expected only the 40x40 marker to differ, got {diff_count}"
+    finally:
+        rec.stop()
+
+
+def test_fake_recorder_ring2_fills_in_lockstep(tmp_path) -> None:
+    rec = _run_capture(tmp_path)
+    try:
+        deadline = time.monotonic() + 2.0
+        while (rec.ring_frames < rec.chunk_frames or rec.ring2_frames < rec.chunk_frames) \
+                and time.monotonic() < deadline:
+            time.sleep(0.01)
+        assert rec.ring_frames == rec.chunk_frames
+        assert rec.ring2_frames == rec.chunk_frames, "cam2 ring must fill in lock step with cam1"
+    finally:
+        rec.stop()
+
+
+def test_fake_recorder_set_capture_seconds_resizes_both_clips(tmp_path) -> None:
+    fps = 10
+    rec = _run_capture(tmp_path, fps=fps, chunk_seconds=0.5)  # chunk_frames = 5
+    try:
+        rec.set_capture_seconds(1)  # -> 10 frames
+        deadline = time.monotonic() + 2.0
+        while rec.ring_frames < rec.chunk_frames and time.monotonic() < deadline:
+            time.sleep(0.01)
+
+        mp4 = rec.trigger_capture("jump_resized")
+        assert mp4 is not None
+        right = tmp_path / "clips" / "jump_resized_right.mp4"
+        left = tmp_path / "clips" / "jump_resized_left.mp4"
+        assert right.is_file() and left.is_file()
+        assert _mp4_frame_count(right) == 10
+        assert _mp4_frame_count(left) == 10
+        assert rec.last_saved_clips["right"] == right
+        assert rec.last_saved_clips["left"] == left
     finally:
         rec.stop()
 

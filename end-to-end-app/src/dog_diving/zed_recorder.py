@@ -61,6 +61,33 @@ CAPTURE_DEPTH_MODE = "NONE"       # depth is computed off-line from the SVO2
 CAPTURE_WIDTH = 1200
 CAPTURE_HEIGHT = 720
 
+# ---------------------------------------------------------------------------
+# Pipeline-clip naming convention (step 2c): one clip PER camera.
+#   cam1's LEFT view -> "{prefix}_right.mp4"  (right == cam1, matching the test-data
+#                                              video004_right / video004_left convention)
+#   cam2's LEFT view -> "{prefix}_left.mp4"
+# SVO2 filenames stay "{prefix}_cam1.svo2" / "{prefix}_cam2.svo2" (serial-keyed, not view-named).
+# ---------------------------------------------------------------------------
+CLIP_CAM1_SUFFIX = "right"   # cam1's LEFT view
+CLIP_CAM2_SUFFIX = "left"    # cam2's LEFT view
+
+
+def clip_name(prefix: str, camera: str) -> str:
+    """Pipeline-clip filename for one camera: ``{prefix}_{camera}.mp4``."""
+    return f"{prefix}_{camera}.mp4"
+
+
+def _write_mp4(path: Path, frames: list, fps: int) -> Path:
+    """Write ``frames`` (BGR numpy arrays) to ``path`` as an mp4v-encoded MP4."""
+    if frames:
+        h, w = frames[0].shape[:2]
+        fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+        writer = cv2.VideoWriter(str(path), fourcc, fps, (w, h))
+        for f in frames:
+            writer.write(f)
+        writer.release()
+    return path
+
 
 def _sl_resolution():
     """Return the sl.RESOLUTION enum for ``CAPTURE_RESOLUTION``, or None offline."""
@@ -74,7 +101,8 @@ class ZEDRecorder(ABC):
 
     Concrete backends: ``DualZEDXLiveBuffer`` (hardware) and ``FakeZEDRecorder``
     (offline). The informal contract also includes the ``running`` attribute and
-    the ``last_saved_mp4`` attribute (set by ``trigger_capture``).
+    the ``last_saved_mp4`` attribute (set by ``trigger_capture``; the cam1/right clip),
+    plus ``last_saved_clips`` — a ``{"right": cam1, "left": cam2}`` path dict (step 2c).
     """
 
     @abstractmethod
@@ -158,10 +186,10 @@ class DualZEDXLiveBuffer(ZEDRecorder):
     slots; the completed slot is committed to ``output_dir`` only when a jump
     save is requested.  Yields to scoring compute via an optional ``governor``.
 
-    The pipeline clip (MP4) is built from a **ring buffer** of the last
-    ``chunk_seconds`` of cam1 frames, snapshotted at trigger time — so the saved
-    clip is the last N seconds *ending at the request*, not "the chunk the
-    request happened to land in".
+    The pipeline clips (MP4) are built from **ring buffers** of the last
+    ``chunk_seconds`` of cam1 and cam2 frames (one per camera, step 2c),
+    snapshotted at trigger time — so each saved clip is the last N seconds
+    *ending at the request*, not "the chunk the request happened to land in".
     """
 
     DEFAULT_FPS = CAPTURE_FPS
@@ -189,13 +217,19 @@ class DualZEDXLiveBuffer(ZEDRecorder):
         self.running = False
         self.lock = threading.Lock()
         self.last_saved_mp4: Path | None = None
+        #: The saved clip pair, keyed by camera role: {"right": cam1 clip, "left": cam2 clip}.
+        self.last_saved_clips: dict[str, Path] = {}
         #: Ring buffer of the most recent ``chunk_frames`` cam1 frames (BGR).  Persists
         #: across SVO2 slot boundaries so a save always holds the last N seconds, never
         #: just "the chunk I happen to be in".
         self._ring: collections.deque = collections.deque(maxlen=self.chunk_frames)
+        #: Ring buffer of the most recent ``chunk_frames`` cam2 frames (BGR), kept in lock
+        #: step with ``_ring`` so both cameras' clips span the same last-N window (step 2c).
+        self._ring2: collections.deque = collections.deque(maxlen=self.chunk_frames)
         #: The trigger-time snapshot of the ring, taken under lock so the clip is the
         #: last N seconds *ending at the request*, not the next completed chunk.
         self._pending_frames: list = []
+        self._pending_frames2: list = []
 
         if not HAS_ZED_SDK:
             print("[ZED] pyzed not installed. Operating in OFFLINE / STUB mode.")
@@ -247,6 +281,7 @@ class DualZEDXLiveBuffer(ZEDRecorder):
         self.chunk_frames = int(seconds * self.fps)
         with self.lock:
             self._ring = collections.deque(self._ring, maxlen=self.chunk_frames)
+            self._ring2 = collections.deque(self._ring2, maxlen=self.chunk_frames)
 
     def start(self, cam1_sn: int | None = None, cam2_sn: int | None = None) -> bool:
         """Starts live capture. Returns True if successful, False if offline/failed."""
@@ -277,6 +312,7 @@ class DualZEDXLiveBuffer(ZEDRecorder):
     def _record_worker(self) -> None:
         runtime_p = sl.RuntimeParameters()
         img1 = sl.Mat()
+        img2 = sl.Mat()
 
         while self.running:
             # Backpressure: yield to scoring compute while suspended/overloaded.
@@ -303,8 +339,10 @@ class DualZEDXLiveBuffer(ZEDRecorder):
                 ):
                     frame_count += 1
                     self.zed1.retrieve_image(img1, sl.VIEW.LEFT)
+                    self.zed2.retrieve_image(img2, sl.VIEW.LEFT)
                     with self.lock:
                         self._ring.append(cv2.cvtColor(img1.get_data(), cv2.COLOR_BGRA2BGR))
+                        self._ring2.append(cv2.cvtColor(img2.get_data(), cv2.COLOR_BGRA2BGR))
 
             self.zed1.disable_recording()
             self.zed2.disable_recording()
@@ -327,20 +365,26 @@ class DualZEDXLiveBuffer(ZEDRecorder):
         if c2_src.exists():
             shutil.copy2(c2_src, dst_c2)
 
-        # The pipeline clip comes from the trigger-time ring snapshot — the last N
+        # The pipeline clips come from the trigger-time ring snapshots — the last N
         # seconds ending at the request, independent of which SVO2 chunk is current.
-        frames = self._pending_frames if self._pending_frames else list(self._ring)
-        mp4_path = self.clips_dir / f"{prefix}.mp4"
-        if frames:
-            h, w = frames[0].shape[:2]
-            fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-            writer = cv2.VideoWriter(str(mp4_path), fourcc, self.fps, (w, h))
-            for f in frames:
-                writer.write(f)
-            writer.release()
+        # One clip per camera (step 2c): cam1 -> "{prefix}_right.mp4", cam2 -> "{prefix}_left.mp4".
+        frames1 = self._pending_frames if self._pending_frames else list(self._ring)
+        frames2 = self._pending_frames2 if self._pending_frames2 else list(self._ring2)
 
-        self.last_saved_mp4 = mp4_path
-        print(f"[ZED] Saved SVO2 pair & pipeline clip: {mp4_path.name}")
+        right_path = self.clips_dir / clip_name(prefix, CLIP_CAM1_SUFFIX)
+        left_path = self.clips_dir / clip_name(prefix, CLIP_CAM2_SUFFIX)
+        _write_mp4(right_path, frames1, self.fps)
+        _write_mp4(left_path, frames2, self.fps)
+
+        self.last_saved_mp4 = right_path
+        self.last_saved_clips = {
+            CLIP_CAM1_SUFFIX: right_path,
+            CLIP_CAM2_SUFFIX: left_path,
+        }
+        print(
+            f"[ZED] Saved SVO2 pair & pipeline clips: "
+            f"{right_path.name} (cam1) + {left_path.name} (cam2)"
+        )
 
     def trigger_capture(self, prefix: str) -> Path | None:
         if not self.running:
@@ -348,9 +392,10 @@ class DualZEDXLiveBuffer(ZEDRecorder):
             return None
 
         with self.lock:
-            # Snapshot the ring AT the trigger so the clip is the last N seconds ending
+            # Snapshot both rings AT the trigger so the clips are the last N seconds ending
             # now — not whatever the next completed chunk happens to contain.
             self._pending_frames = list(self._ring)
+            self._pending_frames2 = list(self._ring2)
             self.save_prefix = prefix
             self.save_requested = True
 
@@ -415,19 +460,26 @@ class FakeZEDRecorder(ZEDRecorder):
         self.running = False
         self.lock = threading.Lock()
         self.last_saved_mp4: Path | None = None
+        #: The saved clip pair, keyed by camera role: {"right": cam1 clip, "left": cam2 clip}.
+        self.last_saved_clips: dict[str, Path] = {}
         self.frames_written = 0
         self._frame_seq = 0
         #: Ring buffer of the most recent ``chunk_frames`` synthetic frames — the true
         #: "save the last N seconds" window that survives slot (wrap) boundaries.
         self._ring: collections.deque = collections.deque(maxlen=self.chunk_frames)
+        #: Second ring for cam2 (step 2c) — filled in lock step with ``_ring``.
+        self._ring2: collections.deque = collections.deque(maxlen=self.chunk_frames)
         self._started = threading.Event()
 
     @staticmethod
-    def _synthetic_frame(i: int, width: int, height: int) -> np.ndarray:
+    def _synthetic_frame(i: int, width: int, height: int, cam: int = 1) -> np.ndarray:
         frame = np.full((height, width, 3), 40, dtype=np.uint8)
         x = (i * 37) % max(1, width - 40)
         y = (i * 23) % max(1, height - 40)
-        frame[y : y + 40, x : x + 40] = (0, 200, 255)  # BGR bright marker
+        if cam == 1:
+            frame[y : y + 40, x : x + 40] = (0, 200, 255)  # BGR bright yellow marker
+        else:
+            frame[y : y + 40, x : x + 40] = (255, 120, 0)  # BGR blue marker — distinct from cam1
         return frame
 
     def _governor_allows(self) -> bool:
@@ -438,6 +490,12 @@ class FakeZEDRecorder(ZEDRecorder):
         """Number of frames currently in the ring (0..chunk_frames)."""
         with self.lock:
             return len(self._ring)
+
+    @property
+    def ring2_frames(self) -> int:
+        """Number of cam2 frames currently in the second ring (0..chunk_frames)."""
+        with self.lock:
+            return len(self._ring2)
 
     @property
     def ring_full(self) -> bool:
@@ -453,6 +511,7 @@ class FakeZEDRecorder(ZEDRecorder):
         self.chunk_frames = int(seconds * self.fps)
         with self.lock:
             self._ring = collections.deque(self._ring, maxlen=self.chunk_frames)
+            self._ring2 = collections.deque(self._ring2, maxlen=self.chunk_frames)
 
     def start(self, cam1_sn: int | None = None, cam2_sn: int | None = None) -> bool:
         self.output_dir.mkdir(parents=True, exist_ok=True)
@@ -475,17 +534,19 @@ class FakeZEDRecorder(ZEDRecorder):
             if not self.running:
                 break
 
-            frame = self._synthetic_frame(self._frame_seq, self.width, self.height)
+            frame1 = self._synthetic_frame(self._frame_seq, self.width, self.height, cam=1)
+            frame2 = self._synthetic_frame(self._frame_seq, self.width, self.height, cam=2)
             self._frame_seq += 1
             with self.lock:
-                self._ring.append(frame)
+                self._ring.append(frame1)
+                self._ring2.append(frame2)
                 self.frames_written += 1
 
-    def _commit_jump_data(self, prefix: str, frames: list) -> Path:
+    def _commit_jump_data(self, prefix: str, frames1: list, frames2: list) -> Path:
         dst_c1 = self.output_dir / f"{prefix}_cam1.svo2"
         dst_c2 = self.output_dir / f"{prefix}_cam2.svo2"
 
-        for path, serial in zip((dst_c1, dst_c2), self.cam_serials):
+        for path, serial, n in zip((dst_c1, dst_c2), self.cam_serials, (len(frames1), len(frames2))):
             meta = {
                 "format": "svo2",
                 "synthetic": True,
@@ -494,21 +555,23 @@ class FakeZEDRecorder(ZEDRecorder):
                 "width": self.width,
                 "height": self.height,
                 "compression": CAPTURE_COMPRESSION,
-                "frames": len(frames),
+                "frames": n,
             }
             path.write_text(json.dumps(meta))
 
-        mp4_path = self.clips_dir / f"{prefix}.mp4"
-        if frames:
-            h, w = frames[0].shape[:2]
-            fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-            writer = cv2.VideoWriter(str(mp4_path), fourcc, self.fps, (w, h))
-            for f in frames:
-                writer.write(f)
-            writer.release()
+        # One pipeline clip per camera (step 2c): cam1 -> "{prefix}_right.mp4",
+        # cam2 -> "{prefix}_left.mp4".  No bare "{prefix}.mp4" is written anymore.
+        right_path = self.clips_dir / clip_name(prefix, CLIP_CAM1_SUFFIX)
+        left_path = self.clips_dir / clip_name(prefix, CLIP_CAM2_SUFFIX)
+        _write_mp4(right_path, frames1, self.fps)
+        _write_mp4(left_path, frames2, self.fps)
 
-        self.last_saved_mp4 = mp4_path
-        return mp4_path
+        self.last_saved_mp4 = right_path
+        self.last_saved_clips = {
+            CLIP_CAM1_SUFFIX: right_path,
+            CLIP_CAM2_SUFFIX: left_path,
+        }
+        return right_path
 
     def trigger_capture(self, prefix: str) -> Path | None:
         if not self.running:
@@ -521,8 +584,9 @@ class FakeZEDRecorder(ZEDRecorder):
             time.sleep(0.01)
 
         with self.lock:
-            frames = list(self._ring)
-        return self._commit_jump_data(prefix, frames)
+            frames1 = list(self._ring)
+            frames2 = list(self._ring2)
+        return self._commit_jump_data(prefix, frames1, frames2)
 
     def stop(self) -> None:
         self.running = False
