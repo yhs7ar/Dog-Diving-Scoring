@@ -245,6 +245,18 @@ def load_model(cfg: DetectConfig) -> Any:
     path = Path(cfg.model_path)
     if not path.is_file():
         raise FileNotFoundError(f"checkpoint not found: {path}")
+
+    # Try TensorRT engine first
+    engine_path = path.with_suffix(".engine")
+    if engine_path.is_file():
+        try:
+            model = YOLO(str(engine_path))
+            verify_checkpoint(model)
+            return model
+        except Exception:
+            # Fallback to .pt if engine fails
+            pass
+
     model = YOLO(str(path))
     verify_checkpoint(model)
     return model
