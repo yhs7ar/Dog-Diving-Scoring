@@ -161,7 +161,8 @@ def pc_distance(
     detections: Iterable[Any],
     *,
     lip: dict[str, Any] | None = None,
-    water_z_ft: float = 0.0,
+    water_z_ft: float | None = None,
+    water_cloud: Any = None,
     min_points: int = MIN_POINTS,
     to_world: _pc.ToWorld = _pc.zed_to_world,
 ) -> dict[str, Any]:
@@ -189,16 +190,21 @@ def pc_distance(
         "distance_ft": None, "transverse_ft": None, "frame": None,
         "point_source": "unset", "point_origin": None, "x_px": None, "y_px": None,
         "warnings": [], "excluded_frames": [], "entry_override": False,
-        "water_z_ft": float(water_z_ft), "status": None, "detail": "",
+        "water_z_ft": None, "water_z_source": None, "water_fit": None,
+        "status": None, "detail": "",
         "n_points": 0, "n_skipped": 0, "plane_rms_ft": None, "arc_rms_ft": None,
         "crossing_frame": None, "extrap_frames": None, "crossing_point_ft": None,
         "lip": None, "lip_distance_ft": None, "lip_distance_in": None, "lip_signed_ft": None,
     }
 
     cloud = _pc.trajectory_from_cloud(
-        frames_dir, detections, water_z_ft=water_z_ft, min_points=min_points, to_world=to_world)
+        frames_dir, detections, water_z_ft=water_z_ft, water_cloud=water_cloud,
+        min_points=min_points, to_world=to_world)
     out["status"] = cloud["status"]
     out["detail"] = cloud["detail"]
+    out["water_z_ft"] = cloud.get("water_z_ft")
+    out["water_z_source"] = cloud.get("water_z_source")
+    out["water_fit"] = cloud.get("water_fit")
     out["n_points"] = len(cloud["points"])
     out["n_skipped"] = len(cloud["skipped"])
     out["plane_rms_ft"] = cloud["plane_rms_ft"]

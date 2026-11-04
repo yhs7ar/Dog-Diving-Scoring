@@ -42,6 +42,7 @@ consumes it.  The synthetic fixture in the tests places the water at ``Z = 0`` b
 
 from __future__ import annotations
 
+import math
 from pathlib import Path
 from typing import Any, Callable, Iterable, Sequence
 
@@ -78,6 +79,19 @@ def zed_to_world(xyz_m: np.ndarray) -> np.ndarray:
     """
     x, y, z = (float(v) for v in np.asarray(xyz_m, dtype=float).ravel()[:3])
     return np.array([z, x, y], dtype=float) * FEET_PER_METRE
+
+
+def world_to_zed(world_ft: np.ndarray) -> np.ndarray:
+    """App world feet -> ZED camera frame metres — the inverse of :func:`zed_to_world`.
+
+    The default ``zed_to_world`` is ``world = (z, x, y) * FEET_PER_METRE``, so the inverse is
+    ``zed = (world_Y, world_Z, world_X) / FEET_PER_METRE``.  This is the canonical placeholder for a
+    camera looking down the pool with no camera-to-pool offset — the same documented assumption as
+    ``zed_to_world``.  The true floor-aligned inverse (camera above the water, behind the dock lip)
+    is hardware-verify-pending and plugs into the same seam the seed layer takes.
+    """
+    X, Y, Z = (float(v) for v in np.asarray(world_ft, dtype=float).ravel()[:3])
+    return np.array([Y, Z, X], dtype=float) / FEET_PER_METRE
 
 
 def frame_path(frames_dir: str | Path, frame_index: int) -> Path:
@@ -188,11 +202,180 @@ def points_at_detections(
     }
 
 
+# ============================================================================
+# The water plane — where ``water_z_ft`` comes from (step 6 / 1b-auto)
+# ============================================================================
+#: RANSAC plane fit defaults.  ``dist_thresh_m`` is the inlier band in metres; the ZED's depth
+#: noise on a specular water surface is coarse, so the band is generous but the inlier count is what
+#: gates "dominant".
+DIST_THRESH_M = 0.05
+MIN_INLIERS = 16
+MAX_ITER = 200
+#: A plane whose world normal is within this many degrees of vertical counts as "the water".
+ANGLE_TOL_DEG = 15.0
+
+
+def _finite_points(cloud: Any) -> np.ndarray:
+    """Flatten a cloud (``(N,3)`` or image-shaped ``(H,W,3)``) to finite ``(M,3)`` metres."""
+    arr = np.asarray(cloud, dtype=float)
+    if arr.size == 0:
+        return np.empty((0, 3), dtype=float)
+    if arr.ndim == 3:
+        arr = arr.reshape(-1, arr.shape[2])
+    arr = arr[:, :3]
+    return arr[np.isfinite(arr).all(axis=1)]
+
+
+def _plane_normal(p3: np.ndarray) -> np.ndarray | None:
+    """Unit normal of three points, or ``None`` when they are collinear/coincident."""
+    p = np.asarray(p3, dtype=float)
+    v1, v2 = p[1] - p[0], p[2] - p[0]
+    n = np.cross(v1, v2)
+    norm = float(np.linalg.norm(n))
+    if not np.isfinite(norm) or norm < 1e-12:
+        return None
+    return n / norm
+
+
+def _refine_plane(pts: np.ndarray) -> tuple[np.ndarray, float, float]:
+    """Least-squares plane (SVD) on ``pts``; returns ``(unit normal, offset, rms_m)``."""
+    pts = np.asarray(pts, dtype=float)
+    c = pts.mean(axis=0)
+    _u, _s, vt = np.linalg.svd(pts - c, full_matrices=False)
+    n = np.asarray(vt[-1], dtype=float)
+    norm = float(np.linalg.norm(n))
+    if norm < 1e-12 or not np.isfinite(norm):
+        n = np.array([0.0, 1.0, 0.0])
+    else:
+        n = n / norm
+    d = float(n @ c)
+    rms = float(np.sqrt(np.mean(((pts - c) @ n) ** 2)))
+    return n, d, rms
+
+
+def _dir_world(to_world: ToWorld, origin_m: np.ndarray, n_m: np.ndarray) -> np.ndarray | None:
+    """Map a **direction** ``n_m`` through ``to_world`` (finite-difference, exact for a linear map)."""
+    a = np.asarray(to_world(origin_m), dtype=float).ravel()[:3]
+    b = np.asarray(to_world(np.asarray(origin_m, dtype=float) + np.asarray(n_m, dtype=float)),
+                   dtype=float).ravel()[:3]
+    v = b - a
+    norm = float(np.linalg.norm(v))
+    if not np.isfinite(norm) or norm < 1e-12:
+        return None
+    return v / norm
+
+
+def fit_water_plane(
+    cloud: Any,
+    *,
+    to_world: ToWorld = zed_to_world,
+    dist_thresh_m: float = DIST_THRESH_M,
+    min_inliers: int = MIN_INLIERS,
+    max_iter: int = MAX_ITER,
+    angle_tol_deg: float = ANGLE_TOL_DEG,
+    seed: int = 0,
+) -> dict[str, Any]:
+    """Fit the dominant horizontal plane to a point cloud -> ``water_z_ft`` in world feet.
+
+    The water is a single physical surface seen by (ideally) two cameras, so a **fused** cloud
+    (``fusion.fuse_point_clouds``) is preferred, but a single image-shaped cloud or a
+    ``merge_frames_cloud`` stack works too.  RANSAC finds the plane with the most inliers (the water
+    dominates the scene), then a least-squares refinement pins it; the fitted normal is checked to be
+    within ``angle_tol_deg`` of vertical **in world feet** (the ``to_world`` seam, so the check is
+    independent of the ZED frame) and ``water_z_ft`` is that plane's world ``Z``.
+
+    Returns ``{status, normal_m, offset_m, water_z_ft, rms_m, n_inliers, inlier_fraction, n_points,
+    detail}`` with ``status`` ``\"ok\"``, ``\"no_points\"``, ``\"degenerate\"``, ``\"few_inliers\"``
+    or ``\"not_horizontal\"`` — a refused fit never carries a ``water_z_ft``.
+    """
+    out: dict[str, Any] = {"status": None, "normal_m": None, "offset_m": None, "water_z_ft": None,
+                           "rms_m": None, "n_inliers": 0, "inlier_fraction": None,
+                           "n_points": 0, "detail": ""}
+    pts = _finite_points(cloud)
+    out["n_points"] = int(pts.shape[0])
+    if pts.shape[0] < 3:
+        out.update(status="no_points",
+                   detail=f"{pts.shape[0]} finite point(s) — a plane needs at least 3")
+        return out
+
+    rng = np.random.default_rng(int(seed))
+    best: tuple[int, np.ndarray, float, np.ndarray] | None = None
+    for _ in range(int(max_iter)):
+        idx = rng.choice(pts.shape[0], 3, replace=False)
+        n = _plane_normal(pts[idx])
+        if n is None:
+            continue
+        d = float(n @ pts[idx[0]])
+        dist = np.abs(pts @ n - d)
+        mask = dist < float(dist_thresh_m)
+        cnt = int(mask.sum())
+        if best is None or cnt > best[0]:
+            best = (cnt, n, d, mask)
+    if best is None:
+        out.update(status="degenerate", detail="no 3 non-collinear samples produced a plane")
+        return out
+    cnt, n, d, mask = best
+    if cnt < int(min_inliers):
+        out.update(status="few_inliers", n_inliers=cnt,
+                   detail=f"the dominant plane has {cnt} inlier(s) (need {int(min_inliers)}) — "
+                          f"the water does not dominate this cloud")
+        return out
+    n, d, rms = _refine_plane(pts[mask])
+    out["normal_m"] = n.tolist()
+    out["offset_m"] = float(d)
+    out["rms_m"] = float(rms)
+    out["n_inliers"] = int(mask.sum())
+    out["inlier_fraction"] = float(mask.sum() / pts.shape[0])
+
+    origin_m = n * d
+    nw = _dir_world(to_world, origin_m, n)
+    if nw is None:
+        out.update(status="degenerate", detail="the plane normal could not be mapped to world feet")
+        return out
+    if nw[2] < 0.0:
+        n, d, nw = -n, -d, -nw
+        origin_m = n * d
+        out["normal_m"] = n.tolist()
+        out["offset_m"] = float(d)
+    cos_up = float(nw[2])
+    if cos_up < float(math.cos(math.radians(angle_tol_deg))):
+        out.update(status="not_horizontal",
+                   detail=f"the dominant plane tilts {math.degrees(math.acos(min(max(cos_up, -1.0), 1.0))):.1f} deg "
+                          f"from vertical in world feet (allow {angle_tol_deg:g}) — not a water surface")
+        return out
+    out["water_z_ft"] = float(np.asarray(to_world(origin_m), dtype=float).ravel()[2])
+    out["status"] = "ok"
+    out["detail"] = (f"water plane at world Z = {out['water_z_ft']:+.2f} ft "
+                     f"({out['n_inliers']} inliers, {out['inlier_fraction']:.1%} of {out['n_points']} pts, "
+                     f"RMS {out['rms_m']:.3f} m)")
+    return out
+
+
+def merge_frames_cloud(frames_dir: str | Path,
+                       frame_indices: Iterable[int] | None = None) -> np.ndarray:
+    """Stack every finite point of the per-frame clouds into one ``(M, 3)`` metres cloud.
+
+    The fused cloud is the better input for the water-plane fit (one surface, two cameras), but when
+    only the per-frame ``frame_{i:06d}.npy`` files exist this is the fallback — the water region in
+    any single frame is enough to fit a horizontal plane.
+    """
+    frames_dir = Path(frames_dir)
+    if frame_indices is None:
+        files = sorted(frames_dir.glob("frame_*.npy"))
+    else:
+        files = [frame_path(frames_dir, int(i)) for i in frame_indices]
+    blocks = [_finite_points(np.load(f)) for f in files if f.is_file()]
+    if not blocks:
+        return np.empty((0, 3), dtype=float)
+    return np.vstack(blocks)
+
+
 def trajectory_from_cloud(
     frames_dir: str | Path,
     detections: Iterable[Any],
     *,
-    water_z_ft: float = 0.0,
+    water_z_ft: float | None = None,
+    water_cloud: Any = None,
     min_points: int = MIN_POINTS,
     to_world: ToWorld = zed_to_world,
 ) -> dict[str, Any]:
@@ -208,17 +391,26 @@ def trajectory_from_cloud(
       ``water_z_ft`` on the descending branch (apex-gated).
 
     Returns ``{status, detail, points, skipped, plane, plane_rms_ft, traj, arc_rms_ft, crossing,
-    distance_ft, distance_in, water_z_ft}``.  ``status`` is ``"ok"``, ``"no_points"``,
-    ``"few_points"``, ``"no_plane"``, ``"no_fit"`` or ``"no_crossing"``.  ``distance_ft`` is the
+    distance_ft, distance_in, water_z_ft, water_z_source, water_fit}``.  ``status`` is ``"ok"``,
+    ``"no_water_level"``, ``"no_points"``, ``"few_points"``, ``"no_plane"``, ``"no_fit"`` or
+    ``"no_crossing"``.  ``distance_ft`` is the
     ``X`` of the crossing point (the distance from the dock edge, which the world frame places at
     ``X = 0``), so it is the same quantity the plane/arc routes report — comparable, not a new unit.
+
+    ``water_z_ft`` is resolved just before the crossing (the only step that needs it): pass it
+    explicitly (the old path), or pass ``water_cloud`` (a fused or image-shaped cloud, or a
+    ``merge_frames_cloud`` stack) and it is fitted by :func:`fit_water_plane`.  When neither is given
+    and ``water_z_ft`` is ``None`` the per-frame clouds in ``frames_dir`` are merged and fitted as a
+    last resort; if that fails the result is ``no_water_level`` — the water height is essential to
+    the crossing, so it is never silently defaulted to zero.
     """
     out: dict[str, Any] = {
         "status": None, "detail": "", "points": [], "skipped": [],
         "plane": None, "plane_rms_ft": None, "traj": None, "arc_rms_ft": None,
         "crossing": None, "distance_ft": None, "distance_in": None,
-        "water_z_ft": float(water_z_ft),
+        "water_z_ft": None, "water_z_source": None, "water_fit": None,
     }
+
     looked = points_at_detections(frames_dir, detections, to_world=to_world)
     out["points"], out["skipped"] = looked["points"], looked["skipped"]
     if not out["points"]:
@@ -249,6 +441,23 @@ def trajectory_from_cloud(
                     "detail": "the 3-D points were built but no arc survived the fit"})
         return out
     out["arc_rms_ft"] = traj.arc_rms_ft
+
+    if water_z_ft is None:
+        source_cloud = water_cloud
+        if source_cloud is None:
+            source_cloud = merge_frames_cloud(frames_dir)
+        wfit = fit_water_plane(source_cloud, to_world=to_world)
+        out["water_fit"] = wfit
+        if wfit["status"] != "ok":
+            out.update(status="no_water_level",
+                       detail=f"no water plane could be fitted: {wfit['detail']}")
+            return out
+        water_z_ft = wfit["water_z_ft"]
+        out["water_z_ft"] = float(water_z_ft)
+        out["water_z_source"] = "cloud_fit"
+    else:
+        out["water_z_ft"] = float(water_z_ft)
+        out["water_z_source"] = "supplied"
 
     apex = _apex_frame(traj.coeffs)
     cross = _geometry.intersect_curve_with_elevation(traj.coeffs, float(water_z_ft), t_min=apex)
