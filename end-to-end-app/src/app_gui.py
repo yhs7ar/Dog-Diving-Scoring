@@ -95,6 +95,7 @@ from dog_diving import distance as distance_mod  # noqa: E402
 from dog_diving import measure as measure_mod  # noqa: E402
 from dog_diving import report as report_mod  # noqa: E402
 from dog_diving import replay as replay_mod  # noqa: E402
+from dog_diving import ledger as ledger_mod  # noqa: E402
 from dog_diving import stability as stability_mod  # noqa: E402
 from dog_diving import waterline as waterline_mod  # noqa: E402
 from dog_diving.pool import seed as seed_mod  # noqa: E402
@@ -108,6 +109,8 @@ from dog_diving.config import (  # noqa: E402
     DEFAULT_CONF,
     DEFAULT_IMGSZ,
     DEFAULT_KP_CONF,
+    DOG_NAMES_PATH,
+    LEDGER_PATH,
     MIN_ACCEPTED_POINTS,
     MODELS_DIR,
     MODEL_SELECTION_NOTE,
@@ -1137,6 +1140,12 @@ class App:
         #: here (display + inches + clip + timestamp); the dog name + CSV/ledger write is step 5a's
         #: job and reads this.  ``None`` = nothing accepted yet (or a new run discarded it).
         self.pending_accept: dict | None = None
+        #: Step 5a — score ledger + remembered dog names.  The paths default to the config
+        #: constants but live on ``self`` so a test (or an unattended run) can redirect them
+        #: without touching the real ``data/`` tree.
+        self.ledger_path: Path = LEDGER_PATH
+        self.dog_names_path: Path = DOG_NAMES_PATH
+        self.dog_names: list[str] = ledger_mod.load_dog_names(self.dog_names_path)
         self.show_grid = True
         #: *Correct Entry* mode: while it is armed the entry X can be hovered and dragged, and the
         #: trajectory is cut where it is dropped.  (Named ``correct_point_mode`` until 2026-10-21;
@@ -1784,6 +1793,24 @@ class App:
                    command=self.on_accept).pack(side="left", padx=3)
         self.accept_label = ttk.Label(acc, text="(nothing accepted)")
         self.accept_label.pack(side="left", padx=8)
+
+        # Step 5a — Save to ledger: a dog-name field (with remembered names) + the accepted
+        # measurement persisted to the score CSV.  Distinct from 4b's accept frame so that
+        # accept (park) and save (persist) stay two visible steps; saving re-captures the
+        # measurement directly when nothing is parked (see ``on_save_ledger``).
+        save = ttk.LabelFrame(f, text="save to ledger", padding=4)
+        save.pack(fill="x", pady=6)
+        ttk.Label(save, text="dog name").pack(side="left", padx=(0, 3))
+        self.dog_name_var = tk.StringVar()
+        self.dog_name_box = ttk.Combobox(save, textvariable=self.dog_name_var, width=18,
+                                         values=list(self.dog_names))
+        self.dog_name_box.pack(side="left", padx=3)
+        ttk.Button(save, text="Save score", width=14,
+                   command=self.on_save_ledger).pack(side="left", padx=3)
+        ttk.Button(save, text="Open ledger CSV", width=16,
+                   command=self.on_open_ledger).pack(side="left", padx=3)
+        self.save_label = ttk.Label(save, text="")
+        self.save_label.pack(side="left", padx=8)
 
     # -- logging / status ---------------------------------------------------
     def log(self, msg: str) -> None:
@@ -3496,6 +3523,57 @@ class App:
         if hasattr(self, "accept_label"):
             self.accept_label.configure(text=f"pending: {label}")
         self.log(f"accept \u2192 5a (persist pending): {label}")
+
+    # -- Results-pane Save-to-ledger (step 5a) -------------------------------
+    def on_save_ledger(self) -> None:
+        """Persist the accepted score (with a dog name) to the step-5a CSV ledger.
+
+        Reads ``pending_accept`` when it is still live; if a new run has cleared it, the
+        measurement is re-captured directly from ``ReviewState.measurement()`` so the Save
+        button is self-sufficient (Accept is a convenience, not a precondition).  An empty
+        dog name is refused rather than silently recording an unnamed score.
+        """
+        if self.review is None:
+            self.log("no run to save")
+            return
+        name = (self.dog_name_var.get() if hasattr(self, "dog_name_var") else "").strip()
+        if not name:
+            self.log("enter a dog name to save")
+            return
+        pending = self.pending_accept
+        if pending is None:
+            meas = self.review.measurement()
+            pending = {
+                "clip": str(self.clip) if self.clip is not None else None,
+                "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
+                "display": meas.get("display"),
+                "total_inches": meas.get("total_inches"),
+                "measurement": meas,
+            }
+        row = ledger_mod.ledger_row(name, pending)
+        try:
+            ledger_mod.append_ledger_row(self.ledger_path, row)
+        except Exception as exc:  # noqa: BLE001
+            self.log(f"ledger write failed: {type(exc).__name__}: {exc}")
+            return
+        self.dog_names = ledger_mod.remember_dog_name(self.dog_names_path, name)
+        if hasattr(self, "dog_name_box"):
+            self.dog_name_box.configure(values=list(self.dog_names))
+        if hasattr(self, "save_label"):
+            self.save_label.configure(text=f"saved: {row['display']} ({name})")
+        self.log(f"saved \u2192 ledger: {name} @ {row['display']}")
+
+    def on_open_ledger(self) -> None:
+        """Open the score ledger CSV with the OS default (Windows: shell-open)."""
+        import subprocess
+        path = Path(self.ledger_path)
+        try:
+            if path.exists():
+                subprocess.Popen(["explorer", str(path)], shell=False)
+            else:
+                self.log(f"ledger not yet written: {path}")
+        except Exception as exc:  # noqa: BLE001
+            self.log(f"could not open ledger: {type(exc).__name__}: {exc}")
 
     # -- the scoring-method switch (2026-11-01) ------------------------------
     def on_trajectory_space(self, space: str | None = None) -> str:

@@ -22,6 +22,18 @@ if _fusion_json_raw:
 # default ``data/svo_recordings``, kept as a project constant rather than a literal).
 SVO_RECORDINGS_DIR = PROJECT_ROOT / "data" / "svo_recordings"
 
+# Score ledger (step 5a): where accepted jumps are appended (CSV) and where the remembered
+# dog names live (JSON).  Env overrides let a rig run stage them elsewhere without editing
+# the tree — same pattern as ``DD_FUSION_JSON`` above.
+LEDGER_PATH = PROJECT_ROOT / "data" / "score_ledger.csv"
+DOG_NAMES_PATH = PROJECT_ROOT / "data" / "dog_names.json"
+_ledger_raw = os.environ.get("DD_LEDGER", "").strip()
+if _ledger_raw:
+    LEDGER_PATH = Path(_ledger_raw)
+_dog_names_raw = os.environ.get("DD_DOG_NAMES", "").strip()
+if _dog_names_raw:
+    DOG_NAMES_PATH = Path(_dog_names_raw)
+
 #: The trajectory's pose checkpoint, resolved **inside** ``models/``.
 #:
 #: Declared in :data:`MODEL_REGISTRY` below.  The model of record is ``yolo26n-pose_dogs_v5.pt``:
