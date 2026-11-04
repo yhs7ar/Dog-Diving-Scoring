@@ -1133,6 +1133,10 @@ class App:
         self._plane_shown_key: tuple[int, tuple[int, ...]] | None = None
         self.outcome: PipelineOutcome | None = None
         self.review: ReviewState | None = None
+        #: A score the judge has accepted but not yet persisted.  Step 4b parks the measurement
+        #: here (display + inches + clip + timestamp); the dog name + CSV/ledger write is step 5a's
+        #: job and reads this.  ``None`` = nothing accepted yet (or a new run discarded it).
+        self.pending_accept: dict | None = None
         self.show_grid = True
         #: *Correct Entry* mode: while it is armed the entry X can be hovered and dragged, and the
         #: trajectory is cut where it is dropped.  (Named ``correct_point_mode`` until 2026-10-21;
@@ -1768,6 +1772,18 @@ class App:
                        command=lambda k=key, e=ext: self.on_export(k, e)).pack(side="left", padx=3)
         ttk.Button(exp, text="Open output folder",
                    command=self.on_open_outdir).pack(side="left", padx=8)
+        ttk.Button(exp, text="Replay 0.25\u00d7", width=14,
+                   command=self.on_replay_from_results).pack(side="left", padx=(8, 3))
+
+        # Step 4b — Accept: park the current measurement for step 5a's ledger.  The persistence
+        # (dog name + CSV) is deliberately NOT built here; on_accept only captures into
+        # ``pending_accept`` and logs.  A distinct frame so it is visually separate from export.
+        acc = ttk.LabelFrame(f, text="accept", padding=4)
+        acc.pack(fill="x", pady=6)
+        ttk.Button(acc, text="Accept score", width=20,
+                   command=self.on_accept).pack(side="left", padx=3)
+        self.accept_label = ttk.Label(acc, text="(nothing accepted)")
+        self.accept_label.pack(side="left", padx=8)
 
     # -- logging / status ---------------------------------------------------
     def log(self, msg: str) -> None:
@@ -3359,6 +3375,10 @@ class App:
         # would silently measure a point this run may not even have.
         self.review.entry_frame = None
         self.review.entry_live = False
+        # A pending accept belongs to the run it was captured from; a new run leaves nothing pending.
+        self.pending_accept = None
+        if hasattr(self, "accept_label"):
+            self.accept_label.configure(text="(nothing accepted)")
         # The scoring method is the operator's choice, not the run's: keep whatever the switch is
         # set to, so a run started after picking "Trajectory plane" is scored that way.
         if hasattr(self, "space_var"):
@@ -3436,6 +3456,46 @@ class App:
         if getattr(self, "replay", None) is not None:
             self.replay.pause()
         self._sync_play_btn()
+
+    # -- Results-pane Replay / Accept (step 4b) ------------------------------
+    def on_replay_from_results(self) -> None:
+        """Replay from the Results pane: jump to Review and start 0.25\u00d7 playback.
+
+        A thin second entry point into 4c's player — the playback loop itself lives in
+        ``on_play_toggle`` and is not duplicated here.  Same guard the rest of Review uses:
+        no run means nothing to replay, logged and returned.
+        """
+        if self.review is None:
+            self.log("no run to replay")
+            return
+        self.nb.select(self.tab_review)
+        self.on_play_toggle()
+
+    def on_accept(self) -> None:
+        """Capture the current measurement into a pending-accept state.
+
+        The distance is ``ReviewState.measurement()`` — the operator's rule (PLAN \u00a716): the
+        final accepted detection, assumed on the plane.  ``display`` / ``total_inches`` + clip +
+        timestamp are parked in ``self.pending_accept``.  The persistence (dog name + the score
+        ledger) is step 5a's job and is deliberately NOT half-built here: 5a's design names
+        ``src/dog_diving/ledger.py`` + a ``data/dog_names.json`` names list, and the CSV-vs-.xlsx
+        and ledger-location choices are still open.
+        """
+        if self.review is None:
+            self.log("no run to accept")
+            return
+        meas = self.review.measurement()
+        self.pending_accept = {
+            "clip": str(self.clip) if self.clip is not None else None,
+            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
+            "display": meas.get("display"),
+            "total_inches": meas.get("total_inches"),
+            "measurement": meas,
+        }
+        label = f"{self.pending_accept['display']} @ {self.pending_accept['clip']}"
+        if hasattr(self, "accept_label"):
+            self.accept_label.configure(text=f"pending: {label}")
+        self.log(f"accept \u2192 5a (persist pending): {label}")
 
     # -- the scoring-method switch (2026-11-01) ------------------------------
     def on_trajectory_space(self, space: str | None = None) -> str:
