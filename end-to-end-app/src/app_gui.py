@@ -1153,7 +1153,7 @@ class App:
                     output_dir="data/svo_recordings",
                     clips_dir="data/clips",
                     chunk_seconds=5,
-                    fps=60
+                    fps=30
                 )
                 if not self.zed_recorder.start():
                     self.zed_recorder = None
