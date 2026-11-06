@@ -5,4 +5,5 @@ Scored dog diving videos/
 .venv_jetson/
 home/dogdiving/Documents/Captstone-Repo/end-to-end-app/run_app.cmd
 *.svo2
+end-to-end-app/data/clips
 data/clips
