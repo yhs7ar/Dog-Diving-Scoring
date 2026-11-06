@@ -2877,7 +2877,19 @@ class App:
             except Exception:                                        # noqa: BLE001
                 pass
         doc = self._build_pool_doc()
-if doc is not None:            from tkinter import simpledialog            name = simpledialog.askstring("Save Plane", "Enter plane name:")            if name:                from datetime import datetime                timestamp = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")                save_path = Path("/home/dogdiving/Documents/Captstone-Repo/end-to-end-app/planes") / f"{name}_{timestamp}.json"                import json                with open(save_path, "w") as f:                    json.dump(doc, f)                self.log(f"plane saved to {save_path.name}")            self._show_pool_doc(doc, source="aligned plane")            self.log("plane confirmed — the document is built from the full-pool quad")            self._place_default_anchors()
+        if doc is not None:            from tkinter import simpledialog            
+        name = simpledialog.askstring("Save Plane", "Enter plane name:")            
+        if name:                
+            from datetime import datetime                
+            timestamp = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")                
+            save_path = Path("/home/dogdiving/Documents/Captstone-Repo/end-to-end-app/planes") / f"{name}_{timestamp}.json"                
+            import json                
+            with open(save_path, "w") as f:                    
+                json.dump(doc, f)                
+                self.log(f"plane saved to {save_path.name}")            
+                self._show_pool_doc(doc, source="aligned plane")            
+                self.log("plane confirmed — the document is built from the full-pool quad")            
+                self._place_default_anchors()
 
     def _place_default_anchors(self) -> None:
         """Switch the selectable quad to the 10 / 15 ft defaults, leaving the plane where it is."""

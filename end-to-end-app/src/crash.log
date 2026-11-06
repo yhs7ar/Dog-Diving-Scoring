@@ -90,3 +90,6 @@
 [2026-11-06 11:21:32 UTC][ZED][ERROR] checkStreamStatus: no NEW_FRAME state within 20000ms budget (elapsed 20015ms)
 [2026-11-06 11:21:32 UTC][ZED][ERROR] [Init]  Corrupted frames were detected. Please verify that your camera is properly connected.
 [2026-11-06 11:21:32 UTC][ZED][ERROR] FAILURE in sl::ERROR_CODE sl::Camera::open(sl::InitParameters)
+(Argus) Error 0x00030002: Unexpected error in reading socket (in src/rpc/socket/client/ClientSocketManager.cpp, function recvThreadCore(), line 281)
+(Argus) Error 0x00030002: Receiving thread terminated with error (in src/rpc/socket/client/ClientSocketManager.cpp, function recvThreadWrapper(), line 388)
+X connection to :0 broken (explicit kill or server shutdown).
