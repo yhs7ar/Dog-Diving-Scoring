@@ -10,9 +10,11 @@ PLAN §5, ``app_gui.py`` — Tkinter flow (D5)::
                    are detected as well as its two long waterlines, and X = 0 lands on whichever end
                    the orientation control selects.  Plus two anchors (near dock / opposite dock),
                    Re-fit Waterline, Flip Plane (left-right, which changes the NUMBER scale only)
-                   and Complete.  The saved-plane picker keys each document to its clip's sha256;
-                   "Save New Plane" is hidden (2026-10-27) and Complete commits the quad.  A clip
-                   that has a saved plane gets it automatically on load.
+                   and Complete.  **One plane per competition**: the plane is set once after the rig
+                   is placed and reused for every clip — it is NOT keyed to a clip.  The dropdown
+                   lists every previously saved plane (no "auto"); saving prompts for a prefix and
+                   writes ``planes/<prefix>_<timestamp>.pool.json``, and the last choice is
+                   remembered so it survives an app restart.
     3. Process   — `Run` in a worker thread; progress bar with frame count and ETA
                    (measured throughput, not guessed); `Cancel`; "using cached
                    tracks" indicator; a quick `Preview on this frame` button.
@@ -69,6 +71,7 @@ Run::
 from __future__ import annotations
 
 import argparse
+import json
 import math
 import os
 import queue
@@ -103,6 +106,7 @@ from dog_diving import trajectory as trajectory_mod  # noqa: E402
 from dog_diving import video as video_mod  # noqa: E402
 from dog_diving.pool import calib as pool_calib_mod  # noqa: E402
 from dog_diving.config import (  # noqa: E402
+    ACTIVE_PLANE_PATH,
     CALIB_DIR,
     CAPTURE_SECONDS,
     CLIP_DIR,
@@ -115,6 +119,7 @@ from dog_diving.config import (  # noqa: E402
     MODELS_DIR,
     MODEL_SELECTION_NOTE,
     OUT_DIR,
+    PLANES_DIR,
     POOL_WIDTH_FT,
     dog_specs,
     spec_for_path,
@@ -1118,14 +1123,19 @@ class App:
         #: Canvas-px positions of the four per-edge lock icons, rebuilt on every overlay draw and
         #: used by ``_lock_at`` so a click on a lock toggles that edge instead of grabbing a handle.
         self._lock_hotspots: dict[str, tuple[float, float]] = {}
-        #: The clip's sha256, computed on load and reused as the key that finds this clip's plane.
+        #: The clip's sha256, computed on load; keys the waterline seed cache (NOT the plane).
         self.clip_sha: str = ""
-        #: The saved plane's identity: its setup id and the clips it has been accepted for.
+        #: The selected plane's identity (its prefix / setup id).  Competition model: one plane,
+        #: reused for every clip — there is no per-clip plane list any more.
         self._plane_setup_id: str | None = None
-        self._plane_clips: list[dict] = []
-        #: Where saved planes live.  A real run uses ``CALIB_DIR``; tests point it at a tmp dir so a
-        #: save cannot leak into the operator's calibrations.
-        self.plane_dir = Path(CALIB_DIR)
+        #: Where saved planes live.  A real run uses the project ``planes/`` dir; tests point it at a
+        #: tmp dir so a save cannot leak into the operator's calibrations.
+        self.plane_dir = Path(PLANES_DIR)
+        #: Where the remembered active-plane pointer lives (overridable in tests).
+        self.active_plane_path: Path = Path(ACTIVE_PLANE_PATH)
+        #: The plane remembered from a previous session, so the one competition plane survives an
+        #: app restart.  ``None`` = nothing remembered yet.
+        self._active_plane_path: Path | None = self._read_active_plane_path()
         #: Group-deselect band state on the Review canvas (armed by the Deselect points button).
         self.marquee_mode = False
         self._band0: tuple[float, float] | None = None
@@ -1356,27 +1366,22 @@ class App:
         self.calib_frame_idx = tk.IntVar(value=CALIB_FRAME_DEFAULT)
         self.grid_var = tk.BooleanVar(value=True)
 
-        # Which saved plane this clip uses. The list allows pointing a clip at a saved plane.
-        # own plane is adopted when it is opened (Load pool doc, 2026-10-21).  The list exists for the
-        # one case auto cannot cover — pointing a clip at a plane that was saved for OTHER clips, so
-        # that saving adds this clip to that plane's accepted list instead of making a copy.
+        # The one plane for the whole competition.  It is set once after the rig is placed and
+        # reused for every clip; the dropdown lists every previously saved plane and nothing else
+        # (no "auto").  ``None`` in the combobox = no plane selected.
         pick = ttk.Frame(f)
         pick.pack(anchor="w")
-        ttk.Label(pick, text="saved plane:").pack(side="left")
+        ttk.Label(pick, text="plane:").pack(side="left")
         self.plane_pick_var = tk.StringVar(value="")
         self.plane_pick = ttk.Combobox(pick, textvariable=self.plane_pick_var, width=34,
                                        state="readonly")
         self.plane_pick.pack(side="left", padx=4)
         self.plane_pick.bind("<<ComboboxSelected>>", self.on_pick_plane)
-        # Save New Plane belongs beside the picker (operator order): the picker decides which plane is
-        # loaded, so the button that commits the current quad goes with it rather than in the button
-        # row, where it was read as part of the alignment workflow.
-        # "Save New Plane" is hidden (operator order 2026-10-27): the plane is committed by Complete,
-        # and the extra button was being read as part of the alignment workflow.
+        # "Save New Plane" stays hidden (operator order 2026-10-27): the plane is committed by
+        # "Plane Confirmed", which prompts for a prefix and writes the file.
         self.save_plane_btn = ttk.Button(pick, text="Save New Plane", command=self.on_save_pool)
-        # Whether this clip has a saved plane at all — the document is found by CLIP, not named by
-        # hand (operator order 2026-10-21).
-        self.pool_status = ttk.Label(pick, text="no saved plane for this clip")
+        # Whether a plane is selected at all (the dropdown lists saved planes; no auto matching).
+        self.pool_status = ttk.Label(pick, text="no plane selected")
         self.pool_status.pack(side="left", padx=(12, 0))
 
         # --- the 3-D route: one plane on the water surface (2026-10-19) ------
@@ -1998,26 +2003,21 @@ class App:
         self.slider.configure(to=max(1, int(self.info.n_frames) - 1))
         self.stability = None
         self.stability_overridden = False
-        # A different clip is a different plane until proven otherwise: drop the previous one, then
-        # let the clip itself find its saved plane (Load pool doc, now automatic).
-        self.pool_calib = None
-        self.pool_calib_path = None
+        # Competition model: ONE plane is set once after the rig is placed and reused for every
+        # clip.  Opening a clip must NOT drop or re-match the plane — it only moves the overlay
+        # onto this clip's frame.  ``_restore_plane_for_view`` re-applies the plane already active
+        # (or the one remembered in ``data/active_plane.json``).
         self.pool_result = None
-        self.plane_session = None
         self.seed_edges = None
-        self._plane_setup_id = None
-        self._plane_clips = []
         self.clip_sha = ""
-        self._clip_sha()
-        if hasattr(self, "plane_pick_var"):
-            self.plane_pick_var.set("auto")
+        self._clip_sha()                     # still needed: it keys the waterline seed cache
         self._refresh_plane_choices()
+        self._restore_plane_for_view()
         self._sync_plane_widgets()
         self.log(f"loaded {clip.name} ({self.info.n_frames} frames)")
         # Calibrate is where the work is, and the stability check no longer waits to be asked for:
         # it starts here, by itself, and only a FAILURE interrupts (order 2026-10-28).
         self.nb.select(self.tab_calib)
-        self.root.after(1, self.auto_load_plane_for_clip)
         self.root.after(2, self.on_stability)
 
     def on_stability(self) -> None:
@@ -2046,8 +2046,9 @@ class App:
         if rep.verdict != "unusable":
             self.stability_overridden = False
             self.log(f"stability: {rep.verdict} ({rep.max_drift_px:.2f} px)")
-            # Stable ⇒ place the plane NOW, without waiting to be asked (order 2026-10-28).  A saved
-            # plane for this clip wins: auto_load_plane_for_clip adopted it before the check landed.
+            # Stable ⇒ place the plane NOW, without waiting to be asked (order 2026-10-28).  An
+            # active plane (already loaded, or restored from ``data/active_plane.json``) is kept;
+            # this only fits a new one when none is selected.
             if self.plane_session is None and self.clip is not None:
                 self.log("stable clip — placing the plane over the pool")
                 self.on_new_plane()
@@ -2191,8 +2192,7 @@ class App:
         self.pool_calib = None
         self.pool_calib_path = None
         self._plane_setup_id = None
-        self._plane_clips = []
-        self.pool_status.configure(text="new plane — not saved for this clip yet")
+        self.pool_status.configure(text="new plane — not saved yet")
         # Snapping is armed and stays armed: the per-edge locks decide what actually moves.
         self.snap_on_var.set(True)
         self._sync_snap_btn()
@@ -2921,45 +2921,22 @@ class App:
             except Exception:                                        # noqa: BLE001
                 pass
         doc = self._build_pool_doc()
-    def on_build_plane(self) -> None:
-        """Plane Confirmed: commit the plane, then hand the operator the inner anchor pair.
-
-        The document is built from the FULL-pool quad — that is the fit, and it is what the
-        measurement uses.  Only afterwards do the anchors move to their 10 / 15 ft defaults, so the
-        next drag starts inside the pool instead of at its walls.  ``apply_anchors`` re-projects
-        through the same homography, so the plane itself does not move (measured: ~1e-12 px).
-        """
-        s = self.plane_session
-        # Pressing the button twice must not turn the 10/15 band into the document: if the quad is
-        # sitting on the post-confirmation defaults, restore the pool-wide labels first.
-        if s is not None and s.placed and                 abs(s.dock_offset_ft - SEED_ANCHOR_NEAR_FT) < 1e-9 and                 abs(s.length_ft - (SEED_ANCHOR_FAR_FT - SEED_ANCHOR_NEAR_FT)) < 1e-9:
-            try:
-                s.apply_anchors(0.0, float(plane_mod.METRIC_LENGTH_FT))
-            except Exception:                                        # noqa: BLE001
-                pass
-        doc = self._build_pool_doc()
         if doc is not None:
-            from tkinter import messagebox, simpledialog
-            choice = messagebox.askyesnocancel("Plane Confirmed", "Do you want to save this plane to disk?\n\n(Click Yes to save with a new name, No to apply calibration without saving / skip saving, Cancel to abort)")
+            from tkinter import messagebox
+            choice = messagebox.askyesnocancel(
+                "Plane Confirmed",
+                "Save this plane to disk?\n\n"
+                "Yes = save it (you name it next), No = use it without saving, Cancel = abort")
             if choice is True:
-                name = simpledialog.askstring("Save Plane", "Enter plane name:")
-                if name:
-                    from datetime import datetime
-                    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-                    planes_dir = Path(getattr(self, "plane_dir", None) or (Path(__file__).resolve().parent.parent / "planes"))
-                    planes_dir.mkdir(parents=True, exist_ok=True)
-                    save_path = planes_dir / f"{name}_{timestamp}.json"
-                    import json
-                    with open(save_path, "w") as f:
-                        json.dump(doc, f)
-                    self.log(f"plane saved to {save_path.name}")
+                # Single save path: prompts for a prefix and writes
+                # planes/<prefix>_<timestamp>.pool.json, set as the active plane.
+                self.on_save_pool()
             elif choice is False:
-                self.log("Plane calibration applied (saving skipped).")
+                self._show_pool_doc(doc, source="aligned plane")
+                self.log("plane calibration applied (not saved)")
             else:
                 return
-            
-            self._show_pool_doc(doc, source="aligned plane")
-            self.log("plane confirmed — the document is built from the full-pool quad")
+
             self._place_default_anchors()
             self._refresh_plane_choices()
 
@@ -2983,11 +2960,13 @@ class App:
                  f"{info['plane_shift_px']:.1e} px (it does not move)")
 
     def _plane_id(self) -> str:
-        """The document's id: the loaded plane's, else one derived from the clip."""
+        """The plane's id: its saved prefix, else a neutral placeholder until it is saved.
+
+        Competition model: the id is never derived from the clip — a plane is not clip-bound.
+        """
         if self._plane_setup_id:
             return str(self._plane_setup_id)
-        stem = (self.clip.stem if self.clip is not None else "pool")
-        return f"plane_{stem}"
+        return "plane"
 
     def _build_pool_doc(self) -> dict | None:
         """Build the document from the quad as it stands, or log why it could not be built."""
@@ -3044,56 +3023,59 @@ class App:
         self.log(f"pool calibration from {source}")
         self._redraw_plan()
 
-    def on_save_pool(self) -> None:
-        """Build the document and save it against this CLIP — the plane replaces the setup id.
+    def on_save_pool(self, prefix: str | None = None) -> None:
+        """Save the current plane as ``planes/<prefix>_<timestamp>.pool.json``.
 
-        Operator order (2026-10-21): *"Save pool doc should automatically match planes to a set of
-        clips; if an existing plane is selected and saved for another clip, that clip is added to
-        the list of accepted clips for which that plane is valid."*  Hence: one file per planE,
-        keyed by the clip's sha256, whose ``clips`` list grows whenever the same plane is saved
-        while a different clip is open.
+        Competition model: a plane is **not** tied to a clip.  The operator names it with a
+        prefix (e.g. the event or pool) and that one plane is reused for every clip.  A
+        timestamp is always appended so a new save can never overwrite an older plane.
         """
         if self.plane_session is None or not self.plane_session.placed:
             self.log("nothing to save — make a plane and place its four corners first")
             return
-        if not self.clip:
-            self.log("load a clip first: the plane is saved against the clip")
-            return
+        if prefix is None:
+            from tkinter import simpledialog
+            prefix = simpledialog.askstring(
+                "Save Plane", "Plane name prefix (e.g. event or pool):",
+                initialvalue=(self._plane_setup_id or "plane"))
+            if not prefix:
+                self.log("plane save cancelled")
+                return
+        prefix = str(prefix).strip().replace(" ", "_") or "plane"
         doc = self._build_pool_doc()
         if doc is None:
             return
-        sha = self._clip_sha()
-        clip_entry = {"sha256": sha, "name": self.clip.name, "stem": self.clip.stem}
-        clips = {c.get("sha256"): dict(c) for c in (self._plane_clips or [])
-                 if isinstance(c, dict) and c.get("sha256")}
-        clips[sha] = clip_entry
-        setup_id = self._plane_id()
+        from datetime import datetime
+        stamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        base = f"{prefix}_{stamp}"
+        path = pool_calib_mod.setup_path(base, self.plane_dir)
+        k = 2
+        while path.exists() and k <= 99:   # never overwrite: a same-second clash gets a counter
+            base = f"{prefix}_{stamp}_{k}"
+            path = pool_calib_mod.setup_path(base, self.plane_dir)
+            k += 1
+        setup_id = base
         doc["setup_id"] = setup_id
-        doc["clips"] = [clips[k] for k in sorted(clips)]
+        doc.pop("clips", None)
         try:
-            planes_dir = Path(getattr(self, "plane_dir", None) or (Path(__file__).resolve().parent.parent / "planes"))
-            planes_dir.mkdir(parents=True, exist_ok=True)
-            path = planes_dir / f"{setup_id}.json"
             pool_calib_mod.save(doc, path)
         except Exception as exc:  # noqa: BLE001
             self.log(f"plane save failed: {type(exc).__name__}: {exc}")
             self.pool_status.configure(text="SAVE FAILED — see the log")
             return
         self._plane_setup_id = setup_id
-        self._plane_clips = doc["clips"]
         self.pool_calib = doc
         self.pool_calib_path = path
+        self._set_active_plane(path)
         self._refresh_plane_choices()
         if hasattr(self, "plane_pick_var"):
             self.plane_pick_var.set(setup_id)
-        # The one thing the operator asked to see after pressing it.
-        self.pool_status.configure(text=f"Plane saved — {len(doc['clips'])} clip(s) · {path.name}")
-        self.log(f"plane saved to {path} for {len(doc['clips'])} clip(s): "
-                 + ", ".join(c["stem"] for c in doc["clips"]))
+        self.pool_status.configure(text=f"plane saved — {path.name}")
+        self.log(f"plane saved to {path} (setup id {setup_id}) — reused for every clip")
         self._redraw_plan()
 
     def _clip_sha(self) -> str:
-        """The clip's sha256, computed once and kept (it is also the plane's key)."""
+        """The clip's sha256, computed once and kept (it keys the waterline seed cache only)."""
         if not self.clip_sha and self.clip is not None:
             try:
                 self.clip_sha = video_mod.sha256(self.clip)
@@ -3102,59 +3084,72 @@ class App:
                 self.clip_sha = ""
         return self.clip_sha or ""
 
-    def find_plane_for_clip(self, sha: str | None = None,
-                            stem: str | None = None) -> tuple[Path, dict] | None:
-        """The saved plane whose clip list contains this clip, or None.
-
-        Matched on sha256 first (a rename cannot break it), then on the clip's stem for documents
-        written before clips were recorded.  More than one match is a real ambiguity, so it is
-        logged and the most recently written document wins.
-        """
-        sha = (self._clip_sha() if sha is None else sha) or ""
-        stem = (self.clip.stem if stem is None and self.clip is not None else stem) or ""
-        hits: list[tuple[Path, dict]] = []
-        for path in pool_calib_mod.list_setups(getattr(self, "plane_dir", None)):
-            try:
-                doc = pool_calib_mod.load(path)
-            except Exception:                                        # noqa: BLE001
-                continue
-            shas = {str(c.get("sha256")) for c in (doc.get("clips") or [])
-                    if isinstance(c, dict) and c.get("sha256")}
-            stems = {str(c.get("stem")) for c in (doc.get("clips") or [])
-                     if isinstance(c, dict) and c.get("stem")}
-            if sha and sha in shas:
-                hits.append((path, doc))
-            elif stem and (stem in stems
-                           or doc.get("setup_id") in (stem, f"plane_{stem}")):
-                hits.append((path, doc))
-        if not hits:
+    # -- the remembered active plane (one per competition, no per-clip matching) ----------
+    def _read_active_plane_path(self) -> Path | None:
+        """The plane path remembered from a previous session, if it still exists."""
+        try:
+            data = json.loads(Path(self.active_plane_path).read_text(encoding="utf-8"))
+            p = Path(str(data.get("path") or ""))
+            return p if p.is_file() else None
+        except Exception:                                            # noqa: BLE001
             return None
-        if len(hits) > 1:
-            self.log(f"{len(hits)} saved planes claim this clip — using the newest: "
-                     + ", ".join(p.name for p, _ in hits))
-        return max(hits, key=lambda h: h[0].stat().st_mtime)
 
-    def auto_load_plane_for_clip(self) -> bool:
-        """Load pool doc, automatic: if a known clip is open, its plane comes with it."""
-        if self.clip is None:
-            return False
-        hit = self.find_plane_for_clip()
-        if hit is None:
-            self.pool_status.configure(text="select a plane")
-            self.log("select a plane or press New Plane to fit the waterlines")
-            return False
-        path, doc = hit
-        self._apply_plane_doc(doc, path)
-        return True
+    def _set_active_plane(self, path: str | Path) -> None:
+        """Remember ``path`` as the one active plane and persist it for the next session."""
+        self._active_plane_path = Path(path)
+        try:
+            self.active_plane_path.parent.mkdir(parents=True, exist_ok=True)
+            self.active_plane_path.write_text(
+                json.dumps({"path": str(Path(path))}), encoding="utf-8")
+        except Exception as exc:                                     # noqa: BLE001
+            self.log(f"could not remember the active plane ({type(exc).__name__}: {exc})")
+
+    def _restore_plane_for_view(self) -> None:
+        """Keep the one active plane across clip opens (competition model).
+
+        Called when a clip is opened.  It does NOT match a plane to the clip: if a plane is
+        already active it stays and is simply redrawn on this clip's frame; otherwise the plane
+        remembered in ``data/active_plane.json`` is restored; otherwise the pane says none.
+        """
+        if self.plane_session is not None:
+            if self.clip:
+                try:
+                    self.pool_frame = read_frame(self.clip, int(self.calib_frame_idx.get()))
+                except Exception:                                    # noqa: BLE001
+                    self.pool_frame = None
+                if (self.pool_frame is not None and self.plane_session.frame_shape[0]
+                        and tuple(self.plane_session.frame_shape[:2])
+                        != tuple(self.pool_frame.shape[:2])):
+                    self.log("WARNING: the active plane was placed on a different frame size "
+                             f"({tuple(self.plane_session.frame_shape[:2])} vs "
+                             f"{tuple(self.pool_frame.shape[:2])}) — re-place it if the camera moved")
+            self._sync_plane_widgets()
+            self._redraw_plane(reset_view=False)
+            self.pool_status.configure(text=f"{self._plane_setup_id or 'plane'} (active)")
+            return
+        if self._active_plane_path is not None and Path(self._active_plane_path).is_file():
+            try:
+                doc = pool_calib_mod.load(self._active_plane_path)
+            except Exception as exc:                                 # noqa: BLE001
+                self.log(f"could not restore the active plane ({type(exc).__name__}: {exc})")
+                self.pool_status.configure(text="no plane selected")
+                return
+            self._apply_plane_doc(doc, self._active_plane_path)
+            return
+        self.pool_status.configure(text="no plane selected")
 
     def _apply_plane_doc(self, doc: dict, path: str | Path | None = None) -> None:
         """Adopt a loaded plane document, restoring its editable quad when it has one."""
         self._show_pool_doc(doc, source=str(path or "saved plane"), path=path)
         self._plane_setup_id = doc.get("setup_id")
-        self._plane_clips = list(doc.get("clips") or [])
+        if path is not None:
+            self._set_active_plane(path)
         self._refresh_plane_choices()
         try:
-            self.plane_pick_var.set(str(doc.get("setup_id") or "auto"))
+            display = str(doc.get("setup_id") or "")
+            if not display and path is not None:
+                display = Path(path).stem
+            self.plane_pick_var.set(display)
         except Exception:                                            # noqa: BLE001
             pass
         try:
@@ -3169,13 +3164,10 @@ class App:
                     self.plane_session.frame_shape = self.pool_frame.shape[:2]
             self._sync_plane_widgets()
             self._redraw_plane(reset_view=True)
-            self.log("plane restored — drag it, then Plane Confirmed to rebuild the document")
-        n = len(self._plane_clips)
-        self.log(f"plane {doc.get('setup_id')} applies to {n} clip(s)"
-                 + (f"; this clip is one of them" if n else ""))
+            self.log("plane loaded — it is reused for every clip (no per-clip matching)")
 
     def on_pick_plane(self, _event=None) -> None:
-        """Adopt a chosen saved plane for this clip, after confirming changes."""
+        """Adopt the chosen saved plane; it becomes the one active plane for every clip."""
         sid = str(self.plane_pick_var.get())
         if not sid:
             return
@@ -3195,98 +3187,75 @@ class App:
                 # Reset dropdown to previous or empty
                 return
 
-        # Load selected plane
-        # Look in both directories
+        # Load selected plane (match by setup id or filename stem).
         found = False
-        planes_dir = Path(getattr(self, "plane_dir", None) or (Path(__file__).resolve().parent.parent / "planes"))
-        plane_path = None
-        if planes_dir.exists() and planes_dir.is_dir():
-            for p in planes_dir.glob("*.json"):
-                if p.stem == sid:
-                    plane_path = p
-                    break
-                try:
-                    with open(p, "r") as f:
-                        doc = json.load(f)
-                    if str(doc.get("setup_id")) == sid:
-                        plane_path = p
-                        break
-                except Exception:
-                    pass
+        for path in pool_calib_mod.list_setups(self.plane_dir):
+            try:
+                doc = pool_calib_mod.load(path)
+            except Exception:
+                continue
+            stem = path.stem
+            if stem.endswith(".pool"):
+                stem = stem[:-5]
+            if str(doc.get("setup_id")) == sid or stem == sid or path.stem == sid:
+                self._apply_plane_doc(doc, path)
+                found = True
+                break
 
-        if plane_path is not None and plane_path.exists():
-            import json
-            with open(plane_path, "r") as f:
-                doc = json.load(f)
-            self._apply_plane_doc(doc, plane_path)
-            found = True
-        else:
-            # Check pool_calib_mod
-            for path in pool_calib_mod.list_setups(self.plane_dir):
-                try:
-                    doc = pool_calib_mod.load(path)
-                    if str(doc.get("setup_id")) == sid or path.stem == sid:
-                        self._apply_plane_doc(doc, path)
-                        found = True
-                        break
-                except Exception:
-                    continue
-        
         if found:
             self.log(f"plane {sid} adopted")
         else:
             self.log(f"saved plane {sid!r} is no longer on disk")
     def _refresh_plane_choices(self) -> None:
-        """The saved-plane list: the setup id of every plane on disk, sorted by mtime descending (most recently modified first)."""
+        """The saved-plane list: every ``*.pool.json`` in ``self.plane_dir``, newest first.
+
+        Competition model: the dropdown shows **all** previously saved planes and nothing else —
+        no ``auto`` entry.  Selecting one makes it the single active plane for every clip.
+        """
         pick = getattr(self, "plane_pick", None)
         if pick is None:
             return
-        
-        plane_paths = []
+
+        plane_paths: list[Path] = []
         try:
-            for p in pool_calib_mod.list_setups(getattr(self, "plane_dir", None)):
-                if isinstance(p, Path) and p.exists():
-                    plane_paths.append(p)
-                elif isinstance(p, str) and Path(p).exists():
-                    plane_paths.append(Path(p))
+            for p in pool_calib_mod.list_setups(self.plane_dir):
+                pp = Path(p)
+                if pp.exists():
+                    plane_paths.append(pp)
         except Exception:
             pass
 
-        planes_dir_candidates = [
-            Path("planes"),
-            Path(__file__).resolve().parent.parent / "planes"
-        ]
-        for d in planes_dir_candidates:
-            if d.exists() and d.is_dir():
-                for p in d.glob("*.json"):
-                    plane_paths.append(p)
-
-        seen_paths = set()
-        unique_planes = []
+        seen_paths: set = set()
+        unique_planes: list[tuple[float, Path]] = []
         for p in plane_paths:
             try:
                 resolved = p.resolve()
             except Exception:
                 resolved = p
-            if resolved not in seen_paths:
-                seen_paths.add(resolved)
-                try:
-                    mtime = resolved.stat().st_mtime
-                except Exception:
-                    mtime = 0.0
-                unique_planes.append((mtime, resolved))
+            if resolved in seen_paths:
+                continue
+            seen_paths.add(resolved)
+            try:
+                mtime = resolved.stat().st_mtime
+            except Exception:
+                mtime = 0.0
+            unique_planes.append((mtime, resolved))
 
         unique_planes.sort(key=lambda x: x[0], reverse=True)
 
-        values = []
-        for mtime, p in unique_planes:
+        values: list[str] = []
+        for _mtime, p in unique_planes:
+            sid = p.stem
+            if sid.endswith(".pool"):
+                sid = sid[:-5]
             try:
-                with open(p, "r") as f:
-                    import json
-                    doc = json.load(f)
-                sid = str(doc.get("setup_id") or p.stem)
+                doc = json.loads(p.read_text(encoding="utf-8"))
+                # Only real pool-plane documents belong in the picker (a stray JSON, or an old
+                # 1-D calibration, must not appear as a selectable plane).
+                pool_calib_mod.require_schema(doc)
+                sid = str(doc.get("setup_id") or sid)
             except Exception:
-                sid = p.stem
+                continue
             if sid and sid not in values:
                 values.append(sid)
 
@@ -3295,8 +3264,10 @@ class App:
         except Exception:                                            # noqa: BLE001
             pass
         current = str(self.plane_pick_var.get() or "")
-        if current and current not in values and values:
-            self.plane_pick_var.set(values[0])
+        if current and current not in values:
+            # The selection points at a plane that is no longer on disk (or a placeholder): clear
+            # it rather than silently showing an unrelated plane as if it were selected.
+            self.plane_pick_var.set("")
 
     def _setup_capture_tab(self) -> None:
         import tkinter as tk
@@ -3471,6 +3442,9 @@ class App:
     def on_run(self) -> None:
         if not self.clip:
             self.log("load a clip first")
+            return
+        if self.pool_calib is None:
+            self.log("no plane selected — pick one in the 'plane' dropdown (or make one with New Plane)")
             return
         if self.stability is None:
             self.log("run the stability check first (PLAN §5 step 1)")

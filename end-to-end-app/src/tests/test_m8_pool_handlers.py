@@ -109,6 +109,11 @@ def _app(root, clip=CLIP):
     # New Plane now asks before replacing a plane on screen.  Nobody is there to click a modal in a
     # test, so the seam answers "yes" — the same answer the operator gives.
     app.confirm_reset = lambda: True
+    # Keep the remembered active-plane pointer out of the operator's real data dir, and start each
+    # test with nothing remembered (competition model: one plane, no per-clip matching).
+    import tempfile
+    app.active_plane_path = Path(tempfile.mkdtemp()) / "active_plane.json"
+    app._active_plane_path = None
     root.update_idletasks()
     return app
 
@@ -150,26 +155,26 @@ def _plane_doc(sc, *, lens=None, length: float = 25.0) -> dict:
 # ===========================================================================
 # 1. load / clear
 # ===========================================================================
-def test_the_automatic_load_skips_a_document_of_the_wrong_schema(tmp_path) -> None:
-    """Load pool doc is AUTOMATIC now (2026-10-21): a 1-D document on disk must not become the datum.
+def test_a_wrong_schema_document_is_not_listed_or_adopted(tmp_path) -> None:
+    """A file that is not a pool-plane document must not appear in the picker nor be adopted.
 
-    The old pane had a file dialog and could reject a document out loud.  There is no dialog any
-    more, so the refusal has to happen in the scan: a file that is not a pool document is skipped,
-    the clip is reported as having no saved plane, and nothing is adopted.
+    Competition model: the dropdown lists saved PLANES only; a stray 1-D calibration on disk is
+    skipped by both the list and the pick, so it can never become the 3-D datum.
     """
     root = _root_or_skip()
     app = None
     try:
         app = _app(root)
         app.plane_dir = tmp_path
-        app.clip = tmp_path / "unknown.mp4"
-        app.clip_sha = "0" * 64
         bad = tmp_path / "poolA.pool.json"
         bad.write_text(json.dumps({"setup_id": "poolA", "marks": [], "fit": {"type": "linear"}}),
                        encoding="utf-8")
-        assert app.auto_load_plane_for_clip() is False
+        app._refresh_plane_choices()
+        assert "poolA" not in list(app.plane_pick.cget("values")), "a 1-D doc was listed as a plane"
+        app.plane_pick_var.set("poolA")
+        app.on_pick_plane()
         assert app.pool_calib is None, "a 1-D document became the 3-D datum"
-        assert "no saved plane for this clip" in app.pool_status.cget("text")
+        assert "no longer on disk" in app.log_text.get("1.0", "end")
     finally:
         app = None
         gc.collect()
@@ -177,8 +182,12 @@ def test_the_automatic_load_skips_a_document_of_the_wrong_schema(tmp_path) -> No
 
 
 @needs_clip
-def test_a_saved_plane_is_loaded_automatically_for_its_clip(tmp_path, monkeypatch) -> None:
-    """Save plane then reopen the clip: the plane comes back without touching a dialog."""
+def test_selecting_a_plane_in_the_dropdown_loads_and_remembers_it(tmp_path, monkeypatch) -> None:
+    """Pick a saved plane in the dropdown: it loads, and the choice is remembered.
+
+    Competition model: there is no clip matching — the operator selects one plane and it is
+    reused for every clip, surviving an app restart via ``data/active_plane.json``.
+    """
     root = _root_or_skip()
     before = calib_snapshot()
     sc, frame = scene_and_frame()
@@ -187,25 +196,23 @@ def test_a_saved_plane_is_loaded_automatically_for_its_clip(tmp_path, monkeypatc
     app = None
     try:
         app = _app(root)
-        app.plane_dir = tmp_path                 # never write into the operator's CALIB_DIR
-        sha = app._clip_sha()
-        assert sha, "the clip was not hashed, so a plane could never be matched to it"
-        doc["clips"] = [{"sha256": sha, "name": app.clip.name, "stem": app.clip.stem}]
-        written = tmp_path / "planeSYN.pool.json"
+        app.plane_dir = tmp_path                 # never write into the operator's planes dir
+        written = tmp_path / "poolSYN.pool.json"
         pool_calib_mod.save(doc, written)
 
-        assert app.auto_load_plane_for_clip() is True, "the clip's own plane was not found"
+        app._refresh_plane_choices()
+        assert "poolSYN" in list(app.plane_pick.cget("values")), app.plane_pick.cget("values")
+        app.plane_pick_var.set("poolSYN")
+        app.on_pick_plane()
+
         assert app.pool_calib is not None and app.pool_calib["setup_id"] == "poolSYN"
         assert app.pool_calib_path == written
-        assert "gates PASS" in app.pool_status.cget("text")
         s = app.plane_session
         assert s is not None, "a plane document did not restore an editable session"
         assert s.corners["00"] == pytest.approx(corner_pixels(sc)["00"])
-
-        app.on_clear_pool()
-        assert app.pool_calib is None and app.plane_session is None
-        assert app.pool_calib_path is None
-        assert app.pool_status.cget("text") == "no saved plane for this clip"
+        # the choice is remembered, so a restart (and every later clip) reuses this plane
+        remembered = json.loads(Path(app.active_plane_path).read_text(encoding="utf-8"))
+        assert Path(remembered["path"]) == written
     finally:
         app = None
         gc.collect()
@@ -415,25 +422,24 @@ def test_on_save_pool_writes_and_reloads_a_valid_document(tmp_path, monkeypatch)
     sc, frame = scene_and_frame()
     monkeypatch.setattr(app_gui, "read_frame", lambda clip, idx: frame)
     dest = tmp_path / "pool-plane.pool.json"
-    monkeypatch.setattr(pool_calib_mod, "setup_path", lambda setup_id: dest)
+    monkeypatch.setattr(pool_calib_mod, "setup_path", lambda setup_id, dir=None: dest)
     app = None
     try:
         app = _app(root)
-        app.setup_id.set("pool-plane")
-        app.on_save_pool()                       # nothing built yet -> refused, not a crash
+        app.plane_dir = tmp_path
+        app.on_save_pool(prefix="pool-plane")    # nothing built yet -> refused, not a crash
         assert not dest.is_file()
 
         _align(app, sc)
-        app.on_build_plane()
-        assert app.pool_calib is not None
-
-        app.on_save_pool()
-        assert dest.is_file(), "Save pool doc wrote nothing"
+        app.on_save_pool(prefix="pool-plane")
+        assert dest.is_file(), "plane save wrote nothing"
         back = pool_calib_mod.load(dest)
         assert back["schema"] == "dog_diving_pool_calibration/v1"
         assert back["plane"]["schema"] == plane_mod.SCHEMA_BLOCK
         assert len(back["marks"]) == 2, back["marks"]
         assert len(back["plane"]["corners"]) == 4
+        # competition model: a plane is not bound to a clip, so no ``clips`` list is written
+        assert "clips" not in back
         print(f"\n  saved {dest.name} ({dest.stat().st_size} B), reloads cleanly")
     finally:
         app = None
@@ -503,11 +509,12 @@ def detect_mod_config(app, path: str):
     return _d.DetectConfig(model_path=Path(path))
 
 
-def test_saving_an_existing_plane_for_another_clip_adds_the_clip(tmp_path, monkeypatch) -> None:
-    """Operator rule: one pool = one file, and saving it under another clip ADDS that clip.
+def test_each_save_writes_a_new_timestamped_file(tmp_path, monkeypatch) -> None:
+    """Competition model: every save is its own ``<prefix>_<timestamp>.pool.json``.
 
-    Also the anchor for the whole scheme: the ``setup id`` entry is gone, so the file's name comes
-    from the first clip that made it and its ``clips`` list is what decides which clips it serves.
+    The old "one file per pool, clip list accumulates" rule is gone — a plane is not clip-bound,
+    and the timestamp (plus a counter on a same-second clash) means a save never overwrites an
+    earlier plane.
     """
     root = _root_or_skip()
     before = calib_snapshot()
@@ -517,26 +524,22 @@ def test_saving_an_existing_plane_for_another_clip_adds_the_clip(tmp_path, monke
     try:
         app = _app(root, clip=None)
         app.plane_dir = tmp_path
-        app.clip = tmp_path / "clipA.mp4"
-        app.clip_sha = "a" * 64
+        app.clip = tmp_path / "any.mp4"          # read_frame is monkeypatched above
         app.on_new_plane(seed=False)
         assert app.plane_session is not None and app.plane_session.placed
-        app.on_save_pool()
+
+        app.on_save_pool(prefix="comp-pool")
         files = sorted(tmp_path.glob("*.pool.json"))
         assert len(files) == 1, files
+        assert files[0].name.startswith("comp-pool_"), files[0].name
         doc = pool_calib_mod.load(files[0])
-        assert [c["sha256"] for c in doc["clips"]] == ["a" * 64], doc["clips"]
-        assert "Plane saved" in app.pool_status.cget("text")
+        assert "clips" not in doc, "a per-clip binding was written"
+        assert "plane saved" in app.pool_status.cget("text"), app.pool_status.cget("text")
 
-        # the same plane, saved while a DIFFERENT clip is open: the clip joins the list
-        app.clip = tmp_path / "clipB.mp4"
-        app.clip_sha = "b" * 64
-        app.on_save_pool()
+        app.on_save_pool(prefix="comp-pool")     # same prefix: a NEW file, never an overwrite
         files = sorted(tmp_path.glob("*.pool.json"))
-        assert len(files) == 1, f"a second file appeared instead of adding the clip: {files}"
-        doc = pool_calib_mod.load(files[0])
-        assert sorted(c["sha256"] for c in doc["clips"]) == ["a" * 64, "b" * 64], doc["clips"]
-        assert "2 clip(s)" in app.pool_status.cget("text"), app.pool_status.cget("text")
+        assert len(files) == 2, files
+        assert all(f.name.startswith("comp-pool_") for f in files), files
     finally:
         app = None
         gc.collect()
@@ -567,7 +570,7 @@ def test_the_2026_10_21_calibrate_and_review_controls_are_gone() -> None:
                  "self.setup_id"):
         assert gone not in src, f"{gone!r} is still in the pane"
     # and the replacements exist
-    for new in ("on_new_plane", "on_make_parallelogram", "on_save_pool", "auto_load_plane_for_clip",
-                "find_plane_for_clip", "on_set_entry", "on_toggle_marquee", "_draw_review_overlay",
-                "_redraw_plan", "plane_near_var", "snap_far_var"):
+    for new in ("on_new_plane", "on_make_parallelogram", "on_save_pool", "on_pick_plane",
+                "_refresh_plane_choices", "on_set_entry", "on_toggle_marquee",
+                "_draw_review_overlay", "_redraw_plan", "plane_near_var", "snap_far_var"):
         assert hasattr(app_gui.App, new) or new in src, f"App.{new} is missing"

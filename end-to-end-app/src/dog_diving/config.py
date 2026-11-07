@@ -7,6 +7,11 @@ from typing import Any, Mapping
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CALIB_DIR = PROJECT_ROOT / "data" / "calib"
+#: Saved water-surface planes (the "saved plane" picker + clip-matching on load).
+PLANES_DIR = PROJECT_ROOT / "planes"
+#: Remembers the operator's last-selected plane so one plane survives app restarts and is
+#: reused for every clip in a competition (no per-clip plane matching).
+ACTIVE_PLANE_PATH = PROJECT_ROOT / "data" / "active_plane.json"
 CLIP_DIR = PROJECT_ROOT / "data" / "clips"
 OUT_DIR = PROJECT_ROOT / "out"
 
