@@ -70,6 +70,9 @@ MAX_STABILITY_PX = 3.0
 MIN_RUN_POINTS = 20
 MIN_DOCK_POINTS = 30
 MIN_DOCK_ANGLE_DEG = 55.0
+#: Maximum allowed angle from horizontal for long edges (far / near).
+#: Long edges are mostly horizontal; steep runs (like dock-side edges) are rejected.
+MAX_LONG_ANGLE_DEG = 5.0
 
 #: A run is broken where the scan index jumps this far, or the boundary jumps this multiple of the
 #: median step (both floored, so a clean run is never split by jitter).
@@ -468,6 +471,10 @@ def _best_run(runs: Sequence[np.ndarray], *, vertical: bool,
         fit = fit_run(run, vertical=vertical)
         if fit is None:
             continue
+        if not vertical:
+            ang = abs(float(fit.get("angle_deg", 0.0)))
+            if ang > MAX_LONG_ANGLE_DEG:
+                continue
         span = float(np.ptp(run[:, 1 if vertical else 0]))
         if fit["rms_residual"] > _rms_limit(span):
             continue

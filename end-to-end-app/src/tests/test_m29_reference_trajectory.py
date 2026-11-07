@@ -2,7 +2,7 @@
 
 The authoritative implementation is the fork's own pipeline script::
 
-    C:\\Users\\harri\\Documents\\GitHub\\Dog-Diving-Scoring\\Final_pipeline_w_json.py
+    Final_pipeline_w_json.py
     -> fit_parabolic_trajectory(points, frame_width, frame_height, min_points=6)
 
 What is pinned here

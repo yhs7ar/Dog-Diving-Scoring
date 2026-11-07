@@ -112,7 +112,7 @@ class TrajConfig:
 #: Where the algorithm comes from.  This is the fork's own pipeline script, and the app runs its fit
 #: rather than a lookalike, so the curve drawn in Review is the curve that script draws:
 #:
-#:     C:\\Users\\harri\\Documents\\GitHub\\Dog-Diving-Scoring\\Final_pipeline_w_json.py
+#:     Final_pipeline_w_json.py
 #:     -> fit_parabolic_trajectory(points, frame_width, frame_height, min_points=6)
 #:
 #: (``draw_parabolic_trajectory.py`` carries the same function with a 40 px x-span gate; the pipeline

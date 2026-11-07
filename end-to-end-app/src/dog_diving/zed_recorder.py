@@ -117,6 +117,17 @@ class ZEDRecorder(ABC):
     def stop(self) -> None:
         """Stop capture and release camera handles."""
 
+    @staticmethod
+    def _synthetic_frame(i: int, width: int, height: int, cam: int = 1) -> np.ndarray:
+        frame = np.full((height, width, 3), 40, dtype=np.uint8)
+        x = (i * 37) % max(1, width - 40)
+        y = (i * 23) % max(1, height - 40)
+        if cam == 1:
+            frame[y : y + 40, x : x + 40] = (0, 200, 255)  # BGR bright yellow marker
+        else:
+            frame[y : y + 40, x : x + 40] = (255, 120, 0)  # BGR blue marker — distinct from cam1
+        return frame
+
 
 class ComputeGovernor:
     """Gates capture to protect the Jetson Orin Nano from overload.
@@ -290,6 +301,7 @@ class DualZEDXLiveBuffer(ZEDRecorder):
             return False
 
         try:
+            time.sleep(2.0)
             print(f"[ZED] Initializing Dual ZED X cameras at SVGA 1200x720 @ {self.fps} FPS...")
             devs = sl.Camera.get_device_list()
             sn1 = cam1_sn or (devs[0].serial_number if len(devs) > 0 else None)
@@ -411,12 +423,35 @@ class DualZEDXLiveBuffer(ZEDRecorder):
         self.running = False
         if hasattr(self, "thread") and self.thread:
             self.thread.join(timeout=2.0)
-        if self.zed1:
-            self.zed1.close()
-        if self.zed2:
-            self.zed2.close()
-        if self.temp_dir.exists():
-            shutil.rmtree(self.temp_dir, ignore_errors=True)
+        
+        for zed in (getattr(self, "zed1", None), getattr(self, "zed2", None)):
+            if zed is not None:
+                try:
+                    zed.disable_recording()
+                except Exception:
+                    pass
+                try:
+                    zed.close()
+                except Exception:
+                    pass
+
+        if hasattr(self, "temp_dir") and self.temp_dir.exists():
+            try:
+                shutil.rmtree(self.temp_dir, ignore_errors=True)
+            except Exception:
+                pass
+
+    def stop_and_release(self) -> None:
+        """Stop capture and release camera handles specifically."""
+        self.stop()
+        if HAS_ZED_SDK:
+            for attr in ("zed", "zed1", "zed2"):
+                obj = getattr(self, attr, None)
+                if obj is not None:
+                    try:
+                        obj.close()
+                    except Exception:
+                        pass
 
 
 class FakeZEDRecorder(ZEDRecorder):
@@ -574,6 +609,17 @@ class FakeZEDRecorder(ZEDRecorder):
         }
         return right_path
 
+    def get_frame_at(self, timestamp: float, cam: int = 1) -> np.ndarray | None:
+        """Fetch the closest available frame from the live buffer."""
+        # This implementation requires tracking timestamps in the ring buffer.
+        # For this stage, we return a frame from the ring buffer if it exists.
+        with self.lock:
+            ring = self._ring if cam == 1 else self._ring2
+            if not ring:
+                return None
+            # Placeholder: return the latest frame for now.
+            return ring[-1]
+
     def trigger_capture(self, prefix: str) -> Path | None:
         if not self.running:
             return None
@@ -589,9 +635,9 @@ class FakeZEDRecorder(ZEDRecorder):
             frames2 = list(self._ring2)
         return self._commit_jump_data(prefix, frames1, frames2)
 
-    def stop(self) -> None:
-        self.running = False
-        if hasattr(self, "thread") and self.thread:
-            self.thread.join(timeout=2.0)
-        if self.temp_dir.exists():
-            shutil.rmtree(self.temp_dir, ignore_errors=True)
+    def stop_and_release(self) -> None:
+        """Stop capture and release camera handles specifically."""
+        self.stop()
+        # Ensure cleanup of hardware handles if using pyzed directly
+        if HAS_ZED_SDK and hasattr(self, 'zed'):
+            self.zed.close()

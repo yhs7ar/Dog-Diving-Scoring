@@ -860,7 +860,7 @@ class FrameView:
         return None if self._src is None else (self._src.shape[1], self._src.shape[0])
 
     def _clamp_zoom(self, z: float) -> float:
-        return max(self.fit_zoom, min(MAX_ZOOM, float(z)))
+        return max(0.02, min(64.0, float(z)))
 
     def _fit_source_size(self) -> tuple[int, int] | None:
         """The (w, h) the fit scale is computed over: the content box if set, else the whole image."""
@@ -1039,6 +1039,13 @@ class FrameView:
     def bind_zoom(self) -> None:
         """Mouse-wheel zoom, middle-drag pan, window-resize re-fit, and the image-px readout."""
         self.canvas.bind("<MouseWheel>", self.on_wheel)
+        self.canvas.bind("<Button-4>", lambda e: self.zoom_by(1.25, anchor=(e.x, e.y)))
+        self.canvas.bind("<Button-5>", lambda e: self.zoom_by(0.8, anchor=(e.x, e.y)))
+        self.canvas.bind("<minus>", lambda e: self.zoom_by(0.8))
+        self.canvas.bind("<KP_Subtract>", lambda e: self.zoom_by(0.8))
+        self.canvas.bind("<equal>", lambda e: self.zoom_by(1.25))
+        self.canvas.bind("<plus>", lambda e: self.zoom_by(1.25))
+        self.canvas.bind("<KP_Add>", lambda e: self.zoom_by(1.25))
         self.canvas.bind("<Configure>", self.on_resize)
         self.canvas.bind("<Button-2>", lambda e: self.canvas.scan_mark(e.x, e.y))
         self.canvas.bind("<B2-Motion>", lambda e: (self.canvas.scan_dragto(e.x, e.y, gain=1),
@@ -1195,7 +1202,22 @@ class App:
 
         bar = ttk.Frame(self.root, padding=(8, 6))
         bar.pack(side="top", fill="x")
-        ttk.Button(bar, text="Open clip…", command=self.on_open).pack(side="left")
+        
+        # Exit button
+        ttk.Button(bar, text="Exit", command=self.on_close).pack(side="right", padx=5)
+
+        # Camera Live button (resized/styled)
+        self.camera_toggle_btn = tk.Button(
+            bar, 
+            text="CAMERA LIVE", 
+            command=self.on_toggle_camera,
+            bg="black", 
+            fg="white",
+            font=("Arial", 12, "bold"),
+            padx=10, pady=5
+        )
+        self.camera_toggle_btn.pack(side="right", padx=5)
+
         self.capture_seconds_var = tk.StringVar(value=str(CAPTURE_SECONDS))
         ttk.Label(bar, text="capture (s):").pack(side="left", padx=(6, 2))
         self.capture_seconds_spin = ttk.Spinbox(
@@ -1223,17 +1245,18 @@ class App:
         )
         self.btn_live_score.pack(side="left", padx=(6, 12))
 
-        self.btn_calibrate = tk.Button(
-            bar,
-            text="Calibrate Cameras…",
-            command=self.on_calibrate_capture,
-            relief="groove",
-            padx=10,
-            pady=2,
-        )
-        self.btn_calibrate.pack(side="left", padx=(0, 12))
+        # self.btn_calibrate = tk.Button(
+        #     bar,
+        #     text="Calibrate Cameras…",
+        #     command=self.on_calibrate_capture,
+        #     relief="groove",
+        #     padx=10,
+        #     pady=2,
+        # )
+        # self.btn_calibrate.pack(side="left", padx=(0, 12))
 
-        self.clip_label = ttk.Label(bar, text="no clip loaded")
+        ttk.Button(bar, text="Upload Clip", command=self.on_open).pack(side="left", padx=6)
+        self.clip_label = ttk.Label(bar, text="")
         self.clip_label.pack(side="left", padx=12)
 
         self.status = ttk.Label(self.root, text="ready", anchor="w", relief="sunken")
@@ -1285,6 +1308,16 @@ class App:
         hbar = ttk.Scrollbar(holder, orient="horizontal", command=canvas.xview)
         vbar = ttk.Scrollbar(holder, orient="vertical", command=canvas.yview)
         canvas.configure(xscrollcommand=hbar.set, yscrollcommand=vbar.set)
+        def on_scroll(*args):
+            canvas.xview(*args)
+            view.refresh()
+        def on_vscroll(*args):
+            canvas.yview(*args)
+            view.refresh()
+        hbar.configure(command=on_scroll)
+        vbar.configure(command=on_vscroll)
+        canvas.bind("<Configure>", lambda e: view.refresh(), add="+")
+        canvas.bind("<B1-Motion>", lambda e: view.refresh(), add="+")
         canvas.grid(row=0, column=0, sticky="nsew")
         vbar.grid(row=0, column=1, sticky="ns")
         hbar.grid(row=1, column=0, sticky="ew")
@@ -1411,11 +1444,11 @@ class App:
         # Which end of the pool the dock is on.  "auto" uses the clip's first accepted detections —
         # only available after a run — so the control exists to make the seed usable in the normal
         # order (calibrate, *then* process).  It also says which SHORT-END waterline is X = 0.
-        ttk.Label(dim_row, text="dock side:").pack(side="left", padx=(10, 2))
+        # ttk.Label(dim_row, text="dock side:").pack(side="left", padx=(10, 2))
         self.dock_side_var = tk.StringVar(value="auto")
-        ttk.Combobox(dim_row, textvariable=self.dock_side_var,
-                     values=("auto", "left", "right"), width=6,
-                     state="readonly").pack(side="left")
+        # ttk.Combobox(dim_row, textvariable=self.dock_side_var,
+        #              values=("auto", "left", "right"), width=6,
+        #              state="readonly").pack(side="left")
 
         self.calib_view, _cal_holder = self._zoomable(f, 900, 430)
         _cal_holder.pack(fill="both", expand=True)
@@ -1602,10 +1635,6 @@ class App:
         self.progress_label = ttk.Label(f, text="idle")
         self.progress_label.pack(anchor="w")
         self.cache_label = ttk.Label(f, text="")
-        self.process_canvas = self.tk.Canvas(f, width=900, height=360, bg="#202020",
-                                             highlightthickness=1, highlightbackground="#444")
-        self.process_canvas.pack(fill="both", expand=True)
-        self.process_view = FrameView(self.process_canvas, 900, 360)
 
     def on_jump_last_detection(self) -> None:
         """Jump to the last accepted detection — the fork's ``jump_last``, ported."""
@@ -1629,7 +1658,7 @@ class App:
         ttk.Button(row, text="last detection",
                    command=self.on_jump_last_detection).pack(side="left", padx=(10, 2))
         for txt, delta in (("<<", -10), ("<", -5), ("prev", -1), ("next", +1),
-                           ("+5", +5), (">>", +10)):
+                           (">", +5), (">>", +10)):
             ttk.Button(row, text=txt, width=5,
                        command=lambda d=delta: self.on_nudge(d)).pack(side="left", padx=1)
         # Playback (step 4c): one toggle that runs the slider forward at REPLAY_SPEED of
@@ -1644,7 +1673,7 @@ class App:
         self.entry_live_var = tk.BooleanVar(value=False)
         ttk.Checkbutton(row, text="entry = slider frame", variable=self.entry_live_var,
                         command=self.on_entry_live).pack(side="left")
-        ttk.Button(row, text="Auto entry", command=self.on_clear_entry).pack(side="left", padx=4)
+        # ttk.Button(row, text="Auto entry", command=self.on_clear_entry).pack(side="left", padx=4)
         # Group deselect: a mode, because a plain click already toggles one point and middle-drag pans.
         self.marquee_btn = ttk.Button(row, text="Deselect points", command=self.on_toggle_marquee)
         self.marquee_btn.pack(side="left", padx=(10, 0))
@@ -1656,23 +1685,31 @@ class App:
         # ONE switch for both jobs on purpose.  "Which curve is drawn" and "which number is scored"
         # used to be separate concerns with no control at all; giving them two toggles would let the
         # picture and the distance disagree, which is the failure mode this pane exists to prevent.
-        meth = ttk.Frame(f)
-        meth.pack(anchor="w", pady=(4, 0))
-        ttk.Label(meth, text="scoring method:").pack(side="left", padx=(10, 4))
         self.space_var = tk.StringVar(value=measure_mod.SPACE_ARC)
-        for value, text in ((measure_mod.SPACE_ARC, "Trajectory arc (2-D)"),
-                            (measure_mod.SPACE_PLANE, "Trajectory plane (3-D)")):
-            ttk.Radiobutton(meth, text=text, value=value, variable=self.space_var,
-                            command=self.on_trajectory_space).pack(side="left", padx=(0, 12))
-        self.space_note = ttk.Label(meth, text="", font=("", 8))
-        self.space_note.pack(side="left", padx=(6, 0))
-        self._sync_space_note()
+        # meth = ttk.Frame(f)
+        # meth.pack(anchor="w", pady=(4, 0))
+        # ttk.Label(meth, text="scoring method:").pack(side="left", padx=(10, 4))
+        # for value, text in ((measure_mod.SPACE_ARC, "Trajectory arc (2-D)"),
+        #                     (measure_mod.SPACE_PLANE, "Trajectory plane (3-D)")):
+        #     ttk.Radiobutton(meth, text=text, value=value, variable=self.space_var,
+        #                     command=self.on_trajectory_space).pack(side="left", padx=(0, 12))
+        # self.space_note = ttk.Label(meth, text="", font=("", 8))
+        # self.space_note.pack(side="left", padx=(6, 0))
+        # self._sync_space_note()
 
         self.slider = tk.Scale(f, from_=0, to=1, orient="horizontal", length=880,
                                label="frame", command=self.on_slider)
         self.slider.pack(anchor="w", pady=4)
-        self.readout = ttk.Label(f, text="no run yet", font=("", 12, "bold"))
-        self.readout.pack(anchor="w")
+        
+        readout_row = ttk.Frame(f)
+        readout_row.pack(anchor="w", pady=2)
+        self.readout = ttk.Label(readout_row, text="no run yet", font=("", 17, "bold"))
+        self.readout.pack(side="left", anchor="w")
+        
+        self.accept_btn = ttk.Button(readout_row, text="Accept Score", command=self.on_accept, state="disabled")
+        self.accept_btn.pack(side="left", padx=16)
+        self.accept_label = ttk.Label(readout_row, text="(nothing accepted)", font=("", 9))
+        self.accept_label.pack(side="left", padx=4)
 
         body = ttk.Frame(f)
         body.pack(fill="both", expand=True)
@@ -1762,6 +1799,19 @@ class App:
         self.grid_opacity_scale.pack(side="left", padx=(6, 0))
         ttk.Label(op, text="%").pack(side="left", padx=(2, 0))
 
+    def on_export_more(self) -> None:
+        win = tk.Toplevel(self.root)
+        win.title("More Export Options")
+        win.geometry("300x200")
+        f = ttk.Frame(win, padding=12)
+        f.pack(fill="both", expand=True)
+        ttk.Label(f, text="Additional Exports", font=("", 11, "bold")).pack(pady=(0, 10))
+        for label, key, ext in (("result JSON…", "result", ".json"),
+                                ("report TXT…", "report", ".txt"),
+                                ("run meta JSON…", "meta", ".json")):
+            ttk.Button(f, text=label, width=22,
+                       command=lambda k=key, e=ext: (self.on_export(k, e), win.destroy())).pack(pady=4)
+
     def _build_results(self) -> None:
         tk, ttk = self.tk, self.ttk
         f = self.tab_results
@@ -1775,34 +1825,7 @@ class App:
         self.res_warn = tk.Text(f, height=6, wrap="word")
         self.res_warn.pack(fill="x", pady=6)
 
-        exp = ttk.LabelFrame(f, text="export", padding=4)
-        exp.pack(fill="x", pady=6)
-        for label, key, ext in (("annotated MP4…", "annotated", ".mp4"),
-                                ("final frame PNG…", "still", ".png"),
-                                ("result JSON…", "result", ".json"),
-                                ("report TXT…", "report", ".txt"),
-                                ("run meta JSON…", "meta", ".json")):
-            ttk.Button(exp, text=label, width=20,
-                       command=lambda k=key, e=ext: self.on_export(k, e)).pack(side="left", padx=3)
-        ttk.Button(exp, text="Open output folder",
-                   command=self.on_open_outdir).pack(side="left", padx=8)
-        ttk.Button(exp, text="Replay 0.25\u00d7", width=14,
-                   command=self.on_replay_from_results).pack(side="left", padx=(8, 3))
-
-        # Step 4b — Accept: park the current measurement for step 5a's ledger.  The persistence
-        # (dog name + CSV) is deliberately NOT built here; on_accept only captures into
-        # ``pending_accept`` and logs.  A distinct frame so it is visually separate from export.
-        acc = ttk.LabelFrame(f, text="accept", padding=4)
-        acc.pack(fill="x", pady=6)
-        ttk.Button(acc, text="Accept score", width=20,
-                   command=self.on_accept).pack(side="left", padx=3)
-        self.accept_label = ttk.Label(acc, text="(nothing accepted)")
-        self.accept_label.pack(side="left", padx=8)
-
-        # Step 5a — Save to ledger: a dog-name field (with remembered names) + the accepted
-        # measurement persisted to the score CSV.  Distinct from 4b's accept frame so that
-        # accept (park) and save (persist) stay two visible steps; saving re-captures the
-        # measurement directly when nothing is parked (see ``on_save_ledger``).
+        # Step 5a — Save to ledger (placed above export)
         save = ttk.LabelFrame(f, text="save to ledger", padding=4)
         save.pack(fill="x", pady=6)
         ttk.Label(save, text="dog name").pack(side="left", padx=(0, 3))
@@ -1816,6 +1839,20 @@ class App:
                    command=self.on_open_ledger).pack(side="left", padx=3)
         self.save_label = ttk.Label(save, text="")
         self.save_label.pack(side="left", padx=8)
+
+        # Export group (placed below save to ledger)
+        exp = ttk.LabelFrame(f, text="export", padding=4)
+        exp.pack(fill="x", pady=6)
+        for label, key, ext in (("annotated MP4…", "annotated", ".mp4"),
+                                ("final frame PNG…", "still", ".png")):
+            ttk.Button(exp, text=label, width=18,
+                       command=lambda k=key, e=ext: self.on_export(k, e)).pack(side="left", padx=3)
+        ttk.Button(exp, text="Open output folder",
+                   command=self.on_open_outdir).pack(side="left", padx=6)
+        ttk.Button(exp, text="Replay 0.25\u00d7", width=14,
+                   command=self.on_replay_from_results).pack(side="left", padx=6)
+        ttk.Button(exp, text="More...", width=10,
+                   command=self.on_export_more).pack(side="left", padx=6)
 
     # -- logging / status ---------------------------------------------------
     def log(self, msg: str) -> None:
@@ -1917,8 +1954,8 @@ class App:
         threading.Thread(target=_run, daemon=True).start()
 
     # -- Close window -------------------------------------------------------
-    def on_close(self) -> None:
-        """Stops the background camera acquisition thread before closing."""
+    def cleanup(self) -> None:
+        """Stops background threads and releases resources."""
         if getattr(self, "zed_recorder", None):
             try:
                 self.zed_recorder.stop()
@@ -1926,6 +1963,10 @@ class App:
                 pass
         if getattr(self, "replay", None) is not None:
             self.replay.pause()
+
+    def on_close(self) -> None:
+        """Stops the background camera acquisition thread before closing."""
+        self.cleanup()
         self.root.destroy()
     # -- Load ---------------------------------------------------------------
     def on_open(self) -> None:
@@ -2898,16 +2939,24 @@ class App:
                 pass
         doc = self._build_pool_doc()
         if doc is not None:
-            from tkinter import simpledialog
-            name = simpledialog.askstring("Save Plane", "Enter plane name:")
-            if name:
-                from datetime import datetime
-                timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-                save_path = Path("C:/Users/harri/Documents/GitHub/Dog-Diving-Scoring/end-to-end-app/planes") / f"{name}_{timestamp}.json"
-                import json
-                with open(save_path, "w") as f:
-                    json.dump(doc, f)
-                self.log(f"plane saved to {save_path.name}")
+            from tkinter import messagebox, simpledialog
+            choice = messagebox.askyesnocancel("Plane Confirmed", "Do you want to save this plane to disk?\n\n(Click Yes to save with a new name, No to apply calibration without saving / skip saving, Cancel to abort)")
+            if choice is True:
+                name = simpledialog.askstring("Save Plane", "Enter plane name:")
+                if name:
+                    from datetime import datetime
+                    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+                    planes_dir = Path(getattr(self, "plane_dir", None) or (Path(__file__).resolve().parent.parent / "planes"))
+                    planes_dir.mkdir(parents=True, exist_ok=True)
+                    save_path = planes_dir / f"{name}_{timestamp}.json"
+                    import json
+                    with open(save_path, "w") as f:
+                        json.dump(doc, f)
+                    self.log(f"plane saved to {save_path.name}")
+            elif choice is False:
+                self.log("Plane calibration applied (saving skipped).")
+            else:
+                return
             
             self._show_pool_doc(doc, source="aligned plane")
             self.log("plane confirmed — the document is built from the full-pool quad")
@@ -3149,7 +3198,8 @@ class App:
         found = False
         
         # Check planes/ directory
-        plane_path = Path("C:/Users/harri/Documents/GitHub/Dog-Diving-Scoring/end-to-end-app/planes") / f"{sid}.json"
+        planes_dir = Path(getattr(self, "plane_dir", None) or (Path(__file__).resolve().parent.parent / "planes"))
+        plane_path = planes_dir / f"{sid}.json"
         if plane_path.exists():
             import json
             with open(plane_path, "r") as f:
@@ -3173,28 +3223,59 @@ class App:
         else:
             self.log(f"saved plane {sid!r} is no longer on disk")
     def _refresh_plane_choices(self) -> None:
-        """The saved-plane list: the setup id of every plane on disk."""
+        """The saved-plane list: the setup id of every plane on disk, sorted by mtime descending (most recently modified first)."""
         pick = getattr(self, "plane_pick", None)
         if pick is None:
             return
+        
+        plane_paths = []
+        try:
+            for p in pool_calib_mod.list_setups(getattr(self, "plane_dir", None)):
+                if isinstance(p, Path) and p.exists():
+                    plane_paths.append(p)
+                elif isinstance(p, str) and Path(p).exists():
+                    plane_paths.append(Path(p))
+        except Exception:
+            pass
+
+        planes_dir_candidates = [
+            Path("planes"),
+            Path(__file__).resolve().parent.parent / "planes"
+        ]
+        for d in planes_dir_candidates:
+            if d.exists() and d.is_dir():
+                for p in d.glob("*.json"):
+                    plane_paths.append(p)
+
+        seen_paths = set()
+        unique_planes = []
+        for p in plane_paths:
+            try:
+                resolved = p.resolve()
+            except Exception:
+                resolved = p
+            if resolved not in seen_paths:
+                seen_paths.add(resolved)
+                try:
+                    mtime = resolved.stat().st_mtime
+                except Exception:
+                    mtime = 0.0
+                unique_planes.append((mtime, resolved))
+
+        unique_planes.sort(key=lambda x: x[0], reverse=True)
+
         values = []
-        for path in pool_calib_mod.list_setups(self.plane_dir):
+        for mtime, p in unique_planes:
             try:
-                doc = pool_calib_mod.load(path)
-            except Exception:                                        # noqa: BLE001
-                continue
-            sid = str(doc.get("setup_id") or path.stem)
-            if sid not in values:
-                values.append(sid)
-        for path in Path("C:/Users/harri/Documents/GitHub/Dog-Diving-Scoring/end-to-end-app/planes").glob("*.json"):
-            try:
-                with open(path, "r") as f:
+                with open(p, "r") as f:
                     import json
                     doc = json.load(f)
-                sid = path.stem
-                if sid not in values:
-                    values.append(sid)
-            except Exception: pass
+                sid = str(doc.get("setup_id") or p.stem)
+            except Exception:
+                sid = p.stem
+            if sid and sid not in values:
+                values.append(sid)
+
         try:
             pick.configure(values=values)
         except Exception:                                            # noqa: BLE001
@@ -3207,56 +3288,52 @@ class App:
         import tkinter as tk
         from tkinter import ttk
         
-        self.video_label = ttk.Label(self.tab_capture)
-        self.video_label.pack(expand=True, fill="both")
-        
-        
-        # Start the video loop
-        self._update_video_stream()
+        for widget in self.tab_capture.winfo_children():
+            widget.destroy()
+            
+        wip_label = ttk.Label(self.tab_capture, text="WIP", font=("Arial", 48, "bold"), anchor="center")
+        wip_label.pack(expand=True, fill="both")
 
     def _update_video_stream(self) -> None:
-        if self.tab_capture.winfo_ismapped():
-            # Load stand-in MP4 for development
-            import cv2
-            cap = cv2.VideoCapture("C:/Users/harri/Documents/GitHub/Dog-Diving-Scoring/end-to-end-app/data/clips/video004_right-00.00.36.812-00.00.38.328-seg01.mp4")
-            ret, frame = cap.read()
-            if ret:
-                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                # Apply plane overlay logic if plane is loaded
-                if self.plane_session is not None:
-                     # Placeholder for overlay logic
-                     pass
-                
-                from PIL import Image, ImageTk
-                img = ImageTk.PhotoImage(image=Image.fromarray(frame))
-                self.video_label.img = img
-                self.video_label.configure(image=img)
-                cap.release()
-        self.root.after(30, self._update_video_stream)
+        pass
 
     def on_capture_jump(self) -> None:
+        if not self.zed_recorder:
+            self.on_toggle_camera()
+            # Wait for camera to initialize
+            time.sleep(2.0)
+            
         if self.zed_recorder:
             self.zed_recorder.trigger_capture("captured_jump")
             self.log("Capture triggered for last 10 seconds.")
+            # Auto-turn off
+            self.root.after(11000, self.on_toggle_camera)
         else:
             self.log("ZED recorder not available.")
 
 
 
-    def on_clear_pool(self) -> None:
-        """Drop the loaded plane/document state.  Kept internal: both Clear buttons were removed
-        (operator order 2026-10-21), but a clip change still needs to start from nothing."""
-        self.pool_calib = None
-        self.pool_calib_path = None
-        self.pool_result = None
-        self.plane_session = None
-        self._plane_setup_id = None
-        self._plane_clips = []
-        self.pool_status.configure(text="select a plane")
-        if hasattr(self, "plane_pick_var"):
-            self.plane_pick_var.set("auto")
-        self._sync_plane_widgets()
-        self.log("cleared the pool (3-D) calibration")
+    def on_toggle_camera(self) -> None:
+        if self.zed_recorder:
+            self.zed_recorder.stop_and_release()
+            self.zed_recorder = None
+            self.camera_toggle_btn.configure(text="CAMERA LIVE")
+            self.video_label.configure(image="", text="CAMERA OFFLINE", background="black")
+        else:
+            # Re-initialize
+            from dog_diving.zed_recorder import DualZEDXLiveBuffer
+            self.zed_recorder = DualZEDXLiveBuffer(
+                output_dir="data/svo_recordings",
+                clips_dir="data/clips",
+                chunk_seconds=CAPTURE_SECONDS,
+                fps=30
+            )
+            if self.zed_recorder.start():
+                self.camera_toggle_btn.configure(text="CAMERA OFFLINE")
+                self.video_label.configure(text="")
+            else:
+                self.zed_recorder = None
+                self.log("Failed to start ZED cameras.")
 
     # -- Process ------------------------------------------------------------
     def _model_choices(self) -> list[str]:
@@ -3408,6 +3485,15 @@ class App:
                  + ("" if min_points > 0 else "  (ladder off — fixed thresholds)"))
 
         model_path = Path(str(self.model_var.get()))
+        is_online = (getattr(self, "zed_recorder", None) is not None)
+        if is_online:
+            engine_path = model_path.with_suffix(".engine")
+            if engine_path.is_file():
+                model_path = engine_path
+                self.log(f"Online mode: using TensorRT engine {model_path.name}")
+        else:
+            if model_path.suffix == ".engine":
+                model_path = model_path.with_suffix(".pt")
         if not model_path.is_file():
             self.log(f"pose model not found: {model_path} — pick one before running")
             return
@@ -3568,10 +3654,16 @@ class App:
         if rp.playing:
             rp.pause()
         else:
-            # Start from where the operator is looking; a fresh scheduler starts at 0.
+            start_frame = 0
+            if self.review and hasattr(self.review, "traj") and self.review.traj:
+                pts = getattr(self.review.traj, "points", [])
+                for pt in pts:
+                    if pt.get("frame") is not None:
+                        start_frame = int(pt["frame"])
+                        break
             rp.on_frame = self._replay_frame
             rp.on_finish = self._replay_finish
-            rp.start(from_frame=self.review.frame if self.review.frame is not None else 0)
+            rp.start(from_frame=start_frame)
         self._sync_play_btn()
 
     def _replay_frame(self, frame: int) -> None:
@@ -3674,12 +3766,20 @@ class App:
         self.log(f"saved \u2192 ledger: {name} @ {row['display']}")
 
     def on_open_ledger(self) -> None:
-        """Open the score ledger CSV with the OS default (Windows: shell-open)."""
-        import subprocess
+        """Open the score ledger CSV with the OS default."""
         path = Path(self.ledger_path)
         try:
             if path.exists():
-                subprocess.Popen(["explorer", str(path)], shell=False)
+                if sys.platform == "win32":
+                    try:
+                        os.startfile(str(path))
+                    except Exception:
+                        import subprocess
+                        subprocess.Popen(["explorer.exe", str(path)], shell=False)
+                else:
+                    import subprocess
+                    opener = "xdg-open" if sys.platform.startswith("linux") else "open"
+                    subprocess.Popen([opener, str(path)], shell=False)
             else:
                 self.log(f"ledger not yet written: {path}")
         except Exception as exc:  # noqa: BLE001
@@ -4087,6 +4187,15 @@ class App:
         self._after_review_change()
 
     def _after_review_change(self, redraw: bool = True) -> None:
+        if self.review is not None:
+            meas = self.review.measurement()
+            dist = meas.get("distance_ft") or meas.get("distance")
+            has_score = (dist is not None and str(dist).lower() != "nan" and "no run" not in str(self.readout.cget("text")).lower())
+            if hasattr(self, "accept_btn"):
+                self.accept_btn.configure(state="normal" if has_score else "disabled")
+        else:
+            if hasattr(self, "accept_btn"):
+                self.accept_btn.configure(state="disabled")
         if self.review is None:
             return
         if self.review.frame is not None and not self.correct_point_mode:
@@ -4734,9 +4843,14 @@ def main(argv: list[str] | None = None) -> int:
 
     import tkinter as tk
     root = tk.Tk()
-    App(root, clip=args.clip)
-    root.mainloop()
+    app = App(root, clip=args.clip)
+    try:
+        root.mainloop()
+    finally:
+        app.cleanup()
     return 0
+
+
 
 
 
