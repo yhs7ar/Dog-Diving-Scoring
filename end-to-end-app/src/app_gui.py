@@ -2874,9 +2874,7 @@ class App:
         s = self.plane_session
         # Pressing the button twice must not turn the 10/15 band into the document: if the quad is
         # sitting on the post-confirmation defaults, restore the pool-wide labels first.
-        if s is not None and s.placed and \
-                abs(s.dock_offset_ft - SEED_ANCHOR_NEAR_FT) < 1e-9 and \
-                abs(s.length_ft - (SEED_ANCHOR_FAR_FT - SEED_ANCHOR_NEAR_FT)) < 1e-9:
+        if s is not None and s.placed and                 abs(s.dock_offset_ft - SEED_ANCHOR_NEAR_FT) < 1e-9 and                 abs(s.length_ft - (SEED_ANCHOR_FAR_FT - SEED_ANCHOR_NEAR_FT)) < 1e-9:
             try:
                 s.apply_anchors(0.0, float(plane_mod.METRIC_LENGTH_FT))
             except Exception:                                        # noqa: BLE001
@@ -2893,10 +2891,11 @@ class App:
                 with open(save_path, "w") as f:
                     json.dump(doc, f)
                 self.log(f"plane saved to {save_path.name}")
-            self._refresh_plane_choices()
+            
             self._show_pool_doc(doc, source="aligned plane")
             self.log("plane confirmed — the document is built from the full-pool quad")
             self._place_default_anchors()
+            self._refresh_plane_choices()
 
     def _place_default_anchors(self) -> None:
         """Switch the selectable quad to the 10 / 15 ft defaults, leaving the plane where it is."""
