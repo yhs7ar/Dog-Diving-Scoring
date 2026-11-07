@@ -3071,7 +3071,9 @@ class App:
         doc["setup_id"] = setup_id
         doc["clips"] = [clips[k] for k in sorted(clips)]
         try:
-            path = pool_calib_mod.setup_path(setup_id, getattr(self, "plane_dir", None))
+            planes_dir = Path(getattr(self, "plane_dir", None) or (Path(__file__).resolve().parent.parent / "planes"))
+            planes_dir.mkdir(parents=True, exist_ok=True)
+            path = planes_dir / f"{setup_id}.json"
             pool_calib_mod.save(doc, path)
         except Exception as exc:  # noqa: BLE001
             self.log(f"plane save failed: {type(exc).__name__}: {exc}")
@@ -3196,11 +3198,23 @@ class App:
         # Load selected plane
         # Look in both directories
         found = False
-        
-        # Check planes/ directory
         planes_dir = Path(getattr(self, "plane_dir", None) or (Path(__file__).resolve().parent.parent / "planes"))
-        plane_path = planes_dir / f"{sid}.json"
-        if plane_path.exists():
+        plane_path = None
+        if planes_dir.exists() and planes_dir.is_dir():
+            for p in planes_dir.glob("*.json"):
+                if p.stem == sid:
+                    plane_path = p
+                    break
+                try:
+                    with open(p, "r") as f:
+                        doc = json.load(f)
+                    if str(doc.get("setup_id")) == sid:
+                        plane_path = p
+                        break
+                except Exception:
+                    pass
+
+        if plane_path is not None and plane_path.exists():
             import json
             with open(plane_path, "r") as f:
                 doc = json.load(f)
@@ -3211,7 +3225,7 @@ class App:
             for path in pool_calib_mod.list_setups(self.plane_dir):
                 try:
                     doc = pool_calib_mod.load(path)
-                    if str(doc.get("setup_id")) == sid:
+                    if str(doc.get("setup_id")) == sid or path.stem == sid:
                         self._apply_plane_doc(doc, path)
                         found = True
                         break
