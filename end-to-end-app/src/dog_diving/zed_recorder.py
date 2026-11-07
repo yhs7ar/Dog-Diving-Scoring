@@ -296,6 +296,7 @@ class DualZEDXLiveBuffer(ZEDRecorder):
             sn2 = cam2_sn or (devs[1].serial_number if len(devs) > 1 else None)
 
             self._init_cam(self.zed1, sn1)
+            time.sleep(2.0)
             self._init_cam(self.zed2, sn2)
             print(f"[ZED] Camera 1 (SN: {sn1}) & Camera 2 (SN: {sn2}) online.")
 

@@ -2880,6 +2880,23 @@ class App:
             except Exception:                                        # noqa: BLE001
                 pass
         doc = self._build_pool_doc()
+    def on_build_plane(self) -> None:
+        """Plane Confirmed: commit the plane, then hand the operator the inner anchor pair.
+
+        The document is built from the FULL-pool quad — that is the fit, and it is what the
+        measurement uses.  Only afterwards do the anchors move to their 10 / 15 ft defaults, so the
+        next drag starts inside the pool instead of at its walls.  ``apply_anchors`` re-projects
+        through the same homography, so the plane itself does not move (measured: ~1e-12 px).
+        """
+        s = self.plane_session
+        # Pressing the button twice must not turn the 10/15 band into the document: if the quad is
+        # sitting on the post-confirmation defaults, restore the pool-wide labels first.
+        if s is not None and s.placed and                 abs(s.dock_offset_ft - SEED_ANCHOR_NEAR_FT) < 1e-9 and                 abs(s.length_ft - (SEED_ANCHOR_FAR_FT - SEED_ANCHOR_NEAR_FT)) < 1e-9:
+            try:
+                s.apply_anchors(0.0, float(plane_mod.METRIC_LENGTH_FT))
+            except Exception:                                        # noqa: BLE001
+                pass
+        doc = self._build_pool_doc()
         if doc is not None:
             from tkinter import simpledialog
             name = simpledialog.askstring("Save Plane", "Enter plane name:")

@@ -17,7 +17,7 @@ REM  Override the interpreter by setting DD_PY before calling.
 REM ---------------------------------------------------------------------------
 setlocal
 
-if not defined DD_PY set "DD_PY=C:\Users\harri\dd-venv\Scripts\python.exe"
+if not defined DD_PY set "DD_PY=/home/dogdiving/Documents/Captstone-Repo/.venv_jetson/bin/python3"
 
 if not exist "%DD_PY%" (
     echo ERROR: interpreter not found at "%DD_PY%"

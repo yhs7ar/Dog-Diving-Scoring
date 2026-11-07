@@ -269,7 +269,7 @@ DEFAULT_IMGSZ = 1280
 DEFAULT_CONF = 0.12
 DEFAULT_KP_CONF = 0.30
 DEFAULT_TRACKER = "bytetrack.yaml"
-DEFAULT_DEVICE = "cpu"
+DEFAULT_DEVICE = "0" # was "cpu"
 DEFAULT_CLAHE_CLIP = 2.5
 DEFAULT_CLAHE_GRID = (8, 8)
 TAILSET_INDEX = 1
@@ -279,7 +279,7 @@ NOSE_INDEX = 0
 # ``DD_CAPTURE_SECONDS`` (env) beats the default; the GUI's duration spinbox writes the same
 # value into the recorder at startup (and live via ``set_capture_seconds``).  The recorder's
 # own ``DEFAULT_CHUNK_SECONDS`` matches this default so a bare ``DualZEDXLiveBuffer()`` agrees.
-CAPTURE_SECONDS_DEFAULT = 10
+CAPTURE_SECONDS_DEFAULT = 5
 _capture_seconds_raw = os.environ.get("DD_CAPTURE_SECONDS", "").strip()
 try:
     CAPTURE_SECONDS = int(_capture_seconds_raw) if _capture_seconds_raw else CAPTURE_SECONDS_DEFAULT
