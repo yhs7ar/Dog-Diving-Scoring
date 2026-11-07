@@ -18,8 +18,8 @@ contact      chosen frame 85 from 'final-detection'; arc_is_freefall=True
              #4 velocity_reversal     f85  avail=True conf=False
 
 measurement  x=532.8984985351562 y=311.0320129394531 point_source=model (detection)
-distance     7' 11"  +/- None in  [LOWER BOUND: a budget term is missing]
-             total_inches=95.08867607403064 sigma_complete=None terms=None
+distance     8' 2"  +/- None in  [LOWER BOUND: a budget term is missing]
+             total_inches=98.01525270909266 sigma_complete=None terms=None
 
 warnings     0
 

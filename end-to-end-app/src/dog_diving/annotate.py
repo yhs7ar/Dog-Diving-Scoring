@@ -277,7 +277,17 @@ def draw_frame(
         out = _contact.draw_candidates(out, contact)
     if pool_result is not None and entry_mark:
         out = _draw_pool_entry(out, pool_result)
-    out = draw_measurement(out, measurement)
+        # Use the pool_result entry point for the measurement marker
+        entry = pool_result.get("entry")
+        if entry:
+            print(f"DEBUG: Drawing adjusted marker at {entry['x_px']}, {entry['y_px']}")
+            adjusted_meas = measurement.copy()
+            adjusted_meas["x_px"] = entry["x_px"]
+            adjusted_meas["y_px"] = entry["y_px"]
+            out = draw_measurement(out, adjusted_meas)
+        else:
+            print("DEBUG: No entry in pool_result, using raw measurement")
+            out = draw_measurement(out, measurement)
     if banner:
         h, w = out.shape[:2]
         cv2.rectangle(out, (0, 0), (w, BANNER_H), C_BANNER_BG, -1)

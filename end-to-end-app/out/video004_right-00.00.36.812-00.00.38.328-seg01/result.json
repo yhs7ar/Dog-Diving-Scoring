@@ -157,7 +157,7 @@
     "calib_setup_id": null,
     "cfg": null,
     "contact_source": null,
-    "display": "7' 11\"",
+    "display": "8' 2\"",
     "feet": null,
     "flags": {
       "negative_distance": false,
@@ -181,7 +181,7 @@
     "splash_gap_in": null,
     "splash_gap_px": null,
     "splash_gap_tol_in": null,
-    "total_inches": 95.08867607403064,
+    "total_inches": 98.01525270909266,
     "waterline_y": null,
     "x_px": 532.8984985351562,
     "y_px": 311.0320129394531

@@ -1182,11 +1182,14 @@ class App:
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
 
         self._build_ui()
+        self._setup_capture_tab()
         self.root.after(80, self._drain)
+        self._refresh_plane_choices()
         if clip is not None:
             self.load_clip(clip)
 
     # -- ui construction ----------------------------------------------------
+        self._setup_capture_tab()
     def _build_ui(self) -> None:
         tk, ttk = self.tk, self.ttk
 
@@ -1242,17 +1245,18 @@ class App:
         self.tab_process = ttk.Frame(self.nb, padding=8)
         self.tab_review = ttk.Frame(self.nb, padding=8)
         self.tab_results = ttk.Frame(self.nb, padding=8)
+        self.tab_capture = ttk.Frame(self.nb, padding=8)
         # No Load step (order 2026-10-28): the toolbar's "Open clip…" loads, the stability check runs
         # by itself, and a clip that fails it says so in a popup on Calibrate.  Nothing is asked of
         # the operator that a screen could ask for.
-        for tab, name in ((self.tab_calib, "1 Calibrate"), (self.tab_process, "2 Process"),
-                          (self.tab_review, "3 Review"), (self.tab_results, "4 Results")):
+        for tab, name in ((self.tab_calib, "1 Calibrate"), (self.tab_capture, "2 Capture"), (self.tab_process, "3 Process"), (self.tab_review, "4 Review"), (self.tab_results, "5 Results")):
             self.nb.add(tab, text=name)
 
         self._build_calibrate()
         self._build_process()
         self._build_review()
         self._build_results()
+        self._setup_capture_tab()
 
         log_frame = ttk.LabelFrame(self.root, text="session log", padding=4)
         log_frame.pack(side="bottom", fill="x", padx=8, pady=(0, 4))
@@ -1261,6 +1265,7 @@ class App:
         if MODEL_SELECTION_NOTE:
             self.log(MODEL_SELECTION_NOTE)       # e.g. a DD_MODEL_SCALE the registry could not honour
 
+        self._setup_capture_tab()
     def _zoomable(self, parent, w: int, h: int):
         """Canvas + scrollbars + zoom toolbar + image-px cursor readout.
 
@@ -1318,14 +1323,14 @@ class App:
         self.calib_frame_idx = tk.IntVar(value=CALIB_FRAME_DEFAULT)
         self.grid_var = tk.BooleanVar(value=True)
 
-        # Which saved plane this clip uses.  "auto" is the normal state and the default: the clip's
+        # Which saved plane this clip uses. The list allows pointing a clip at a saved plane.
         # own plane is adopted when it is opened (Load pool doc, 2026-10-21).  The list exists for the
         # one case auto cannot cover — pointing a clip at a plane that was saved for OTHER clips, so
         # that saving adds this clip to that plane's accepted list instead of making a copy.
         pick = ttk.Frame(f)
         pick.pack(anchor="w")
         ttk.Label(pick, text="saved plane:").pack(side="left")
-        self.plane_pick_var = tk.StringVar(value="auto")
+        self.plane_pick_var = tk.StringVar(value="")
         self.plane_pick = ttk.Combobox(pick, textvariable=self.plane_pick_var, width=34,
                                        state="readonly")
         self.plane_pick.pack(side="left", padx=4)
@@ -2878,6 +2883,17 @@ class App:
                 pass
         doc = self._build_pool_doc()
         if doc is not None:
+            from tkinter import simpledialog
+            name = simpledialog.askstring("Save Plane", "Enter plane name:")
+            if name:
+                from datetime import datetime
+                timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+                save_path = Path("C:/Users/harri/Documents/GitHub/Dog-Diving-Scoring/end-to-end-app/planes") / f"{name}_{timestamp}.json"
+                import json
+                with open(save_path, "w") as f:
+                    json.dump(doc, f)
+                self.log(f"plane saved to {save_path.name}")
+            self._refresh_plane_choices()
             self._show_pool_doc(doc, source="aligned plane")
             self.log("plane confirmed — the document is built from the full-pool quad")
             self._place_default_anchors()
@@ -3057,8 +3073,8 @@ class App:
             return False
         hit = self.find_plane_for_clip()
         if hit is None:
-            self.pool_status.configure(text="no saved plane for this clip")
-            self.log("no saved plane for this clip — press New Plane to fit the waterlines")
+            self.pool_status.configure(text="select a plane")
+            self.log("select a plane or press New Plane to fit the waterlines")
             return False
         path, doc = hit
         self._apply_plane_doc(doc, path)
@@ -3092,31 +3108,60 @@ class App:
                  + (f"; this clip is one of them" if n else ""))
 
     def on_pick_plane(self, _event=None) -> None:
-        """Adopt a chosen saved plane for this clip (or go back to ``auto``)."""
-        sid = str(self.plane_pick_var.get() or "auto")
-        if sid == "auto":
-            self.auto_load_plane_for_clip()
+        """Adopt a chosen saved plane for this clip, after confirming changes."""
+        sid = str(self.plane_pick_var.get())
+        if not sid:
             return
-        for path in pool_calib_mod.list_setups(self.plane_dir):
-            try:
-                doc = pool_calib_mod.load(path)
-            except Exception:                                        # noqa: BLE001
-                continue
-            if str(doc.get("setup_id")) == sid:
-                self._apply_plane_doc(doc, path)
-                self.log(f"plane {sid} adopted for {self.clip.stem if self.clip else 'this clip'} — "
-                         f"Complete rebuilds the document for it")
-                return
-        self.log(f"saved plane {sid!r} is no longer on disk — back to auto")
-        self.plane_pick_var.set("auto")
-        self.auto_load_plane_for_clip()
 
+        # Check if plane is different
+        if self.plane_session is not None and self.plane_session.placed:
+            from tkinter import messagebox
+            response = messagebox.askyesnocancel("Warning", "You have an unsaved plane on screen. Do you want to save it before loading a new one?")
+            if response is True:
+                # Save current
+                self.on_build_plane()
+            elif response is False:
+                # Discard current
+                pass
+            else:
+                # Cancel
+                # Reset dropdown to previous or empty
+                return
+
+        # Load selected plane
+        # Look in both directories
+        found = False
+        
+        # Check planes/ directory
+        plane_path = Path("C:/Users/harri/Documents/GitHub/Dog-Diving-Scoring/end-to-end-app/planes") / f"{sid}.json"
+        if plane_path.exists():
+            import json
+            with open(plane_path, "r") as f:
+                doc = json.load(f)
+            self._apply_plane_doc(doc, plane_path)
+            found = True
+        else:
+            # Check pool_calib_mod
+            for path in pool_calib_mod.list_setups(self.plane_dir):
+                try:
+                    doc = pool_calib_mod.load(path)
+                    if str(doc.get("setup_id")) == sid:
+                        self._apply_plane_doc(doc, path)
+                        found = True
+                        break
+                except Exception:
+                    continue
+        
+        if found:
+            self.log(f"plane {sid} adopted")
+        else:
+            self.log(f"saved plane {sid!r} is no longer on disk")
     def _refresh_plane_choices(self) -> None:
-        """The saved-plane list: ``auto`` plus the setup id of every plane on disk."""
+        """The saved-plane list: the setup id of every plane on disk."""
         pick = getattr(self, "plane_pick", None)
         if pick is None:
             return
-        values = ["auto"]
+        values = []
         for path in pool_calib_mod.list_setups(self.plane_dir):
             try:
                 doc = pool_calib_mod.load(path)
@@ -3125,13 +3170,62 @@ class App:
             sid = str(doc.get("setup_id") or path.stem)
             if sid not in values:
                 values.append(sid)
+        for path in Path("C:/Users/harri/Documents/GitHub/Dog-Diving-Scoring/end-to-end-app/planes").glob("*.json"):
+            try:
+                with open(path, "r") as f:
+                    import json
+                    doc = json.load(f)
+                sid = path.stem
+                if sid not in values:
+                    values.append(sid)
+            except Exception: pass
         try:
             pick.configure(values=values)
         except Exception:                                            # noqa: BLE001
             pass
-        current = str(self.plane_pick_var.get() or "auto")
-        if current != "auto" and current not in values:
-            self.plane_pick_var.set("auto")
+        current = str(self.plane_pick_var.get() or "")
+        if current and current not in values and values:
+            self.plane_pick_var.set(values[0])
+
+    def _setup_capture_tab(self) -> None:
+        import tkinter as tk
+        from tkinter import ttk
+        
+        self.video_label = ttk.Label(self.tab_capture)
+        self.video_label.pack(expand=True, fill="both")
+        
+        
+        # Start the video loop
+        self._update_video_stream()
+
+    def _update_video_stream(self) -> None:
+        if self.tab_capture.winfo_ismapped():
+            # Load stand-in MP4 for development
+            import cv2
+            cap = cv2.VideoCapture("C:/Users/harri/Documents/GitHub/Dog-Diving-Scoring/end-to-end-app/data/clips/video004_right-00.00.36.812-00.00.38.328-seg01.mp4")
+            ret, frame = cap.read()
+            if ret:
+                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                # Apply plane overlay logic if plane is loaded
+                if self.plane_session is not None:
+                     # Placeholder for overlay logic
+                     pass
+                
+                from PIL import Image, ImageTk
+                img = ImageTk.PhotoImage(image=Image.fromarray(frame))
+                self.video_label.img = img
+                self.video_label.configure(image=img)
+                cap.release()
+        self.root.after(30, self._update_video_stream)
+
+    def on_capture_jump(self) -> None:
+        if self.zed_recorder:
+            self.zed_recorder.trigger_capture("captured_jump")
+            self.log("Capture triggered for last 10 seconds.")
+        else:
+            self.log("ZED recorder not available.")
+
+
 
     def on_clear_pool(self) -> None:
         """Drop the loaded plane/document state.  Kept internal: both Clear buttons were removed
@@ -3142,7 +3236,7 @@ class App:
         self.plane_session = None
         self._plane_setup_id = None
         self._plane_clips = []
-        self.pool_status.configure(text="no saved plane for this clip")
+        self.pool_status.configure(text="select a plane")
         if hasattr(self, "plane_pick_var"):
             self.plane_pick_var.set("auto")
         self._sync_plane_widgets()
@@ -4584,6 +4678,7 @@ class App:
         except queue.Empty:
             pass
         self.root.after(80, self._drain)
+        self._refresh_plane_choices()
 
     def _on_progress(self, p: Progress) -> None:
         self.progress.configure(value=min(1.0, p.fraction))
@@ -4626,6 +4721,7 @@ def main(argv: list[str] | None = None) -> int:
     App(root, clip=args.clip)
     root.mainloop()
     return 0
+
 
 
 if __name__ == "__main__":

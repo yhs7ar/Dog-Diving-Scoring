@@ -250,6 +250,23 @@ def trajectory_plane_fit(
 
     entry = _inter.entry_coordinate(pose, water, None, extent=extent, margin_ft=margin_ft,
                                     homography=H, trajectory=traj3d)
+    
+    # Calculate 1.5 * segment offset from last 4 points
+    # Need world points from `world["points"]`
+    world_pts = world["points"]
+    if len(world_pts) >= 4:
+        last_4 = world_pts[-4:]
+        # Calculate segments
+        segments = []
+        for i in range(len(last_4) - 1):
+            p1 = np.array([last_4[i]["X_ft"], last_4[i]["Y_ft"], last_4[i]["Z_ft"]])
+            p2 = np.array([last_4[i+1]["X_ft"], last_4[i+1]["Y_ft"], last_4[i+1]["Z_ft"]])
+            segments.append(np.linalg.norm(p1 - p2))
+        if segments:
+            avg_segment = np.mean(segments)
+            entry["X_ft"] = float(entry["X_ft"]) + 1.5 * avg_segment
+    
+    print(f"DEBUG: Entry X_ft={entry['X_ft']}, px={entry['x_px']}, {entry['y_px']}")
     out["entry"] = entry
     if entry.get("X_ft") is None:
         out.update({"status": "no_crossing",

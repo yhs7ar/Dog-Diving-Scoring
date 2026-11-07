@@ -1,7 +1,7 @@
 {
   "argv": null,
   "clip_id": "video004_right-00.00.36.812-00.00.38.328-seg01",
-  "created": "2026-11-04T13:59:41+00:00",
+  "created": "2026-11-06T18:58:15+00:00",
   "extra": {
     "conf": 0.12,
     "contact": "auto",
@@ -30,10 +30,10 @@
     "subclip": null
   },
   "from_cache": true,
-  "host": "DESKTOP-N6LE4SI",
-  "platform": "Windows-10-10.0.22635-SP0",
+  "host": "ThinkPad5440",
+  "platform": "Windows-10-10.0.26200-SP0",
   "timings": {
-    "cache_load_s": 0.022836600001028273,
+    "cache_load_s": 0.058639800001401454,
     "cancelled": 0.0,
     "fps": 4.142688698175618,
     "inference_ms_per_frame": null,
