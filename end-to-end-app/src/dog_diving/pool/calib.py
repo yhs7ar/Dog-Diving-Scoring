@@ -701,8 +701,23 @@ def setup_path(setup_id: str, dir: str | Path | None = None) -> Path:
 
 
 def list_setups(dir: str | Path | None = None) -> list[Path]:
-    from ..config import CALIB_DIR
+    from ..config import CALIB_DIR, PROJECT_ROOT
+    paths = []
     d = Path(dir) if dir is not None else Path(CALIB_DIR)
-    if not d.exists():
-        return []
-    return sorted(d.glob("*.pool.json"))
+    if d.exists():
+        paths.extend(d.glob("*.pool.json"))
+        paths.extend(d.glob("*.json"))
+    planes_dir = PROJECT_ROOT / "planes"
+    if planes_dir.exists() and planes_dir != d:
+        paths.extend(planes_dir.glob("*.json"))
+    seen = set()
+    unique = []
+    for p in paths:
+        try:
+            r = p.resolve()
+        except Exception:
+            r = p
+        if r not in seen:
+            seen.add(r)
+            unique.append(p)
+    return sorted(unique)
