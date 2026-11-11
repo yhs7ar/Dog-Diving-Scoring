@@ -116,6 +116,15 @@ from .config import (
     TAILSET_INDEX,
 )
 
+# Safe ZED SDK detection — mirrors zed_recorder.py / fusion.py.  ``detect`` must stay
+# importable without pyzed (Windows / CPU host), so the import is guarded and used only
+# to choose a TensorRT ``.engine`` vs the ``.pt`` checkpoint, never to open a camera.
+try:
+    import pyzed.sl  # noqa: F401  (presence test only)
+    HAS_ZED_SDK = True
+except ImportError:
+    HAS_ZED_SDK = False
+
 # The model of record is 2-keypoint dog pose with a single class, and its keypoint order is
 # ``[nose, tailset]``.  The *shape* is still the gate — pointing the pipeline at a 24-kpt
 # checkpoint silently shifts TAILSET_INDEX onto the wrong joint, which is exactly the kind of
@@ -237,6 +246,72 @@ def verify_checkpoint(model: Any) -> "pose_layout.PoseLayout":
     return pose_layout.layout_for_model(model)
 
 
+def resolve_runtime_model(
+    checkpoint: str | Path, *, has_zed_sdk: bool = HAS_ZED_SDK
+) -> tuple[Path, str | None]:
+    """Pick the runtime weights file for a selected checkpoint.
+
+    The ZED SDK is only present on the Jetson rig, where a checkpoint's TensorRT
+    ``.engine`` build is the intended weights file.  Everywhere else (Windows dev, CPU)
+    the ``.engine`` cannot run, so the ``.pt`` is used.  One function so ``load_model``
+    and the GUI agree on *one* rule.
+
+    Returns ``(path, note)``: ``path`` is the resolved file (existence not checked), and
+    ``note`` is a one-line reason when the interesting choice was made — engine chosen,
+    or engine missing on a ZED host — so a caller can log it instead of switching
+    silently.  Pure and offline-testable: no model load, no pyzed, no GPU.
+    """
+    path = Path(str(checkpoint))
+    if has_zed_sdk:
+        engine = path.with_suffix(".engine")
+        if engine.is_file():
+            return engine, f"ZED SDK detected: using TensorRT engine {engine.name}"
+        return path, (f"ZED SDK detected but no TensorRT engine for {path.name} "
+                      f"({engine.name} missing) — falling back to the .pt checkpoint")
+    # No ZED SDK: a .engine can never run here, so map any .engine selection back to its .pt.
+    return path.with_suffix(".pt"), None
+
+
+def engine_export_target(
+    checkpoint: str | Path, *, has_zed_sdk: bool = HAS_ZED_SDK
+) -> Path | None:
+    """The ``.engine`` an on-demand build would produce, or ``None`` if none is warranted.
+
+    Warranted only on a ZED host (where a TensorRT engine can run), for a ``.pt`` whose
+    ``.engine`` sibling is missing.  ``None`` on Windows / CPU, when the engine already
+    exists, or when the ``.pt`` itself is missing.
+    """
+    if not has_zed_sdk:
+        return None
+    pt = Path(str(checkpoint)).with_suffix(".pt")
+    if not pt.is_file():
+        return None
+    engine = pt.with_suffix(".engine")
+    return None if engine.is_file() else engine
+
+
+def export_engine(
+    checkpoint: str | Path, *, imgsz: int = DEFAULT_IMGSZ, device: str = DEFAULT_DEVICE
+) -> Path:
+    """Build the TensorRT ``.engine`` for ``checkpoint`` — blocking; call it off the UI thread.
+
+    Returns the engine path and raises if the export produced no file.  TensorRT builds are
+    device-specific, so this is only meaningful on the Jetson rig; the caller gates it on
+    :func:`engine_export_target`.
+    """
+    pt = Path(str(checkpoint))
+    if not pt.is_file():
+        raise FileNotFoundError(f"checkpoint not found: {pt}")
+    engine = pt.with_suffix(".engine")
+    from ultralytics import YOLO  # local: heavy, GPU/TensorRT path only
+
+    model = YOLO(str(pt))
+    model.export(format="engine", device=device, imgsz=int(imgsz))
+    if not engine.is_file():
+        raise RuntimeError(f"export finished but {engine} was not created")
+    return engine
+
+
 def load_model(cfg: DetectConfig) -> Any:
     """Load + verify the checkpoint once.  Import of ultralytics is deferred so the
     module (and its cache/record helpers) stay importable without torch installed."""
@@ -246,18 +321,20 @@ def load_model(cfg: DetectConfig) -> Any:
     if not path.is_file():
         raise FileNotFoundError(f"checkpoint not found: {path}")
 
-    # Try TensorRT engine first
-    engine_path = path.with_suffix(".engine")
-    if engine_path.is_file():
+    runtime, _note = resolve_runtime_model(path)
+    # An engine can still fail to load (bad build, wrong device); fall back to the .pt
+    # that produced it rather than crash the run.
+    if runtime.suffix == ".engine":
         try:
-            model = YOLO(str(engine_path))
+            model = YOLO(str(runtime))
             verify_checkpoint(model)
             return model
-        except Exception:
-            # Fallback to .pt if engine fails
+        except Exception:  # noqa: BLE001 - a bad engine is a fallback trigger, not a crash
             pass
-
-    model = YOLO(str(path))
+    pt = runtime.with_suffix(".pt") if runtime.suffix == ".engine" else runtime
+    if not pt.is_file():
+        raise FileNotFoundError(f"checkpoint not found: {pt}")
+    model = YOLO(str(pt))
     verify_checkpoint(model)
     return model
 
@@ -809,6 +886,7 @@ def detect_clip(
     t0 = time.perf_counter()
     clip_sha = video.sha256(clip)
     model_sha = video.sha256(Path(cfg.model_path))
+    t_hash = time.perf_counter()
     key = cache_key(clip_sha, model_sha, cfg, frame_range)
     khash = key_hash(key)
     cpath = tracks_path(clip.stem, out_dir)
@@ -817,6 +895,7 @@ def detect_clip(
         doc = load_cache(cpath)
         e = (doc.get("entries") or {}).get(khash)
         if e is not None:
+            t_hit = time.perf_counter()
             return DetectResult(
                 clip_id=clip.stem, clip_path=str(clip), clip_sha=clip_sha, model_sha=model_sha,
                 cache_key=key, cache_key_hash=khash, cache_path=str(cpath),
@@ -826,19 +905,29 @@ def detect_clip(
                 n_frames_clip=e.get("n_frames_clip", 0),
                 n_frames_processed=e.get("n_frames_processed", len(e["records"])),
                 n_detections=e.get("n_detections", 0), n_accepted=e.get("n_accepted", 0),
-                timings={**e.get("timings", {}), "cache_load_s": time.perf_counter() - t0},
+                timings={
+                    **e.get("timings", {}),
+                    "hash_s": t_hash - t0,
+                    "cache_lookup_s": t_hit - t_hash,
+                    "cache_hit": 1.0,
+                    "from_cache": 1.0,
+                    "total_s": t_hit - t0,
+                },
                 from_cache=True, config=cfg.as_dict(),
                 model_layout=e.get("layout", ""),
                 tailset_derived=bool(e.get("tailset_derived", False)),
             )
 
+    t_load_start = time.perf_counter()
     if model is None:
         model = load_model(cfg)
     layout = verify_checkpoint(model)
+    t_loaded = time.perf_counter()
 
     from . import image_set as _image_set          # local: keeps this module torch-free on import
 
     vf = VideoFrames(clip, frame_range=frame_range)
+    frame_timings: dict[str, float] = {}
     cancelled = False
     state = {"done": 0}
 
@@ -854,24 +943,44 @@ def detect_clip(
 
     try:
         fd = _image_set.detect_frames(vf, cfg, model=model, progress_cb=_progress,
-                                      cancel_event=_Cancelled(cancel_event))
+                                      cancel_event=_Cancelled(cancel_event),
+                                      timings=frame_timings)
         cancelled = _cancel()
     finally:
         vf.close()
+    t_detected = time.perf_counter()
 
     records = list(fd.records)
     n = len(records)
-    total_s = time.perf_counter() - t0
+    total_s = t_detected - t0
     n_det = sum(1 for r in records if r.get("tailset"))
     n_acc = sum(1 for r in records if r.get("accepted"))
+    predict_s = float(frame_timings.get("predict_s", 0.0))
     timings = {
+        # -- where the wall clock went, measured rather than guessed -------------
+        "hash_s": t_hash - t0,                       # sha256 of the clip + the weights
+        "cache_lookup_s": t_load_start - t_hash,
+        "model_load_s": t_loaded - t_load_start,     # cold first-run load; ~0 when warm
+        "detect_frames_s": t_detected - t_loaded,
+        "read_s": float(frame_timings.get("read_s", 0.0)),
+        "clahe_s": float(frame_timings.get("clahe_s", 0.0)),
+        "predict_s": predict_s,                      # model.predict, summed over frames
+        "extract_s": float(frame_timings.get("extract_s", 0.0)),
+        # -- totals -------------------------------------------------------------
         "total_s": total_s,
         "ms_per_frame": (total_s / n * 1000.0) if n else float("nan"),
-        "inference_ms_per_frame": float("nan"),        # predict time is not instrumented here
+        "inference_ms_per_frame": (predict_s / n * 1000.0) if n else float("nan"),
         "fps": (n / total_s) if (n and total_s) else float("nan"),
         "projected_clip_s": (vf.clip_frames * total_s / n) if n else float("nan"),
         "cancelled": float(cancelled),
     }
+    # Best-effort device state, so "as slow as CPU" can be traced to a CPU-only torch
+    # build or an absent CUDA rather than guessed at.
+    try:
+        import torch  # noqa: WPS433 - optional; only to report availability
+        timings["cuda_available"] = 1.0 if torch.cuda.is_available() else 0.0
+    except Exception:  # noqa: BLE001 - torch absent is not a timing failure
+        pass
 
     result = DetectResult(
         clip_id=clip.stem, clip_path=str(clip), clip_sha=clip_sha, model_sha=model_sha,
@@ -884,6 +993,7 @@ def detect_clip(
         model_layout=layout.key, tailset_derived=bool(layout.tailset_derived),
     )
 
+    t_write_start = time.perf_counter()
     if use_cache and not cancelled:
         doc = load_cache(cpath)
         doc.setdefault("version", CACHE_VERSION)
@@ -904,6 +1014,7 @@ def detect_clip(
             "n_accepted": n_acc, "timings": timings,
         }
         save_cache(doc, cpath)
+    timings["cache_write_s"] = time.perf_counter() - t_write_start
 
     return result
 

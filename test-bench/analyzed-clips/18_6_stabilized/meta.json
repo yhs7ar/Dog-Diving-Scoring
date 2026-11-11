@@ -1,0 +1,15 @@
+{
+  "width": 1920,
+  "height": 1080,
+  "fps": 30.0,
+  "codec": "h264",
+  "n_frames": 270,
+  "vfr": false,
+  "declared_vs_decoded": [
+    270,
+    270
+  ],
+  "duration_s": 9.002667,
+  "backend": "ffprobe",
+  "probe_warnings": []
+}

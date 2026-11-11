@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any, Iterable, Sequence
 
 from dog_diving import measure as _measure
 from dog_diving import trajectory as _trajectory
@@ -56,3 +56,57 @@ def measure(records: Sequence[dict[str, Any]], plane_doc: dict[str, Any], *,
     meas = _measure.plane_distance(traj, plane_doc)
     meas["trajectory"] = traj.as_dict()
     return meas
+
+
+# --- Review deselection (baked into the saved detections) -------------------
+# Deselecting a detection means *"this tailset is not the dog"*.  The correction
+# is applied to the saved ``detections.json`` itself — the record's ``accepted``
+# flag is flipped to False — so that every downstream rebuild of the trajectory
+# (``assemble`` -> ``build_trajectory``) drops it with no separate filter step.
+# The saved detections are then the only detections scoring ever reads.
+
+def apply_deselection(records: Sequence[dict[str, Any]],
+                      excluded_frames: Iterable[int]) -> list[dict[str, Any]]:
+    """Mark ``excluded_frames`` as ``accepted=False`` in the record list.
+
+    Re-included frames (previously deselected, now absent from ``excluded_frames``)
+    are restored to ``accepted=True``.  A ``deselected`` marker is kept so a
+    technician-made exclusion is distinguishable from a detector-rejected one.
+    """
+    drop = {int(f) for f in (excluded_frames or ())}
+    out: list[dict[str, Any]] = []
+    for r in records:
+        r = dict(r)
+        f = int(r.get("frame", -1))
+        if f in drop:
+            r["accepted"] = False
+            r["deselected"] = True
+        elif r.pop("deselected", None) is not None:
+            r["accepted"] = True
+        out.append(r)
+    return out
+
+
+def deselect_detections(clip_dir: str | Path, clip_id: str,
+                        excluded_frames: Iterable[int]):
+    """Bake deselection into a clip's saved detections and rebuild its trajectory.
+
+    Writes the corrected ``detections.json`` (deselected frames ``accepted=False``),
+    rebuilds ``trajectory.json`` from the cleaned records, and updates the
+    manifest's ``excluded_frames`` / ``trajectory.n_points``.  Returns the rebuilt
+    :class:`dog_diving.trajectory.Trajectory`.
+    """
+    from . import manifest as _m
+
+    cdir = Path(clip_dir)
+    records = _m.read_json(cdir / "detections.json")
+    man = _m.read_manifest(cdir)
+    w, h = int(man["meta"]["width"]), int(man["meta"]["height"])
+    recs = apply_deselection(records, excluded_frames)
+    traj = build_trajectory(recs, clip_id=clip_id, frame_size=(w, h))
+    _m.write_json(cdir / "detections.json", recs)
+    _m.write_json(cdir / "trajectory.json", traj.as_dict())
+    man["excluded_frames"] = sorted({int(f) for f in (excluded_frames or ())})
+    man["trajectory"]["n_points"] = traj.n_points
+    _m.write_manifest(man, cdir)
+    return traj

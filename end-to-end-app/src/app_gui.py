@@ -1640,6 +1640,12 @@ class App:
         self.progress_label = ttk.Label(f, text="idle")
         self.progress_label.pack(anchor="w")
         self.cache_label = ttk.Label(f, text="")
+        self.cache_label.pack(anchor="w")
+        # Detailed substep timing readout (2026-11-11): which part of detection is slow —
+        # model load (cold first run), inference per frame, decode, CLAHE, extraction, cache.
+        self.timing_text = self.tk.Text(f, height=9, width=92, wrap="none",
+                                        font=("Consolas", 9), state="disabled")
+        self.timing_text.pack(anchor="w", fill="x", pady=(6, 0))
 
     def on_jump_last_detection(self) -> None:
         """Jump to the last accepted detection — the fork's ``jump_last``, ported."""
@@ -1795,7 +1801,16 @@ class App:
         # entry point"*).  The grid covers the entire pool; the elements sit on the dog.  Fading one
         # is not the same decision as fading the other, and before this the single slider forced it
         # to be.
-        ttk.Label(op, text="grid opacity:").pack(side="left", padx=(16, 0))
+        # The plane/grid overlay has a switch of its own (operator order 2026-11-11): the lattice is a
+        # reference for where the pool is, not the thing being read, so it starts OFF.  It is a
+        # separate control from both opacity sliders on purpose — the trajectory, the detections and
+        # the final mark are drawn whatever this says; only the lattice follows it.
+        self.review_plane_var = tk.BooleanVar(value=False)
+        self.review_plane_btn = ttk.Checkbutton(op, text="plane/grid overlay",
+                                                variable=self.review_plane_var,
+                                                command=self.on_review_plane_toggle)
+        self.review_plane_btn.pack(side="left", padx=(16, 0))
+        ttk.Label(op, text="grid opacity:").pack(side="left", padx=(10, 0))
         self.grid_opacity = tk.DoubleVar(value=GRID_OPACITY_DEFAULT_PCT)
         self.grid_opacity_scale = tk.Scale(op, from_=0, to=100, orient="horizontal",
                                            variable=self.grid_opacity, showvalue=True,
@@ -3472,16 +3487,27 @@ class App:
         self.log(f"minimum accepted points: {min_points}"
                  + ("" if min_points > 0 else "  (ladder off — fixed thresholds)"))
 
-        model_path = Path(str(self.model_var.get()))
-        is_online = (getattr(self, "zed_recorder", None) is not None)
-        if is_online:
-            engine_path = model_path.with_suffix(".engine")
-            if engine_path.is_file():
-                model_path = engine_path
-                self.log(f"Online mode: using TensorRT engine {model_path.name}")
-        else:
-            if model_path.suffix == ".engine":
-                model_path = model_path.with_suffix(".pt")
+        selection = Path(str(self.model_var.get()))
+        export_target = detect_mod.engine_export_target(selection)
+        build_engine = False
+        if export_target is not None:
+            if "pytest" in sys.modules:
+                build_engine = False
+            else:
+                from tkinter import messagebox
+                build_engine = bool(messagebox.askyesno(
+                    "Build TensorRT engine?",
+                    f"No TensorRT engine for {selection.name}.\n\n"
+                    f"Build {export_target.name} now? This runs on the GPU and "
+                    f"takes roughly 30-90 s; detection starts once it is built.",
+                    parent=self.root,
+                ))
+            if not build_engine:
+                self.log(f"engine build declined — using the .pt checkpoint {selection.name}")
+
+        model_path, note = detect_mod.resolve_runtime_model(selection)
+        if note and not build_engine:
+            self.log(note)
         if not model_path.is_file():
             self.log(f"pose model not found: {model_path} — pick one before running")
             return
@@ -3489,7 +3515,15 @@ class App:
         self.log(f"weights: {model_path.name}")
 
         def work() -> None:
-            cfg = detect_mod.DetectConfig(model_path=model_path, imgsz=DEFAULT_IMGSZ,
+            if build_engine and export_target is not None:
+                try:
+                    self.q.put(("log", f"building TensorRT engine {export_target.name}…"))
+                    detect_mod.export_engine(selection, imgsz=DEFAULT_IMGSZ)
+                    self._models.pop(str(selection), None)  # reload through resolve (engine exists)
+                    self.q.put(("log", f"engine built: {export_target.name}"))
+                except Exception as exc:  # noqa: BLE001
+                    self.q.put(("log", f"engine build FAILED: {exc} — using the .pt"))
+            cfg = detect_mod.DetectConfig(model_path=selection, imgsz=DEFAULT_IMGSZ,
                                           conf=DEFAULT_CONF, kp_conf=DEFAULT_KP_CONF)
             model = self._model_for(cfg)
             outcome = run_pipeline(
@@ -4220,6 +4254,30 @@ class App:
             pct = GRID_OPACITY_DEFAULT_PCT
         return max(0.0, min(1.0, pct / 100.0))
 
+    def review_plane_on(self) -> bool:
+        """Is the plane/grid overlay switched on?  HEADLESS-SAFE: absent var reads as OFF.
+
+        The switch starts OFF (order 2026-11-11), which is why the fallback is ``False`` and not
+        ``True``: a Review canvas built without the checkbox must not draw a lattice the operator
+        never asked for.
+        """
+        var = getattr(self, "review_plane_var", None)
+        try:
+            return bool(var.get()) if var is not None else False
+        except Exception:                                            # noqa: BLE001
+            return False
+
+    def on_review_plane_toggle(self) -> None:
+        """Plane/grid switch moved: repaint the vector overlay.  Nothing else in the pane changes.
+
+        Only the lattice is gated on this — the trajectory, the accepted detections and the final
+        detection mark are drawn whatever the switch says, so hiding the plane never hides the jump.
+        """
+        on = self.review_plane_on()
+        if self.review is not None:
+            self.review_view.redraw_overlay()
+        self.log(f"plane/grid overlay {'shown' if on else 'hidden'}")
+
     def _bg_at(self, at) -> tuple[int, int, int]:
         """The frame's own RGB under an image point — the backdrop the alpha blend is computed over."""
         src = getattr(self.review_view, "_src", None)
@@ -4317,7 +4375,9 @@ class App:
         # The lattice has its OWN opacity (order 2026-10-28), so it is drawn outside the elements'
         # gate: element opacity 0 hides the trajectory, the points and the entry mark, and leaves the
         # grid exactly where its own slider put it.
-        if self._grid_opacity() > 0.0:
+        # It also has its own on/off switch (order 2026-11-11), OFF to start: hidden, the pane keeps
+        # the trajectory, the detections and the final mark — the lattice is the only thing it hides.
+        if self.review_plane_on() and self._grid_opacity() > 0.0:
             self._draw_review_grid(c, P, self._grid_opacity(), None)
 
         if alpha > 0.0:
@@ -4793,6 +4853,73 @@ class App:
         self.root.after(80, self._drain)
         self._refresh_plane_choices()
 
+    def _show_timings(self, det) -> None:
+        """Render the detection substep breakdown into the Process tab.
+
+        ``det`` is the ``DetectResult``; its ``timings`` dict carries wall-clock seconds per
+        substep (hash, model load, per-frame decode/CLAHE/inference/extract, cache write).
+        Aligned monospace so the operator can read off which stage dominated the run — and
+        whether the GPU was actually used.
+        """
+        t = dict(getattr(det, "timings", None) or {})
+        n = int(getattr(det, "n_frames_processed", 0) or 0)
+
+        def _sec(key: str) -> str:
+            v = t.get(key)
+            if v is None:
+                return ""
+            try:
+                return f"{float(v):8.2f} s"
+            except (TypeError, ValueError):
+                return f"{v:>8}"
+
+        def _line(label: str, key: str, per_frame: bool = False) -> str:
+            cell = _sec(key)
+            if not cell:
+                return ""
+            suffix = (f"   ({float(t[key]) / n * 1000.0:6.1f} ms/frame)"
+                      if (per_frame and n) else "")
+            return f"  {label:<13}{cell}{suffix}\n"
+
+        if t.get("cache_hit"):
+            lines = [
+                "cache hit — detection skipped (no inference this run)\n",
+                _line("hash", "hash_s"),
+                _line("cache lookup", "cache_lookup_s"),
+                _line("total", "total_s"),
+            ]
+        else:
+            lines = [
+                f"detection substeps — {n} frames\n",
+                _line("hash", "hash_s"),
+                _line("cache lookup", "cache_lookup_s"),
+                _line("model load", "model_load_s"),
+                _line("decode", "read_s", per_frame=True),
+                _line("CLAHE", "clahe_s", per_frame=True),
+                _line("inference", "predict_s", per_frame=True),
+                _line("extract", "extract_s", per_frame=True),
+                _line("cache write", "cache_write_s"),
+                _line("total", "total_s"),
+            ]
+            fps = t.get("fps")
+            if fps is not None:
+                try:
+                    lines.append(f"  fps           {float(fps):8.1f}\n")
+                except (TypeError, ValueError):
+                    pass
+        cuda = t.get("cuda_available")
+        if cuda is not None:
+            try:
+                lines.append(f"  device        "
+                             f"{'CUDA available' if float(cuda) else 'CPU only (no CUDA)'}\n")
+            except (TypeError, ValueError):
+                pass
+
+        self.timing_text.configure(state="normal")
+        self.timing_text.delete("1.0", "end")
+        self.timing_text.insert("1.0", "".join(lines))
+        self.timing_text.configure(state="disabled")
+
     def _on_progress(self, p: Progress) -> None:
         self.progress.configure(value=min(1.0, p.fraction))
         self.progress_label.configure(text=p.label() + (f"   [{p.message}]" if p.message else ""))
@@ -4819,6 +4946,7 @@ class App:
             self.cache_label.configure(
                 text=("using cached tracks" if outcome.detect.from_cache
                       else "inference complete"))
+            self._show_timings(outcome.detect)
         self._install_review(outcome)
         self.nb.select(self.tab_review)
         self.log("run complete — Review tab populated")

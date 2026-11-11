@@ -1,0 +1,53 @@
+{
+  "schema": "test_bench.manifest/1",
+  "clip_id": "test-clip-video004_right",
+  "source": {
+    "original_path": "C:\\Users\\harri\\Documents\\GitHub\\Dog-Diving-Scoring\\Our_dog_diving_videos\\test-clip-video004_right.mp4",
+    "sha256": "f07cb709e80f177bb8e69f3dad404cf9bd9f9ab7a94fe8748c54da311ce92ca2",
+    "kind": "mp4",
+    "filename": "test-clip-video004_right.mp4"
+  },
+  "meta": {
+    "width": 960,
+    "height": 600,
+    "fps": 60.0,
+    "codec": "mpeg4",
+    "n_frames": 80,
+    "vfr": false,
+    "declared_vs_decoded": [
+      80,
+      80
+    ],
+    "duration_s": 1.333333,
+    "backend": "ffprobe",
+    "probe_warnings": []
+  },
+  "plane": {
+    "setup_id": "pts-10-2_2026-11-11_10-10-12.pool",
+    "present": true
+  },
+  "detections": {
+    "path": "detections.json",
+    "model_sha": "ef2d896bd03943fbbae556a38f05dba5f2c227da9628509753636f7f64ecc948",
+    "n_detections": 56,
+    "n_accepted": 56
+  },
+  "trajectory": {
+    "path": "trajectory.json",
+    "n_points": 50
+  },
+  "ground_truth": {
+    "path": "ground_truth.json",
+    "judge_present": false,
+    "gt_in": 259.5797979198351
+  },
+  "results": [],
+  "excluded_frames": [
+    0,
+    1,
+    9,
+    72,
+    73,
+    74
+  ]
+}

@@ -57,6 +57,15 @@ def test_grid_configs():
     assert len(cfgs) == 4
     assert {c["n_points"] for c in cfgs} == {4, 8}
     assert {c["selection"] for c in cfgs} == {"last_n", "all"}
+    assert {c["method"] for c in cfgs} == {"arc_2d"}
+
+
+def test_grid_configs_multi_method():
+    cfgs = suite.grid_configs([4], ["all"], methods=["arc_2d", "arc_3d"])
+    assert len(cfgs) == 2
+    assert {c["method"] for c in cfgs} == {"arc_2d", "arc_3d"}
+    # a lone string is accepted too
+    assert suite.grid_configs([4], ["all"], methods="arc_2d")[0]["method"] == "arc_2d"
 
 
 @pytest.fixture(scope="module")
@@ -102,7 +111,8 @@ def test_clip_provenance_and_stale():
     plane = {"setup_id": "s1"}
     gt = {"updated": "t1"}
     prov = suite.clip_provenance(man, plane, gt)
-    assert prov == {"model_sha": "m1", "plane_setup_id": "s1", "gt_updated": "t1"}
+    assert prov == {"model_sha": "m1", "plane_setup_id": "s1", "gt_updated": "t1",
+                    "excluded_frames": []}
     # unchanged -> fresh
     assert suite.is_stale(prov, man, plane, gt) is False
     # re-place GT (new updated timestamp)
@@ -111,6 +121,8 @@ def test_clip_provenance_and_stale():
     assert suite.is_stale(prov, man, {"setup_id": "s2"}, gt) is True
     # re-detect with a different model
     assert suite.is_stale(prov, {"detections": {"model_sha": "m2"}}, plane, gt) is True
+    # deselect a detection (new excluded_frames)
+    assert suite.is_stale(prov, {**man, "excluded_frames": [5]}, plane, gt) is True
     # missing / empty recorded provenance is conservatively stale
     assert suite.is_stale(None, man, plane, gt) is True
     assert suite.is_stale({}, man, plane, gt) is True
@@ -119,4 +131,5 @@ def test_clip_provenance_and_stale():
 def test_provenance_nulls():
     man = {"detections": {}}
     prov = suite.clip_provenance(man, None, None)
-    assert prov == {"model_sha": None, "plane_setup_id": None, "gt_updated": None}
+    assert prov == {"model_sha": None, "plane_setup_id": None, "gt_updated": None,
+                    "excluded_frames": []}

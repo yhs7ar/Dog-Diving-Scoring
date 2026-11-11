@@ -64,6 +64,16 @@ def set_ground_truth(plane_doc: dict[str, Any], *, frame: int, x_px: float, y_px
     return gt
 
 
+def set_judge(gt: dict[str, Any], judge_in: float | None, updated: str | None = None) -> dict[str, Any]:
+    """Update the judge distance on an existing GT record (the GT pixel is untouched)."""
+    gt = dict(gt)
+    gt["judge_in"] = float(judge_in) if judge_in is not None else None
+    gt["judge_present"] = judge_in is not None
+    if updated is not None:
+        gt["updated"] = updated
+    return gt
+
+
 def write_ground_truth(gt: dict[str, Any], clip_dir: str | Path) -> Path:
     path = Path(clip_dir) / "ground_truth.json"
     path.write_text(json.dumps(gt, indent=2), encoding="utf-8")

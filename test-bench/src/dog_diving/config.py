@@ -274,7 +274,9 @@ DEFAULT_IMGSZ = 1280
 DEFAULT_CONF = 0.12
 DEFAULT_KP_CONF = 0.30
 DEFAULT_TRACKER = "bytetrack.yaml"
-DEFAULT_DEVICE = "0" # was "cpu"
+import torch
+DEFAULT_DEVICE = "0" if torch.cuda.is_available() else "cpu"
+
 DEFAULT_CLAHE_CLIP = 2.5
 DEFAULT_CLAHE_GRID = (8, 8)
 TAILSET_INDEX = 1

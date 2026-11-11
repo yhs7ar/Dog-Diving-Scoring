@@ -1,0 +1,4460 @@
+[
+  {
+    "frame": 0,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 1,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 2,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 3,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 4,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 5,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 6,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 7,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 8,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 9,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 10,
+    "nose": [
+      1836.6544189453125,
+      565.4910888671875,
+      0.9852548837661743
+    ],
+    "tailset": [
+      1736.486328125,
+      607.7009887695312,
+      0.9627373814582825
+    ],
+    "box_conf": 0.4042676091194153,
+    "track_id": null,
+    "accepted": false,
+    "deselected": true
+  },
+  {
+    "frame": 11,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 12,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 13,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 14,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 15,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 16,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 17,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 18,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 19,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 20,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 21,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 22,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 23,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 24,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 25,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 26,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 27,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 28,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 29,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 30,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 31,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 32,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 33,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 34,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 35,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 36,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 37,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 38,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 39,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 40,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 41,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 42,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 43,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 44,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 45,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 46,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 47,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 48,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 49,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 50,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 51,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 52,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 53,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 54,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 55,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 56,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 57,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 58,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 59,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 60,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 61,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 62,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 63,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 64,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 65,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 66,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 67,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 68,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 69,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 70,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 71,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 72,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 73,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 74,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 75,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 76,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 77,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 78,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 79,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 80,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 81,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 82,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 83,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 84,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 85,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 86,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 87,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 88,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 89,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 90,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 91,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 92,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 93,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 94,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 95,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 96,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 97,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 98,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 99,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 100,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 101,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 102,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 103,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 104,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 105,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 106,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 107,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 108,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 109,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 110,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 111,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 112,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 113,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 114,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 115,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 116,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 117,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 118,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 119,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 120,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 121,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 122,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 123,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 124,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 125,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 126,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 127,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 128,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 129,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 130,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 131,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 132,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 133,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 134,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 135,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 136,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 137,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 138,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 139,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 140,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 141,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 142,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 143,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 144,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 145,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 146,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 147,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 148,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 149,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 150,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 151,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 152,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 153,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 154,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 155,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 156,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 157,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 158,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 159,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 160,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 161,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 162,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 163,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 164,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 165,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 166,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 167,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 168,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 169,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 170,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 171,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 172,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 173,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 174,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 175,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 176,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 177,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 178,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 179,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 180,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 181,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 182,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 183,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 184,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 185,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 186,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 187,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 188,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 189,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 190,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 191,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 192,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 193,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 194,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 195,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 196,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 197,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 198,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 199,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 200,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 201,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 202,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 203,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 204,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 205,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 206,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 207,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 208,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 209,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 210,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 211,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 212,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 213,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 214,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 215,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 216,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 217,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 218,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 219,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 220,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 221,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 222,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 223,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 224,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 225,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 226,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 227,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 228,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 229,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 230,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 231,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 232,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 233,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 234,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 235,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 236,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 237,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 238,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 239,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 240,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 241,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 242,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 243,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 244,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 245,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 246,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 247,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 248,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 249,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 250,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 251,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 252,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 253,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 254,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 255,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 256,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 257,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 258,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 259,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 260,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 261,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 262,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 263,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 264,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 265,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 266,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 267,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 268,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 269,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 270,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 271,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 272,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 273,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 274,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 275,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 276,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 277,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 278,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 279,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 280,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 281,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 282,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 283,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 284,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 285,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 286,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 287,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 288,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 289,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 290,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 291,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 292,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 293,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 294,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 295,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 296,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 297,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 298,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 299,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 300,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 301,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 302,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 303,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 304,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 305,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 306,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 307,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 308,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 309,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 310,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 311,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 312,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 313,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 314,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 315,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 316,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 317,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 318,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 319,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 320,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 321,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 322,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 323,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 324,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 325,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 326,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 327,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 328,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 329,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 330,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 331,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 332,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 333,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 334,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 335,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 336,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 337,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 338,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 339,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 340,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 341,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 342,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 343,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 344,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 345,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 346,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 347,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 348,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 349,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 350,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 351,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 352,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 353,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 354,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 355,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 356,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 357,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 358,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 359,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 360,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 361,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 362,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 363,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 364,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 365,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 366,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 367,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 368,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 369,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 370,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 371,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 372,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 373,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 374,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 375,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 376,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 377,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 378,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 379,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 380,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 381,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 382,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 383,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 384,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 385,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 386,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 387,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 388,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 389,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 390,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 391,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 392,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 393,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 394,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 395,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 396,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 397,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 398,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 399,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 400,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 401,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 402,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 403,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 404,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 405,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 406,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 407,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 408,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 409,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 410,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 411,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 412,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 413,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 414,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 415,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 416,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 417,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 418,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 419,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 420,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 421,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 422,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 423,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 424,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 425,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 426,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 427,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 428,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 429,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 430,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 431,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 432,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 433,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 434,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 435,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 436,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 437,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 438,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 439,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 440,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 441,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 442,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 443,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 444,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 445,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 446,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 447,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 448,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 449,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 450,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 451,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 452,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 453,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 454,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 455,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 456,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 457,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 458,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 459,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 460,
+    "nose": [
+      1315.5882568359375,
+      576.3628540039062,
+      0.9861292243003845
+    ],
+    "tailset": [
+      1464.013671875,
+      600.3577880859375,
+      0.9713065028190613
+    ],
+    "box_conf": 0.38282373547554016,
+    "track_id": null,
+    "accepted": true
+  },
+  {
+    "frame": 461,
+    "nose": [
+      1284.7249755859375,
+      567.4288940429688,
+      0.9440305233001709
+    ],
+    "tailset": [
+      1447.533447265625,
+      589.3035278320312,
+      0.9581975936889648
+    ],
+    "box_conf": 0.14307424426078796,
+    "track_id": null,
+    "accepted": true
+  },
+  {
+    "frame": 462,
+    "nose": [
+      1250.439697265625,
+      565.5867919921875,
+      0.9809061288833618
+    ],
+    "tailset": [
+      1419.272216796875,
+      583.4033203125,
+      0.9678372144699097
+    ],
+    "box_conf": 0.30067819356918335,
+    "track_id": null,
+    "accepted": true
+  },
+  {
+    "frame": 463,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 464,
+    "nose": [
+      1196.1932373046875,
+      573.593017578125,
+      0.9839698672294617
+    ],
+    "tailset": [
+      1358.701416015625,
+      579.1348266601562,
+      0.9696003794670105
+    ],
+    "box_conf": 0.2147378772497177,
+    "track_id": null,
+    "accepted": true
+  },
+  {
+    "frame": 465,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 466,
+    "nose": [
+      1135.2203369140625,
+      584.2456665039062,
+      0.9762300252914429
+    ],
+    "tailset": [
+      1291.513916015625,
+      582.9005126953125,
+      0.9530171155929565
+    ],
+    "box_conf": 0.12384434789419174,
+    "track_id": null,
+    "accepted": true
+  },
+  {
+    "frame": 467,
+    "nose": [
+      1108.9683837890625,
+      589.6558227539062,
+      0.9825279116630554
+    ],
+    "tailset": [
+      1262.6885986328125,
+      587.522705078125,
+      0.9689919352531433
+    ],
+    "box_conf": 0.16761747002601624,
+    "track_id": null,
+    "accepted": true
+  },
+  {
+    "frame": 468,
+    "nose": [
+      1077.9971923828125,
+      601.5609741210938,
+      0.982546329498291
+    ],
+    "tailset": [
+      1230.7774658203125,
+      595.696533203125,
+      0.9630728363990784
+    ],
+    "box_conf": 0.15979108214378357,
+    "track_id": null,
+    "accepted": true
+  },
+  {
+    "frame": 469,
+    "nose": [
+      1047.6568603515625,
+      608.07568359375,
+      0.9751220345497131
+    ],
+    "tailset": [
+      1203.5130615234375,
+      606.119873046875,
+      0.9703101515769958
+    ],
+    "box_conf": 0.18356411159038544,
+    "track_id": null,
+    "accepted": true
+  },
+  {
+    "frame": 470,
+    "nose": [
+      1024.0762939453125,
+      625.3284301757812,
+      0.9796838760375977
+    ],
+    "tailset": [
+      1176.7109375,
+      624.69873046875,
+      0.9647755026817322
+    ],
+    "box_conf": 0.158992201089859,
+    "track_id": null,
+    "accepted": true
+  },
+  {
+    "frame": 471,
+    "nose": [
+      996.5628662109375,
+      643.7382202148438,
+      0.9521374702453613
+    ],
+    "tailset": [
+      1134.28857421875,
+      627.9168090820312,
+      0.9700713753700256
+    ],
+    "box_conf": 0.25539273023605347,
+    "track_id": null,
+    "accepted": true
+  },
+  {
+    "frame": 472,
+    "nose": [
+      972.404541015625,
+      658.549072265625,
+      0.9614558219909668
+    ],
+    "tailset": [
+      1101.214599609375,
+      641.661865234375,
+      0.9719772934913635
+    ],
+    "box_conf": 0.1773964762687683,
+    "track_id": null,
+    "accepted": true
+  },
+  {
+    "frame": 473,
+    "nose": [
+      935.8535766601562,
+      675.3731079101562,
+      0.98518306016922
+    ],
+    "tailset": [
+      1069.2601318359375,
+      666.7860717773438,
+      0.9617684483528137
+    ],
+    "box_conf": 0.12264614552259445,
+    "track_id": null,
+    "accepted": true
+  },
+  {
+    "frame": 474,
+    "nose": [
+      899.2547607421875,
+      692.7908325195312,
+      0.9581325054168701
+    ],
+    "tailset": [
+      1030.8966064453125,
+      680.786865234375,
+      0.970413863658905
+    ],
+    "box_conf": 0.22471463680267334,
+    "track_id": null,
+    "accepted": true
+  },
+  {
+    "frame": 475,
+    "nose": [
+      865.3456420898438,
+      716.7864379882812,
+      0.9758346080780029
+    ],
+    "tailset": [
+      1012.0799560546875,
+      694.4747314453125,
+      0.9746901988983154
+    ],
+    "box_conf": 0.1736123114824295,
+    "track_id": null,
+    "accepted": true
+  },
+  {
+    "frame": 476,
+    "nose": [
+      843.466064453125,
+      719.2589111328125,
+      0.9806727766990662
+    ],
+    "tailset": [
+      985.3341674804688,
+      741.3054809570312,
+      0.9663717150688171
+    ],
+    "box_conf": 0.3835788071155548,
+    "track_id": null,
+    "accepted": true
+  },
+  {
+    "frame": 477,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 478,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 479,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 480,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 481,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 482,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 483,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 484,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 485,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 486,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 487,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 488,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 489,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 490,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 491,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 492,
+    "nose": [
+      835.3370971679688,
+      693.5577392578125,
+      0.9818036556243896
+    ],
+    "tailset": [
+      923.8165283203125,
+      728.7859497070312,
+      0.9577228426933289
+    ],
+    "box_conf": 0.1755659580230713,
+    "track_id": null,
+    "accepted": false,
+    "deselected": true
+  },
+  {
+    "frame": 493,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 494,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 495,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 496,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 497,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 498,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 499,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 500,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 501,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 502,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 503,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 504,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 505,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 506,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 507,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 508,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 509,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 510,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 511,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 512,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 513,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 514,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 515,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 516,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 517,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 518,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 519,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 520,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 521,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 522,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 523,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 524,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 525,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 526,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 527,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 528,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 529,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 530,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 531,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 532,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 533,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 534,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 535,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 536,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 537,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 538,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  },
+  {
+    "frame": 539,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
+    "track_id": null,
+    "accepted": false
+  }
+]

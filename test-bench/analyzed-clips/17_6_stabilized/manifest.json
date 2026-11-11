@@ -1,0 +1,44 @@
+{
+  "schema": "test_bench.manifest/1",
+  "clip_id": "17_6_stabilized",
+  "source": {
+    "original_path": "C:\\Users\\harri\\Documents\\GitHub\\Dog-Diving-Scoring\\Scored dog diving videos\\17_6_stabilized.mp4",
+    "sha256": "abfb1bd0549f37b580df636bbbfc45605d551b62c0c0326b63b8d0738b92160c",
+    "kind": "mp4",
+    "filename": "17_6_stabilized.mp4"
+  },
+  "meta": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30.0,
+    "codec": "h264",
+    "n_frames": 60,
+    "vfr": false,
+    "declared_vs_decoded": [
+      60,
+      60
+    ],
+    "duration_s": 2.005333,
+    "backend": "ffprobe",
+    "probe_warnings": []
+  },
+  "plane": {
+    "setup_id": "17_6_scored_2026-11-11_14-01-04.pool",
+    "present": true
+  },
+  "detections": {
+    "path": "detections.json",
+    "model_sha": "a083adb42303728ae14c4bd6bd56d80da46f82fb2564dbd6f31dcc92ea321646",
+    "n_detections": 60,
+    "n_accepted": 56
+  },
+  "trajectory": {
+    "path": "trajectory.json",
+    "n_points": 56
+  },
+  "ground_truth": {
+    "path": "ground_truth.json",
+    "judge_present": false
+  },
+  "results": []
+}

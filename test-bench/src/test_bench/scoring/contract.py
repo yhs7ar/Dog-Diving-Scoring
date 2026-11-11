@@ -24,7 +24,7 @@ SCHEMA = "test_bench.scoring/1"
 
 #: Reserved method keys.  ``arc_2d`` is the v1 implementation; the other two are
 #: slots the registry reserves so a later method cannot silently collide.
-METHODS = ("arc_2d", "arc_3d", "pc_route")
+METHODS = ("arc_2d", "arc_2d_centerline", "arc_3d", "pc_route")
 
 #: Status vocabulary.  Every method returns one of these; the table maps them to
 #: a display string and the metrics skip any non-``ok`` row.

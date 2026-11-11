@@ -175,6 +175,47 @@ def plane_distance(
     return out
 
 
+
+def plane_only_distance(
+    traj: Any,
+    plane_doc: dict[str, Any] | None,
+    *,
+    frame: int | None = None,
+    excluded: Iterable[int] | None = (),
+) -> dict[str, Any]:
+    """Temporary metric: the end-to-end-app logic (final detection on plane)."""
+    out: dict[str, Any] = {
+        "route": "temp_plane_only", "total_inches": None, "display": "n/a",
+        "distance_ft": None, "frame": None, "warnings": [],
+    }
+    if not plane_doc or not (plane_doc.get("plane") or {}):
+        out["warnings"].append("no plane calibration")
+        return out
+
+    from . import pool as _pool
+    pose = _pool.calib.pose_from_document(plane_doc)
+    water = _pool.calib.water_from_document(plane_doc)
+    H = np.asarray(plane_doc["homography"], dtype=float).reshape(3, 3)
+
+    drop = {int(f) for f in (excluded or ())}
+    row = row_at(traj, frame) if frame is not None else final_point(traj, drop)
+    if row is None:
+        out["warnings"].append("no accepted detection")
+        return out
+
+    px = (float(row["x"]), float(row["y"]))
+    entry = _pool.intersection.entry_coordinate(pose, water, px, homography=H)
+    
+    if entry.get("X_ft") is not None:
+        inches = float(entry["distance_in"])
+        out.update({
+            "total_inches": inches,
+            "distance_ft": float(entry["X_ft"]),
+            "display": f"{inches/12:.1f} ft",
+            "frame": int(row["frame"]),
+        })
+    return out
+
 # ============================================================================
 # The second scoring method: the trajectory PLANE (3-D world arc)
 # ============================================================================
@@ -186,6 +227,7 @@ def trajectory_plane_fit(
     frame: int | None = None,
     margin_ft: float = 0.0,
 ) -> dict[str, Any]:
+
     """Track -> world points -> world arc -> the water crossing.  One computation, two callers.
 
     Review draws this curve **and** scores with it, so it is computed once here rather than twice in

@@ -341,6 +341,7 @@ def test_the_grid_is_a_canvas_layer_that_follows_its_own_slider():
     root = _root_or_skip()
     try:
         app, _pts = _app_with_review(root)
+        app.review_plane_var.set(True)               # the switch is OFF by default (2026-11-11)
         app.grid_opacity.set(100)
         app.review_view.redraw_overlay()
         items = _grid_items(app)
@@ -370,6 +371,7 @@ def test_the_two_opacity_sliders_are_independent():
     root = _root_or_skip()
     try:
         app, _pts = _app_with_review(root)
+        app.review_plane_var.set(True)               # the lattice now has its own on/off switch
         assert app.grid_opacity_scale.cget("from") == 0
         assert app.grid_opacity_scale.cget("to") == 100
         assert float(app.grid_opacity.get()) == pytest.approx(app_gui.GRID_OPACITY_DEFAULT_PCT)
@@ -399,6 +401,42 @@ def test_the_two_opacity_sliders_are_independent():
         app.review_view.redraw_overlay()
         at15 = {c.itemcget(i, "fill") for i in _grid_items(app) if c.type(i) == "line"}
         assert full == at15, "the element slider moved the grid's colours"
+    finally:
+        root.destroy()
+
+
+def test_the_plane_grid_switch_starts_off_and_hides_only_the_lattice():
+    """Operator order 2026-11-11: *"add a toggle for the plane on the Review tab ... it should start
+    disabled and hide the plane/grid overlay.  The trajectory and detections and final detection
+    should all still be displayed regardless of toggle status."*
+    """
+    root = _root_or_skip()
+    try:
+        app, _pts = _app_with_review(root)
+        app.grid_opacity.set(100)                    # the slider is not the gate; the switch is
+        app.entry_opacity.set(100)
+
+        assert app.review_plane_var.get() is False, "the plane overlay switch does not start disabled"
+        app.review_view.redraw_overlay()
+        assert not _grid_items(app), "the lattice is drawn while its switch is off"
+        lines_off = _overlay_lines(app)
+        ovals_off = _overlay_ovals(app)
+        assert lines_off, "the trajectory went with the plane overlay"
+        assert len(ovals_off) >= 2, f"the detections/final mark went with the plane: {len(ovals_off)}"
+
+        # ON through the switch's own handler, as the checkbox does
+        app.review_plane_var.set(True)
+        app.on_review_plane_toggle()
+        assert len(_grid_items(app)) > 20, "the switch did not bring the lattice back"
+        assert len(_overlay_lines(app)) == len(lines_off), "the switch moved the trajectory too"
+        assert len(_overlay_ovals(app)) == len(ovals_off), "the switch moved the detections too"
+
+        # OFF again: the lattice goes, the trajectory and the marks stay exactly as they were
+        app.review_plane_var.set(False)
+        app.on_review_plane_toggle()
+        assert not _grid_items(app)
+        assert len(_overlay_lines(app)) == len(lines_off)
+        assert len(_overlay_ovals(app)) == len(ovals_off)
     finally:
         root.destroy()
 

@@ -63,3 +63,17 @@ def test_requires_plane():
         gt_mod.set_ground_truth(None, frame=1, x_px=10, y_px=10)
     with pytest.raises(ValueError):
         gt_mod.set_ground_truth({}, frame=1, x_px=10, y_px=10)
+
+
+def test_set_judge_preserves_gt_pixel():
+    gt = {"schema": "x", "frame": 85, "x_px": 532.9, "y_px": 311.0, "gt_in": 98.0,
+          "judge_in": None, "judge_present": False, "updated": "t1"}
+    out = gt_mod.set_judge(gt, 96.5, updated="t2")
+    # the GT pixel and derived gt_in are untouched; only the judge changes
+    assert out["x_px"] == 532.9 and out["y_px"] == 311.0 and out["gt_in"] == 98.0
+    assert out["judge_in"] == pytest.approx(96.5)
+    assert out["judge_present"] is True
+    assert out["updated"] == "t2"
+    # clearing the judge is also expressible
+    cleared = gt_mod.set_judge(out, None)
+    assert cleared["judge_present"] is False and cleared["judge_in"] is None

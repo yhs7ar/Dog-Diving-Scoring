@@ -26,6 +26,7 @@ from __future__ import annotations
 import os
 import re
 import tempfile
+import time
 import zipfile
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -311,11 +312,16 @@ def detect_frames(
     model: Any = None,
     progress_cb=None,
     cancel_event: Any = None,
+    timings: dict | None = None,
 ) -> FrameDetect:
     """Predict on every still; one record per frame in ``detect_clip``'s shape.
 
     No tracker: a still has no temporal context, so ``box_conf``/keypoints come straight from the
     model's single best box per frame (``max_det=1``, same as the video path).
+
+    ``timings`` (optional) is a dict the caller can pass to receive accumulated wall-clock
+    seconds per substep — ``read_s``, ``clahe_s``, ``predict_s`` (the model call), ``extract_s``.
+    When ``None`` the loop is uninstrumented.
     """
     from . import detect as D  # local: keeps this module importable without torch
 
@@ -330,11 +336,15 @@ def detect_frames(
     for i in range(total):
         if cancel_event is not None and cancel_event.is_set():
             break
+        t_read0 = time.perf_counter()
         frame = fs.read(i)
+        t_read1 = time.perf_counter()
         if cfg.clahe:
             frame = D.clahe_lab_l(frame, cfg.clahe_clip, tuple(cfg.clahe_grid))
+        t_pre1 = time.perf_counter()
         res = model.predict(frame, imgsz=int(cfg.imgsz), conf=float(cfg.conf),
                             max_det=1, device=cfg.device, verbose=False)[0]
+        t_pred1 = time.perf_counter()
         frame_no = int(fs.numbers[i])
         rec: dict[str, Any] = {"frame": frame_no, "nose": None, "tailset": None,
                                "box_conf": None, "track_id": None, "accepted": False}
@@ -356,6 +366,12 @@ def detect_frames(
                     rec["accepted"] = bool(tail[2] > float(cfg.kp_conf))
                     n_acc += int(rec["accepted"])
         records.append(rec)
+        if timings is not None:
+            t_end = time.perf_counter()
+            timings["read_s"] = timings.get("read_s", 0.0) + (t_read1 - t_read0)
+            timings["clahe_s"] = timings.get("clahe_s", 0.0) + (t_pre1 - t_read1)
+            timings["predict_s"] = timings.get("predict_s", 0.0) + (t_pred1 - t_pre1)
+            timings["extract_s"] = timings.get("extract_s", 0.0) + (t_end - t_pred1)
         if progress_cb is not None:
             progress_cb(i + 1, total, 0.0)
 

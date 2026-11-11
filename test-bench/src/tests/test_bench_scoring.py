@@ -19,6 +19,7 @@ sys.path.insert(0, str(SRC))
 
 from test_bench.scoring import contract, registry  # noqa: E402
 from test_bench.scoring.arc_2d import arc_2d, _select  # noqa: E402
+from test_bench.scoring.arc_2d_centerline import arc_2d_centerline  # noqa: E402
 
 CLIP_DIR = REPO / "end-to-end-app" / "out" / "video004_right-00.00.36.812-00.00.38.328-seg01"
 PLANE = REPO / "end-to-end-app" / "planes" / "plane_test-clip-video004_right.pool.json"
@@ -126,3 +127,95 @@ def test_arc_2d_no_calibration(seg01):
     r = registry.run("arc_2d", points, None,
                      {"selection": "all", "n_points": "all", "frame_size": [960, 600]})
     assert r["status"] == "no_calibration"
+
+
+def test_arc_2d_emits_selected_px_and_curve_space(seg01):
+    points, plane = seg01
+    r = registry.run("arc_2d", points, plane,
+                     {"selection": "last_n", "n_points": 8, "frame_size": [960, 600]})
+    fit = r["fit"]
+    assert fit["curve_space"] == "px"
+    expected = [[float(p["x"]), float(p["y"])] for p in _select(points, "last_n", 8)]
+    assert fit["selected_px"] == expected
+    assert fit["selected_frames"] == [int(p["frame"]) for p in _select(points, "last_n", 8)]
+
+
+# --- arc_2d_centerline -------------------------------------------------------
+
+def test_arc_2d_centerline_registered():
+    assert "arc_2d_centerline" in registry.list_methods()
+    assert registry.get("arc_2d_centerline") is arc_2d_centerline
+
+
+def test_arc_2d_centerline_valid_and_deterministic(seg01):
+    points, plane = seg01
+    cfg = {"selection": "all", "n_points": "all", "frame_size": [960, 600]}
+    r1 = registry.run("arc_2d_centerline", points, plane, cfg)
+    r2 = registry.run("arc_2d_centerline", points, plane, cfg)
+    assert r1["status"] == "ok"
+    assert r1["distance_in"] > 0
+    assert contract.validate(r1) == []
+    assert r1 == r2
+
+
+def test_arc_2d_centerline_lands_on_centerline(seg01):
+    """The method's promise: the scored entry sits on the pool centerline (Y == yc)."""
+    import numpy as np
+    from dog_diving.pool import calib, homography, lens as _lens
+    points, plane = seg01
+    r = registry.run("arc_2d_centerline", points, plane,
+                     {"selection": "all", "n_points": "all", "frame_size": [960, 600]})
+    yc = r["fit"]["centerline_yc_ft"]
+    ln = calib.lens_from_document(plane)
+    H = np.asarray(plane["homography"], float).reshape(3, 3)
+    pxu = _lens.undistort_points(np.array([r["entry_px"]], float), ln)[0]
+    XY = homography.apply_homography_inv(H, np.array([[pxu[0], pxu[1]]], float))
+    assert abs(float(XY[0, 1]) - yc) < 1e-6
+
+
+def test_arc_2d_centerline_differs_from_arc_2d(seg01):
+    """The whole point: the centerline crossing is not the terminal point."""
+    points, plane = seg01
+    cfg = {"selection": "all", "n_points": "all", "frame_size": [960, 600]}
+    a = registry.run("arc_2d", points, plane, cfg)
+    c = registry.run("arc_2d_centerline", points, plane, cfg)
+    assert a["status"] == "ok" and c["status"] == "ok"
+    assert c["distance_in"] != a["distance_in"]
+
+
+def test_arc_2d_centerline_few_points(seg01):
+    points, plane = seg01
+    r = registry.run("arc_2d_centerline", points, plane,
+                     {"selection": "last_n", "n_points": 2, "frame_size": [960, 600]})
+    assert r["status"] == "few_points"
+
+
+def test_arc_2d_centerline_no_calibration(seg01):
+    points, _ = seg01
+    r = registry.run("arc_2d_centerline", points, None,
+                     {"selection": "all", "n_points": "all", "frame_size": [960, 600]})
+    assert r["status"] == "no_calibration"
+
+
+def test_arc_2d_centerline_no_centerline_source(seg01):
+    """No extent y-bounds and no corners -> the centerline is undefined -> error."""
+    points, plane = seg01
+    p = json.loads(json.dumps(plane))
+    p["extent"] = {}
+    p["plane"]["corners"] = {}
+    p["plane"]["length_ft"] = None
+    p["plane"]["width_ft"] = None
+    r = registry.run("arc_2d_centerline", points, p,
+                     {"selection": "all", "n_points": "all", "frame_size": [960, 600]})
+    assert r["status"] == "error"
+
+
+def test_arc_2d_centerline_centerline_from_corners(seg01):
+    """Extent without y-bounds falls back to plane corners: yc == width/2."""
+    points, plane = seg01
+    p = json.loads(json.dumps(plane))
+    p["extent"] = {"x_min": 0.0, "x_max": 35.0}  # no y bounds
+    r = registry.run("arc_2d_centerline", points, p,
+                     {"selection": "all", "n_points": "all", "frame_size": [960, 600]})
+    assert r["status"] == "ok"
+    assert abs(r["fit"]["centerline_yc_ft"] - plane["plane"]["width_ft"] / 2.0) < 1e-9

@@ -40,7 +40,7 @@ guarantee. SVO2 is read-only input, and only when the ZED SDK is present.
 | Per-clip metrics | Three error columns: **pixel error** (auto entry point vs placed GT point), **score error** (auto distance vs GT-point distance, inches), **judge error** (judge distance vs GT-point distance, inches). |
 | v1 scoring method | **2-D image-space parabola** only. The method registry is **modular and standardized**, modeled on `measure.py`'s output contract, so 3-D arc and point-cloud slots drop in later. |
 | Interface | **Tk GUI + headless CLI** (mirrors `app_gui.py` + `cli_run.py`). |
-| Clip storage | **Copy the clip file** into `analyzed-clips/` (self-contained). |
+| Clip storage | **Map by reference** — `source.original_path` points at the file in place; nothing is copied into `analyzed-clips/`. |
 
 Derived from the metrics decision — the three quantities every scoring result is
 compared against:
@@ -161,8 +161,8 @@ test-bench/
 ├── analyzed-clips/                # self-contained clip records (see §5)
 │   ├── <clip_id>/
 │   │   ├── clip.mp4               # the copied clip (or clip.svo2)
-│   │   ├── manifest.json          # record of record (see §5.1)
-│   │   ├── plane.json             # dog_diving_pool_calibration/v1
+│   │   ├── manifest.json          # record of record (see §5.1); plane.setup_id
+│   │   │                          #   points at planes/<id>.pool.json
 │   │   ├── detections.json        # frame-by-frame records (parent tracks.json shape)
 │   │   ├── trajectory.json        # built trajectory (parent trajectory.json shape)
 │   │   ├── ground_truth.json      # {frame, x_px, y_px, gt_in, judge_in}
@@ -172,7 +172,9 @@ test-bench/
 │                                  # (global: a run spans clips, so rows live here)
 └── src/
     ├── app_gui.py                 # NEW — test-bench GUI
-    ├── cli_run.py                 # NEW — headless ingest/analyze/run-suite
+    ├── cli_run.py                 # NEW — headless select/calibrate/analyze/run-suite
+    ├── pool_calibrate_tool.py     # COPIED — the parent's semi-manual plane calibration (cv2)
+    ├── calibrate_tab.py           # EXTRACTED — the parent's Calibrate tab (Tk), embedded
     ├── test_bench/                # NEW package
     │   ├── __init__.py
     │   ├── manifest.py            # analyzed-clips record schema + read/write
@@ -322,21 +324,27 @@ fully comparable (auto vs GT), per the spec.
 
 ## 6. Workflows
 
-### 6.1 Ingest (mp4 / svo2)
+### 6.1 Select clips (mp4 / svo2)
 1. Choose a clip (`.mp4`, `.mov`, or `.svo2` when the ZED SDK is present).
 2. Probe metadata (resolution, fps, codec, frame count) → `meta.json`.
-3. Copy the clip into `analyzed-clips/<clip_id>/clip.<ext>`.
+3. Record the clip **by reference** — `manifest.json`'s `source.original_path`
+   maps to the file in place (no copy into the repo).
 4. Write a fresh `manifest.json` with `source.sha256` and an empty
    plane/ground-truth/result state.
 
-### 6.2 Analyze (as it is today)
-1. Confirm plane geometry — reuse the parent's plane-placement UI, saving the
-   `dog_diving_pool_calibration/v1` document to `plane.json`. **Re-drawable**
-   at any time (see §6.4).
+### 6.2 Calibrate, then analyze
+A clip starts with **no plane**.  The first step is the standard Calibration —
+the parent's `pool_calibrate_tool.py` (semi-manual click of the distance marks
+and waterline), which writes the `dog_diving_pool_calibration/v1` document to
+`planes/<setup-id>.pool.json`.  The clip's manifest records `plane.setup_id`;
+the plane document itself lives in `planes/`, never next to the clip.
+
+1. `calibrate <clip_id> --setup-id <id>` (or **Calibrate plane…** in the GUI).
 2. Frame-by-frame YOLO detection → `detections.json` (parent `tracks.json` shape,
    with `model` + `model_sha` provenance). **Re-runnable** with a different
    registered model.
 3. Build the trajectory → `trajectory.json`.
+4. Measure through the assigned plane (route `plane`).
 
 ### 6.3 Ground truth + judge
 1. Scrub to the entry frame; click the true tailset∩water intersection
@@ -347,8 +355,9 @@ fully comparable (auto vs GT), per the spec.
 4. Both are **re-placeable** at any time.
 
 ### 6.4 Re-do operations (each is an idempotent overwrite)
-- **Re-draw / re-assign plane** → new `plane.json`; recompute every `gt_in` and
-  mark affected `results/` stale.
+- **Re-calibrate / re-assign plane** → re-run the parent's calibration tool
+  (`pool_calibrate_tool.py`) to write a new `planes/<setup-id>.pool.json`;
+  recompute every `gt_in` and mark affected `results/` stale.
 - **Re-detect** with a different model (`ModelSpec` switch) → new
   `detections.json` + `trajectory.json`; invalidate `results/`.
 - **Re-place GT / judge** → new `ground_truth.json`; invalidate `results/`.
@@ -408,10 +417,13 @@ Tabs:
 
 `python cli_run.py` subcommands (headless, for batch and CI):
 
-- `ingest --clip <path> [--model <spec>]`
-- `analyze --clip <id> [--model <spec>]`
-- `set-gt --clip <id> --frame N --x X --y Y [--judge IN]`
-- `run-suite --config <suite.json> [--out results/<run_id>.json]`
+- `select --clip <path> [--id <id>]` — copy a clip into `analyzed-clips/`
+- `calibrate <clip_id> --setup-id <id> [--frame-index N]` — semi-manually place
+  the plane (the parent's `pool_calibrate_tool.py`), saved to `planes/<id>.pool.json`
+- `use-plane <clip_id> --setup-id <id>` — assign an already-calibrated plane
+- `analyze <clip_id> [--model <spec>]` — detect + trajectory + measure
+- `set-gt <clip_id> --frame N --x X --y Y [--judge IN]`
+- `run-suite --config <suite.json>`
 - `report --run <run_id> [--clip <id>]` (text table + averages)
 
 All subcommands read/write the same `analyzed-clips/` schema the GUI uses, so the

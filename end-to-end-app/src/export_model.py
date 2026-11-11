@@ -1,19 +1,19 @@
-from ultralytics import YOLO
-from dog_diving.config import MODEL_PATH, DEFAULT_IMGSZ
-from pathlib import Path
+"""Build the TensorRT ``.engine`` for the model of record (run this on the Jetson rig).
 
-def export():
-    # Ensure the model file exists
-    path = Path(MODEL_PATH)
-    if not path.is_file():
-        print(f"Checkpoint not found at: {path}")
-        return
+Thin CLI over :func:`dog_diving.detect.export_engine`, so the app's on-demand build and
+this manual entry point run exactly the same code.  TensorRT engines are device-specific:
+one built here will not run on another machine.
+"""
 
-    print(f"Exporting {path} to TensorRT engine...")
-    # The export creates the .engine file in the same directory as the .pt model
-    model = YOLO(str(path))
-    model.export(format='engine', device='0', imgsz=DEFAULT_IMGSZ)
-    print("Export complete.")
+from dog_diving.config import MODEL_PATH
+from dog_diving.detect import export_engine
+
+
+def export() -> None:
+    print(f"Exporting {MODEL_PATH} to TensorRT engine...")
+    engine = export_engine(MODEL_PATH)
+    print(f"Export complete: {engine}")
+
 
 if __name__ == "__main__":
     export()

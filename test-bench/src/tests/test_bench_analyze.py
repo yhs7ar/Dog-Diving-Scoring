@@ -93,3 +93,59 @@ def test_load_cached_records_selects_and_refuses(tmp_path):
     # unknown model_sha
     with pytest.raises(ValueError):
         A.load_cached_records(p, model_sha="zzz")
+
+
+def _make_detections(n):
+    return [{"frame": i, "tailset": [100.0 + i, 200.0, 0.9],
+             "nose": [100.0 + i, 190.0, 0.9], "box_conf": 0.5,
+             "track_id": 1, "accepted": True} for i in range(n)]
+
+
+def test_apply_deselection_marks_accepted_false():
+    recs = _make_detections(5)
+    out = A.apply_deselection(recs, [1, 3])
+    by_frame = {r["frame"]: r for r in out}
+    assert by_frame[1]["accepted"] is False and by_frame[1]["deselected"] is True
+    assert by_frame[3]["accepted"] is False and by_frame[3]["deselected"] is True
+    assert by_frame[2]["accepted"] is True and "deselected" not in by_frame[2]
+    # re-include: frame 3 drops out of the set -> restored; frame 1 stays deselected
+    out2 = A.apply_deselection(out, [1])
+    by_frame2 = {r["frame"]: r for r in out2}
+    assert by_frame2[1]["accepted"] is False and by_frame2[1]["deselected"] is True
+    assert by_frame2[3]["accepted"] is True and "deselected" not in by_frame2[3]
+
+
+def test_deselect_detections_bakes_into_saved_files(tmp_path):
+    from test_bench import manifest as M
+    from dog_diving import trajectory as traj_mod
+
+    cdir = tmp_path / "c1"
+    cdir.mkdir()
+    M.write_manifest(M.new_manifest(
+        "c1",
+        source={"original_path": "x.mp4", "sha256": "0" * 64, "kind": "mp4", "clip_file": "clip.mp4"},
+        meta={"width": 960, "height": 600, "fps": 60, "n_frames": 10}), cdir)
+    recs = _make_detections(8)
+    M.write_json(cdir / "detections.json", recs)
+
+    A.deselect_detections(cdir, "c1", [5, 6, 7])
+
+    # detections.json carries the deselection
+    saved = M.read_json(cdir / "detections.json")
+    by_frame = {r["frame"]: r for r in saved}
+    assert by_frame[5]["accepted"] is False and by_frame[5]["deselected"] is True
+
+    # the only scoring input (assemble) drops the deselected frames
+    pts = traj_mod.assemble(saved)
+    assert {p["frame"] for p in pts} == {0, 1, 2, 3, 4}
+
+    # manifest records the review state and the rebuilt point count
+    man = M.read_manifest(cdir)
+    assert man["excluded_frames"] == [5, 6, 7]
+    assert man["trajectory"]["n_points"] == 5
+
+    # include-all restores everything
+    A.deselect_detections(cdir, "c1", [])
+    saved2 = M.read_json(cdir / "detections.json")
+    assert all(r["accepted"] for r in saved2)
+    assert M.read_manifest(cdir)["excluded_frames"] == []

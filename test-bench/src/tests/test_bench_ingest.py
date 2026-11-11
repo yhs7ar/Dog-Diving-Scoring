@@ -87,10 +87,13 @@ def test_ingest_mp4_matches_parent_probe(tmp_path: Path):
     cid = man["clip_id"]
     d = root / cid
 
-    # clip copied into the record, self-contained
-    assert (d / f"clip{clip.suffix.lower()}").is_file()
+    # clip is NOT copied — the manifest maps to the original path
+    assert not (d / f"clip{clip.suffix.lower()}").exists()
     assert (d / "manifest.json").is_file()
     assert (d / "meta.json").is_file()
+    assert man["source"]["original_path"] == str(clip)
+    assert "clip_file" not in man["source"]
+    assert M.clip_video_path(man, d) == clip
 
     # meta block equals the parent's own probe
     src = V.probe(clip)
@@ -132,3 +135,50 @@ def test_reingest_preserves_analysis(tmp_path: Path):
     assert man2["ground_truth"]["gt_in"] == 98.0
     # but the clip + metadata were refreshed
     assert man2["source"]["sha256"] == V.sha256(clip)
+
+
+def test_clip_video_path_prefers_original_and_falls_back(tmp_path: Path):
+    cdir = tmp_path / "c1"
+    cdir.mkdir()
+    orig = tmp_path / "orig.mp4"
+    orig.write_bytes(b"v")
+    man = M.new_manifest("c1", source={"original_path": str(orig),
+                                       "sha256": "0" * 64, "kind": "mp4"}, meta={})
+    # original resolves -> returned, even with a stale clip_file present
+    assert M.clip_video_path(man, cdir) == orig
+    # original missing -> falls back to the in-repo copy
+    orig.unlink()
+    copy = cdir / "clip.mp4"
+    copy.write_bytes(b"v")
+    man["source"]["clip_file"] = "clip.mp4"
+    assert M.clip_video_path(man, cdir) == copy
+    # neither -> None
+    copy.unlink()
+    assert M.clip_video_path(man, cdir) is None
+
+
+def test_migrate_drop_copied_clips(tmp_path: Path):
+    root = tmp_path / "analyzed-clips"
+    for cid, orig_exists in (("a", True), ("b", False)):
+        cdir = root / cid
+        cdir.mkdir(parents=True)
+        orig = tmp_path / f"{cid}.mp4"
+        if orig_exists:
+            orig.write_bytes(b"v")
+        M.write_manifest(M.new_manifest(
+            cid,
+            source={"original_path": str(orig), "sha256": "0" * 64, "kind": "mp4",
+                    "clip_file": "clip.mp4"},
+            meta={}), cdir)
+        (cdir / "clip.mp4").write_bytes(b"v")
+
+    report = M.migrate_drop_copied_clips(root)
+
+    # a: original exists -> copy removed + clip_file dropped
+    assert not (root / "a" / "clip.mp4").exists()
+    assert "clip_file" not in M.read_manifest(root / "a")["source"]
+    # b: original missing -> copy kept + clip_file retained for the fallback
+    assert (root / "b" / "clip.mp4").exists()
+    assert "clip_file" in M.read_manifest(root / "b")["source"]
+    assert len(report) == 2
+

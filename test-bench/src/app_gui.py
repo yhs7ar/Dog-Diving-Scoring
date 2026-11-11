@@ -10,6 +10,7 @@ direct: ``python src/app_gui.py`` from the repo root.
 from __future__ import annotations
 
 import json
+import subprocess
 import sys
 import threading
 from datetime import datetime, timezone
@@ -18,7 +19,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 import tkinter as tk
-from tkinter import filedialog, messagebox, ttk
+from tkinter import filedialog, messagebox, simpledialog, ttk
 
 SRC = Path(__file__).resolve().parent
 if str(SRC) not in sys.path:
@@ -27,10 +28,12 @@ if str(SRC) not in sys.path:
 from test_bench import ground_truth as gt_mod       # noqa: E402
 from test_bench import ingest as ingest_mod         # noqa: E402
 from test_bench import manifest as manifest_mod     # noqa: E402
-from test_bench import plane_draw as plane_draw_mod # noqa: E402
 from test_bench import suite as suite_mod           # noqa: E402
+from test_bench import analyze as analyze_mod       # noqa: E402
 from test_bench.frame_view import ZOOM_STEPS, FrameView  # noqa: E402
 from dog_diving import trajectory as trajectory_mod  # noqa: E402
+from dog_diving.config import MODEL_PATH  # noqa: E402
+from calibrate_tab import CalibrateTab  # noqa: E402
 
 DEFAULT_ROOT = SRC.parent / "analyzed-clips"
 
@@ -41,11 +44,10 @@ def _now() -> str:
 
 def _load_frame(clip_dir: Path, man: dict, frame_index: int):
     """The BGR frame at ``frame_index`` for a clip, or None."""
-    clip_file = man.get("source", {}).get("clip_file")
-    if not clip_file:
-        kind = man.get("source", {}).get("kind", "mp4")
-        clip_file = f"clip.{'svo2' if kind == 'svo2' else 'mp4'}"
-    cap = cv2.VideoCapture(str(clip_dir / clip_file))
+    clip = manifest_mod.clip_video_path(man, clip_dir)
+    if clip is None:
+        return None
+    cap = cv2.VideoCapture(str(clip))
     if not cap.isOpened():
         return None
     cap.set(cv2.CAP_PROP_POS_FRAMES, int(frame_index))
@@ -123,12 +125,13 @@ class IngestPane(ttk.Frame):
     def __init__(self, parent, app):
         super().__init__(parent)
         self.app = app
+        self._pending_paths: list[str] = []   # clips staged by the (multi-select) Browse dialog
         row = ttk.Frame(self)
         row.pack(fill="x", padx=8, pady=8)
         self.path_var = tk.StringVar()
         ttk.Entry(row, textvariable=self.path_var, width=55).pack(side="left", fill="x", expand=True)
         ttk.Button(row, text="Browse…", command=self._browse).pack(side="left", padx=4)
-        ttk.Button(row, text="Ingest", command=self._ingest).pack(side="left")
+        ttk.Button(row, text="Select", command=self._ingest).pack(side="left")
         idrow = ttk.Frame(self)
         idrow.pack(fill="x", padx=8)
         ttk.Label(idrow, text="Clip id (optional):").pack(side="left")
@@ -143,94 +146,438 @@ class IngestPane(ttk.Frame):
         self.out.configure(state="disabled")
 
     def _browse(self):
-        p = filedialog.askopenfilename(title="Clip",
+        paths = filedialog.askopenfilenames(title="Clips",
             filetypes=[("video", "*.mp4 *.mov *.m4v *.avi *.svo2"), ("all", "*.*")])
-        if p:
-            self.path_var.set(p)
+        if paths:
+            self._pending_paths = list(paths)
+            self.path_var.set("; ".join(str(p) for p in paths))
 
     def _ingest(self):
-        src = self.path_var.get().strip()
-        if not src:
+        sources = list(self._pending_paths)
+        if not sources:
+            single = self.path_var.get().strip()
+            sources = [single] if single else []
+        if not sources:
             return
+        # A single clip may take the optional id; a multi-select derives ids from file names.
+        clip_id = None if len(sources) > 1 else (self.id_var.get().strip() or None)
         try:
-            man = ingest_mod.ingest_clip(src, self.app.root_dir,
-                                         clip_id=self.id_var.get().strip() or None)
-            m = man["meta"]
-            self._log(f"ingested {man['clip_id']}  ({m.get('width')}x{m.get('height')} "
-                      f"@ {m.get('fps')} fps, {m.get('n_frames')} frames, {m.get('codec')})")
+            for src in sources:
+                man = ingest_mod.ingest_clip(src, self.app.root_dir, clip_id=clip_id)
+                m = man["meta"]
+                self._log(f"selected {man['clip_id']}  ({m.get('width')}x{m.get('height')} "
+                          f"@ {m.get('fps')} fps, {m.get('n_frames')} frames, {m.get('codec')})")
+            self._pending_paths = []
             self.app.on_clips_changed()
         except Exception as e:  # noqa: BLE001
-            messagebox.showerror("ingest", str(e))
+            messagebox.showerror("select clips", str(e))
 
 
-class AnalyzePane(ttk.Frame):
+class AnalyzePane(_FramePane):
+    """Analyze + Review + Ground truth in one pane.
+
+    The top is the parent's clip selector + frame scrubber + zoomable canvas; the
+    Analyze controls (model / method / plane) sit below it, and the Review controls
+    (Select Ground Truth / judge / save GT / live readout) sit above the canvas.
+    """
+
     def __init__(self, parent, app):
-        super().__init__(parent)
-        self.app = app
-        row = ttk.Frame(self)
-        row.pack(fill="x", padx=8, pady=8)
-        ttk.Label(row, text="Clip:").pack(side="left")
-        self.clip_var = tk.StringVar()
-        self.clip_box = ttk.Combobox(row, textvariable=self.clip_var, width=40, state="readonly")
-        self.clip_box.pack(side="left", padx=4)
+        super().__init__(parent, app)
+        self.pending = None          # (x_px, y_px) the operator clicked as GT
+        self._select_gt_mode = False
+        self._deselect_mode = True
+        self.excluded: set[int] = set()
+        self._dirty = False         # deselection changed but not yet saved
+        self._traj = None            # loaded Trajectory for the current clip
+        self._plane_doc = None
+        self._analyze_results = []   # [(method_name, meas)] from the last Analyze
 
-        row2 = ttk.Frame(self)
-        row2.pack(fill="x", padx=8)
-        ttk.Label(row2, text="Model:").pack(side="left")
+        # --- review controls (top) ---
+        rtop = ttk.Frame(self)
+        rtop.pack(fill="x", padx=6, pady=2)
+        self.deselect_btn = ttk.Button(rtop, text="Deselect points: ON", command=self._toggle_deselect_mode)
+        self.deselect_btn.pack(side="left", padx=2)
+        self.select_gt_btn = ttk.Button(rtop, text="Select Ground Truth", command=self._toggle_gt_mode)
+        self.select_gt_btn.pack(side="left", padx=2)
+        ttk.Button(rtop, text="Include all", command=self._include_all).pack(side="left", padx=2)
+        ttk.Button(rtop, text="Save Detected Points", command=self._save_detections).pack(side="left", padx=2)
+        self.exclude_lbl = ttk.Label(rtop, text="")
+        self.exclude_lbl.pack(side="left", padx=6)
+        self.readout_var = tk.StringVar(value="score: —")
+        ttk.Label(rtop, textvariable=self.readout_var).pack(side="right")
+
+        # --- analyze controls (bottom) ---
+        self.ctl = ttk.Frame(self)
+        self.ctl.pack(fill="x", padx=8, pady=4)
+        ttk.Label(self.ctl, text="Model:").pack(side="left")
         self.model_var = tk.StringVar()
-        self.model_box = ttk.Combobox(row2, textvariable=self.model_var, width=40)
+        self.model_box = ttk.Combobox(self.ctl, textvariable=self.model_var, width=30)
         self.model_box.pack(side="left", padx=4)
-        ttk.Button(row2, text="Assign plane…", command=self._assign_plane).pack(side="left", padx=8)
-        ttk.Button(row2, text="Re-draw plane…", command=self._redraw_plane).pack(side="left")
-        self.plane_lbl = ttk.Label(row2, text="plane: none")
-        self.plane_lbl.pack(side="left")
-        ttk.Button(row2, text="Analyze", command=self._analyze).pack(side="right")
+
+        mrow = ttk.Frame(self)
+        mrow.pack(fill="x", padx=8, pady=2)
+        ttk.Label(mrow, text="Method:").pack(side="left")
+        self.method_vars = {
+            "3D Arc": tk.BooleanVar(value=False),
+            "End-to-End Plane": tk.BooleanVar(value=True),
+        }
+        for name, var in self.method_vars.items():
+            ttk.Checkbutton(mrow, text=name, variable=var).pack(side="left", padx=5)
+        ttk.Button(mrow, text="Analyze", command=self._analyze).pack(side="right")
+
+        prow = ttk.Frame(self)
+        prow.pack(fill="x", padx=8, pady=2)
+        ttk.Label(prow, text="Plane:").pack(side="left")
+        self.plane_var = tk.StringVar()
+        self.plane_box = ttk.Combobox(prow, textvariable=self.plane_var, width=34, state="readonly")
+        self.plane_box.pack(side="left", padx=4)
+        ttk.Button(prow, text="Use plane", command=self._use_plane).pack(side="left", padx=2)
+        self.plane_lbl = ttk.Label(prow, text="")
+        self.plane_lbl.pack(side="left", padx=6)
+
+        gtw = ttk.Frame(self)
+        gtw.pack(fill="x", padx=8, pady=2)
+        ttk.Button(gtw, text="Save Ground Truth", command=self._save_gt).pack(side="left", padx=2)
+        ttk.Label(gtw, text="Judge:").pack(side="left", padx=(8, 0))
+        self.judge_ft_var = tk.StringVar()
+        ttk.Entry(gtw, textvariable=self.judge_ft_var, width=4).pack(side="left", padx=2)
+        ttk.Label(gtw, text="ft").pack(side="left")
+        self.judge_in_var = tk.StringVar()
+        ttk.Entry(gtw, textvariable=self.judge_in_var, width=4).pack(side="left", padx=2)
+        ttk.Label(gtw, text="in").pack(side="left")
+        ttk.Button(gtw, text="Save Judge Score", command=self._save_judge).pack(side="left", padx=2)
+        self.gt_lbl = ttk.Label(gtw, text="GT: none")
+        self.gt_lbl.pack(side="right")
 
         self.status = ttk.Label(self, text="", foreground="#0369a1")
-        self.status.pack(fill="x", padx=8, pady=4)
-        self.out = tk.Text(self, height=10, state="disabled")
-        self.out.pack(fill="both", expand=True, padx=8, pady=8)
+        self.status.pack(fill="x", padx=8, pady=2)
+        self.out = tk.Text(self, height=6, state="disabled")
+        self.out.pack(fill="x", padx=8, pady=2)
 
+        self.view.on_click(self._on_click)
+        self.view.on_marquee(self._on_marquee)   # armed by default (deselect mode ON)
+
+    # --- clip / model / plane refresh -------------------------------------
     def refresh(self):
         self.clip_box["values"] = self.app.list_clips()
         models = sorted(p.name for p in (self.app.root_dir.parent / "models").glob("*.pt"))
         self.model_box["values"] = models
         if models and not self.model_var.get():
-            self.model_var.set(models[0])
+            # Default to the end-to-end app's model of record, not the alphabetical first.
+            self.model_var.set(MODEL_PATH.name if MODEL_PATH.name in models else models[0])
+        self.plane_box["values"] = manifest_mod.list_planes()
 
     def _log(self, msg):
         self.out.configure(state="normal"); self.out.insert("end", msg + "\n"); self.out.configure(state="disabled")
 
-    def _assign_plane(self):
-        p = filedialog.askopenfilename(title="plane document",
-                                       filetypes=[("plane", "*.json"), ("all", "*.*")])
-        if not p or not self.clip_var.get():
+    def _use_plane(self):
+        cid = self.clip_var.get()
+        setup_id = self.plane_var.get()
+        if not cid or not setup_id:
             return
-        cdir = self.app.clip_dir(self.clip_var.get())
-        manifest_mod.write_json(cdir / "plane.json", json.loads(Path(p).read_text(encoding="utf-8")))
-        self.plane_lbl.config(text=f"plane: {Path(p).name}")
+        cdir = self.app.clip_dir(cid)
+        man = manifest_mod.read_manifest(cdir)
+        man["plane"] = {"setup_id": setup_id, "present": True}
+        manifest_mod.write_manifest(man, cdir)
+        self.plane_lbl.config(text=f"plane: {setup_id}")
         self.app.on_clips_changed()
+        self._reload_trajectory()
 
-    def _redraw_plane(self):
+    def _on_clip(self):
+        super()._on_clip()
+        self._reload_trajectory()
+
+    # --- review state loading ---------------------------------------------
+    def _reload_trajectory(self):
+        cid = self.clip_var.get()
+        self.excluded = set()
+        self._dirty = False
+        self.pending = None
+        self._traj = None
+        self._plane_doc = None
+        self._analyze_results = []
+        self.gt_lbl.config(text="GT: none")
+        self.exclude_lbl.config(text="")
+        if not cid or not self.man:
+            return
+        cdir = self.app.clip_dir(cid)
+        self.excluded = set(manifest_mod.read_excluded_frames(cdir))
+        tpath = cdir / "trajectory.json"
+        if tpath.is_file():
+            d = json.loads(tpath.read_text(encoding="utf-8"))
+            self._traj = _Trajectory(d)
+            self._plane_doc = manifest_mod.clip_plane(self.man)
+            self.frame_var.set(int(self._traj.last_frame()))
+            self._n_frames = int(self.man.get("meta", {}).get("n_frames") or 0)
+            self.frame_scale.configure(to=max(1, self._n_frames - 1))
+            self._on_frame()
+        gtp = cdir / "ground_truth.json"
+        if gtp.is_file():
+            gt = json.loads(gtp.read_text(encoding="utf-8"))
+            self.pending = (gt.get("x_px"), gt.get("y_px"))
+            self.gt_lbl.config(text=f"GT: {gt.get('gt_in', '')} in")
+        self._sync_exclude_lbl()
+
+    # --- frame / overlay ----------------------------------------------------
+    def _on_frame(self):
+        if not self.man:
+            return
+        super()._on_frame()
+        self._redraw_review()
+
+    def _redraw_review(self):
+        overlays = []
+        traj = self._traj
+        if traj is not None:
+            kept = [p for p in traj.points if int(p["frame"]) not in self.excluded]
+            if len(kept) >= 2:
+                overlays.append(("curve", [(p["x"], p["y"]) for p in kept], "yellow"))
+            for p in traj.inliers:
+                if int(p["frame"]) not in self.excluded:
+                    overlays.append(("marker", (p["x"], p["y"], 1.0), "magenta"))
+            for f in sorted(self.excluded):
+                p = traj.point_at(int(f))
+                if p is not None:
+                    overlays.append(("marker", (p["x"], p["y"], 1.2), "gray"))
+            if kept:
+                overlays.append(("marker", (kept[-1]["x"], kept[-1]["y"], 1.5), "red"))
+        if self.pending:
+            overlays.append(("marker", (self.pending[0], self.pending[1], 2.0), "lime"))
+        self.view.set_overlays(overlays)
+        self._update_readout()
+
+    def _update_readout(self):
+        if self._traj is None or self._plane_doc is None:
+            self.readout_var.set("score: —")
+            return
+        from dog_diving import measure as measure_mod
+        parts = []
+        for name, var in self.method_vars.items():
+            if not var.get():
+                continue
+            try:
+                if name == "3D Arc":
+                    meas = measure_mod.trajectory_plane_distance(self._traj, self._plane_doc,
+                                                                 excluded=self.excluded)
+                else:
+                    meas = measure_mod.plane_only_distance(self._traj, self._plane_doc,
+                                                           excluded=self.excluded)
+            except Exception:  # noqa: BLE001 — the 3-D method is known-broken
+                meas = None
+            v = meas.get("total_inches") if meas else None
+            parts.append(f"{name}: {v:.2f} in" if v is not None else f"{name}: null")
+        self.readout_var.set("score: " + "   ".join(parts))
+
+    # --- click: deselect a point or set ground truth -----------------------
+    def _on_click(self, ix, iy):
+        if self._select_gt_mode:
+            self.pending = (float(ix), float(iy))
+            self._redraw_review()
+            return
+        if not self._deselect_mode:
+            return
+        if self._traj is None:
+            return
+        p, d = self._nearest_point(ix, iy)
+        if p is None or d > 12.0:
+            return
+        f = int(p["frame"])
+        if f in self.excluded:
+            self.excluded.discard(f)
+        else:
+            self.excluded.add(f)
+        self._dirty = True
+        self._redraw_review()
+
+    def _on_marquee(self, x0, y0, x1, y1):
+        """Box-drag deselection: every detection inside the drawn rectangle is
+        marked faulty.  The rectangle itself is transient (never persisted) — the
+        point is to sweep out false detections that sit on top of one another."""
+        if not self._deselect_mode or self._traj is None:
+            return
+        newly = 0
+        for p in self._traj.points:
+            if x0 <= p["x"] <= x1 and y0 <= p["y"] <= y1:
+                self.excluded.add(int(p["frame"]))
+                newly += 1
+        if newly:
+            self._dirty = True
+            self._redraw_review()
+
+    def _nearest_point(self, ix, iy):
+        best, best_d = None, float("inf")
+        for p in self._traj.points:
+            d = (p["x"] - ix) ** 2 + (p["y"] - iy) ** 2
+            if d < best_d:
+                best, best_d = p, d
+        return best, best_d ** 0.5
+
+    def _save_detections(self):
+        """Commit the draft deselection to the saved detections and report it.
+
+        Deselecting (marquee / click) only marks a *draft*; this bakes the
+        deselected frames into ``detections.json`` (``accepted=False``), rebuilds
+        the trajectory, and tells the operator exactly how many tailset detections
+        are now saved."""
         cid = self.clip_var.get()
         if not cid:
             return
-        PlaneDrawDialog(self.app, cid)
+        cdir = self.app.clip_dir(cid)
+        if not (cdir / "detections.json").is_file():
+            messagebox.showinfo("detections", "no detections to save (run Analyze first)")
+            return
+        try:
+            traj = analyze_mod.deselect_detections(cdir, cid, self.excluded)
+        except Exception as e:  # noqa: BLE001
+            messagebox.showerror("detections", str(e))
+            return
+        self.man = manifest_mod.read_manifest(cdir)
+        self._traj = _Trajectory(manifest_mod.read_json(cdir / "trajectory.json"))
+        self._dirty = False
+        kept, dropped = traj.n_points, len(self.excluded)
+        if dropped:
+            frames = ", ".join(str(f) for f in sorted(self.excluded))
+            messagebox.showinfo("detections saved",
+                f"Saved {kept} accepted tailset detection(s).\n"
+                f"Deselected {dropped} (frames {frames}).")
+        else:
+            messagebox.showinfo("detections saved",
+                f"Saved {kept} accepted tailset detection(s) (none deselected).")
+        self._redraw_review()
+        self._sync_exclude_lbl()
 
+    def _sync_exclude_lbl(self):
+        n = len(self.excluded)
+        unsaved = " (unsaved)" if getattr(self, "_dirty", False) else ""
+        self.exclude_lbl.config(
+            text=f"deselected: {n}{unsaved}" if n else
+            "drag a box to deselect faulty detections" + unsaved)
+
+    def _sync_marquee(self):
+        # marquee is armed only in deselect mode (GT placement uses click only)
+        self.view.on_marquee(self._on_marquee if self._deselect_mode else None)
+
+    def _toggle_deselect_mode(self):
+        self._deselect_mode = not self._deselect_mode
+        if self._deselect_mode:
+            self._select_gt_mode = False
+            self.select_gt_btn.config(text="Select Ground Truth")
+        self.deselect_btn.config(text="Deselect points: ON" if self._deselect_mode
+                                 else "Deselect points")
+        self._sync_marquee()
+
+    def _toggle_gt_mode(self):
+        self._select_gt_mode = not self._select_gt_mode
+        if self._select_gt_mode:
+            self._deselect_mode = False
+            self.deselect_btn.config(text="Deselect points")
+        self.select_gt_btn.config(text="Select Ground Truth: ON" if self._select_gt_mode
+                                  else "Select Ground Truth")
+        self._sync_marquee()
+
+    def _include_all(self):
+        self.excluded = set()
+        self._dirty = True
+        self._redraw_review()
+
+    def _save_gt(self):
+        cid = self.clip_var.get()
+        if not cid or not self.pending:
+            messagebox.showinfo("ground truth", "click 'Select Ground Truth' and place a point first")
+            return
+        cdir = self.app.clip_dir(cid)
+        plane = manifest_mod.clip_plane(manifest_mod.read_manifest(cdir))
+        if plane is None:
+            messagebox.showerror("ground truth", "assign a plane first (Use plane)")
+            return
+        # preserve any judge score already saved on this clip
+        judge = None
+        gtp = cdir / "ground_truth.json"
+        if gtp.is_file():
+            try:
+                judge = json.loads(gtp.read_text(encoding="utf-8")).get("judge_in")
+            except Exception:  # noqa: BLE001
+                judge = None
+        try:
+            gt = gt_mod.set_ground_truth(plane, frame=int(self.frame_var.get()),
+                                         x_px=self.pending[0], y_px=self.pending[1],
+                                         judge_in=judge, updated=_now())
+        except ValueError as e:
+            messagebox.showerror("ground truth", str(e))
+            return
+        gt_mod.write_ground_truth(gt, cdir)
+        man = manifest_mod.read_manifest(cdir)
+        man["ground_truth"] = {"path": "ground_truth.json", "judge_present": gt["judge_present"],
+                               "gt_in": gt["gt_in"]}
+        manifest_mod.write_manifest(man, cdir)
+        self.gt_lbl.config(text=f"GT: {gt['gt_in']:.2f} in"
+                                + (f"  judge: {judge:.2f} in" if judge is not None else ""))
+        self.app.on_clips_changed()
+
+    def _save_judge(self):
+        cid = self.clip_var.get()
+        if not cid:
+            return
+        cdir = self.app.clip_dir(cid)
+        gtp = cdir / "ground_truth.json"
+        if not gtp.is_file():
+            messagebox.showinfo("judge", "save the Ground Truth point first")
+            return
+        ft_txt = self.judge_ft_var.get().strip()
+        in_txt = self.judge_in_var.get().strip()
+        if not ft_txt and not in_txt:
+            messagebox.showinfo("judge", "enter a judge distance (feet and/or inches)")
+            return
+        try:
+            feet = float(ft_txt) if ft_txt else 0.0
+            inches = float(in_txt) if in_txt else 0.0
+        except ValueError:
+            messagebox.showerror("judge", "judge distance must be numbers (feet and inches)")
+            return
+        if feet < 0 or inches < 0:
+            messagebox.showerror("judge", "judge distance cannot be negative")
+            return
+        judge = feet * 12.0 + inches
+        gt = json.loads(gtp.read_text(encoding="utf-8"))
+        gt = gt_mod.set_judge(gt, judge, updated=_now())
+        gt_mod.write_ground_truth(gt, cdir)
+        man = manifest_mod.read_manifest(cdir)
+        man["ground_truth"] = {"path": "ground_truth.json", "judge_present": gt["judge_present"],
+                               "gt_in": gt.get("gt_in")}
+        manifest_mod.write_manifest(man, cdir)
+        gt_in = gt.get("gt_in")
+        self.gt_lbl.config(text=f"GT: {gt_in:.2f} in  judge: {judge:.2f} in" if gt_in is not None
+                            else f"judge: {judge:.2f} in")
+        self.app.on_clips_changed()
+
+    # --- analyze ------------------------------------------------------------
     def _analyze(self):
         cid = self.clip_var.get()
         if not cid or getattr(self, "_busy", False):
             return
-        from dog_diving import detect as detect_mod
-        from dog_diving import measure as measure_mod
         cdir = self.app.clip_dir(cid)
         man = manifest_mod.read_manifest(cdir)
+        if not man.get("plane", {}).get("present"):
+            messagebox.showerror("analyze", "Please select and 'Use plane' first.")
+            return
+
+        from dog_diving import detect as detect_mod
+        from dog_diving import measure as measure_mod
         if man.get("source", {}).get("kind") == "svo2":
             messagebox.showerror("analyze", "SVO2 analyze needs the ZED X SDK (not wired)")
             return
+        enabled = {name for name, var in self.method_vars.items() if var.get()}
+        if not enabled:
+            messagebox.showwarning("analyze", "Please select at least one method.")
+            return
         model = self.app.root_dir.parent / "models" / self.model_var.get()
         cfg = detect_mod.DetectConfig(model_path=model)
-        clip = cdir / man["source"]["clip_file"]
+        clip = manifest_mod.clip_video_path(man, cdir)
+        if clip is None:
+            messagebox.showerror(
+                "analyze", "clip file not found "
+                f"({man.get('source', {}).get('original_path')!r})")
+            return
         self._busy = True
         self.status.config(text="analyzing…")
 
@@ -238,7 +585,7 @@ class AnalyzePane(ttk.Frame):
             try:
                 self.app.root.after(0, cb)
             except tk.TclError:
-                pass  # window gone; the daemon thread exits quietly
+                pass
 
         def prog(done, total, eta):
             _after(lambda d=done, t=total, e=eta:
@@ -254,27 +601,41 @@ class AnalyzePane(ttk.Frame):
                 man["detections"] = {"path": "detections.json", "model_sha": det.model_sha,
                                      "n_detections": det.n_detections, "n_accepted": det.n_accepted}
                 man["trajectory"] = {"path": "trajectory.json", "n_points": traj.n_points}
-                meas = None
-                if (cdir / "plane.json").is_file():
-                    plane = json.loads((cdir / "plane.json").read_text(encoding="utf-8"))
-                    meas = measure_mod.plane_distance(traj, plane)
+                plane = manifest_mod.clip_plane(man)
+                results = []
+                if plane is not None:
                     man["plane"]["present"] = True
+                    for name in sorted(enabled):
+                        if name == "3D Arc":
+                            meas = measure_mod.trajectory_plane_distance(traj, plane)
+                        elif name == "End-to-End Plane":
+                            meas = measure_mod.plane_only_distance(traj, plane)
+                        else:
+                            meas = None
+                        results.append((name, meas))
                 manifest_mod.write_manifest(man, cdir)
-                _after(lambda: self._analyze_done(cid, det, meas))
+                _after(lambda: self._analyze_done(cid, det, results))
             except Exception as e:  # noqa: BLE001
                 _after(lambda err=str(e): self._analyze_fail(err))
 
         threading.Thread(target=worker, daemon=True).start()
 
-    def _analyze_done(self, cid, det, meas):
+    def _analyze_done(self, cid, det, results):
         self._busy = False
         self.status.config(text="done")
-        if meas and meas.get("total_inches") is not None:
-            self._log(f"{cid}: {meas['total_inches']:.2f} in  ({meas['display']}) @ frame {meas['frame']}")
-        else:
+        if not results:
             self._log(f"{cid}: {det.n_detections} detections, {det.n_accepted} accepted "
                       f"(no plane — distance null)")
+        else:
+            for name, meas in results:
+                if meas and meas.get("total_inches") is not None:
+                    self._log(f"{cid} [{name}]: {meas['total_inches']:.2f} in  "
+                              f"({meas['display']}) @ frame {meas['frame']}")
+                else:
+                    self._log(f"{cid} [{name}]: distance null")
+        self._analyze_results = results
         self.app.on_clips_changed()
+        self._reload_trajectory()
 
     def _analyze_fail(self, err):
         self._busy = False
@@ -282,61 +643,70 @@ class AnalyzePane(ttk.Frame):
         messagebox.showerror("analyze", err)
 
 
-class GroundTruthPane(_FramePane):
-    def __init__(self, parent, app):
-        super().__init__(parent, app)
-        self.pending = None   # (x_px, y_px)
-        self.view.on_click(self._on_click)
-        ctl = ttk.Frame(self)
-        ctl.pack(fill="x", padx=8, pady=4)
-        ttk.Label(ctl, text="Judge distance (in):").pack(side="left")
-        self.judge_var = tk.StringVar()
-        ttk.Entry(ctl, textvariable=self.judge_var, width=10).pack(side="left", padx=4)
-        ttk.Button(ctl, text="Save GT + judge", command=self._save).pack(side="left", padx=8)
-        self.gt_lbl = ttk.Label(ctl, text="GT: none")
-        self.gt_lbl.pack(side="right")
+class _Trajectory:
+    """Lightweight wrapper around a trajectory.json dict for the review pane."""
 
-    def _on_click(self, ix, iy):
-        self.pending = (ix, iy)
-        self._redraw()
+    def __init__(self, d):
+        self._d = d
+        self.points = d.get("points", [])
+        self.inliers = d.get("inliers", [])
+        self.coeffs = d.get("coeffs")
+        self.airborne_frame_range = d.get("airborne_frame_range")
 
-    def _redraw(self):
-        overlays = []
-        if self.pending:
-            overlays.append(("marker", (self.pending[0], self.pending[1], 6.0), "yellow"))
-        self.view.set_overlays(overlays)
+    def point_at(self, frame):
+        for p in self.points:
+            if int(p["frame"]) == int(frame):
+                return p
+        return None
 
-    def _save(self):
-        cid = self.clip_var.get()
-        if not cid or not self.pending:
-            return
-        cdir = self.app.clip_dir(cid)
-        plane_path = cdir / "plane.json"
-        if not plane_path.is_file():
-            messagebox.showerror("ground truth", "assign a plane first (Analyze pane)")
-            return
-        plane = json.loads(plane_path.read_text(encoding="utf-8"))
-        judge = None
-        if self.judge_var.get().strip():
-            try:
-                judge = float(self.judge_var.get().strip())
-            except ValueError:
-                messagebox.showerror("judge", "judge distance must be a number (inches)")
-                return
-        try:
-            gt = gt_mod.set_ground_truth(plane, frame=int(self.frame_var.get()),
-                                         x_px=self.pending[0], y_px=self.pending[1],
-                                         judge_in=judge, updated=_now())
-        except ValueError as e:
-            messagebox.showerror("ground truth", str(e))
-            return
-        gt_mod.write_ground_truth(gt, cdir)
-        man = manifest_mod.read_manifest(cdir)
-        man["ground_truth"] = {"path": "ground_truth.json", "judge_present": gt["judge_present"],
-                               "gt_in": gt["gt_in"]}
-        manifest_mod.write_manifest(man, cdir)
-        self.gt_lbl.config(text=f"GT: {gt['gt_in']:.2f} in" + (f"  judge: {judge:.2f} in" if judge is not None else ""))
-        self.app.on_clips_changed()
+    def last_frame(self):
+        return max((int(p["frame"]) for p in self.points), default=0)
+
+
+
+class CheckGroup(ttk.Frame):
+    """A collapsible checkbox filter — the usual expanding filter-GUI menu.
+
+    ``options`` is a list of ``(label, value, enabled)``.  ``selected()`` returns
+    the checked values; ``on_change`` fires after any toggle.  Default-checked
+    values are passed via ``default_checked``.
+    """
+
+    def __init__(self, parent, title, options, on_change=None, default_checked=None):
+        super().__init__(parent)
+        self.title = title
+        self.on_change = on_change
+        self._btn = ttk.Label(self, text=f"▾ {title}", cursor="hand2")
+        self._btn.pack(anchor="w", fill="x")
+        self._btn.bind("<Button-1>", lambda e: self._toggle())
+        self.body = ttk.Frame(self)
+        self.body.pack(fill="x", padx=(14, 0))
+        self._items: list[tuple] = []   # (value, BooleanVar)
+        checked = set(default_checked or ())
+        for label, value, enabled in options:
+            var = tk.BooleanVar(value=(value in checked))
+            cb = ttk.Checkbutton(self.body, text=str(label), variable=var,
+                                 command=self._changed)
+            if not enabled:
+                cb.state(["disabled"])
+                var.set(False)
+            cb.pack(anchor="w")
+            self._items.append((value, var))
+
+    def _changed(self):
+        if self.on_change is not None:
+            self.on_change()
+
+    def _toggle(self):
+        if self.body.winfo_ismapped():
+            self.body.pack_forget()
+            self._btn.config(text=f"▸ {self.title}")
+        else:
+            self.body.pack(fill="x", padx=(14, 0))
+            self._btn.config(text=f"▾ {self.title}")
+
+    def selected(self) -> list:
+        return [value for value, var in self._items if var.get()]
 
 
 class RunSuitePane(ttk.Frame):
@@ -348,14 +718,26 @@ class RunSuitePane(ttk.Frame):
         self.clip_list = tk.Listbox(left, selectmode="extended", exportselection=False)
         self.clip_list.pack(fill="both", expand=True)
         right = ttk.Frame(self); right.pack(side="left", fill="y", padx=8, pady=8)
-        ttk.Label(right, text="n_points:").pack(anchor="w")
-        self.n_var = tk.StringVar(value="4,6,8,12,20,all")
-        ttk.Entry(right, textvariable=self.n_var, width=16).pack()
-        ttk.Label(right, text="selections:").pack(anchor="w")
-        self.sel_var = tk.StringVar(value="last_n,all,ransac_inliers")
-        ttk.Entry(right, textvariable=self.sel_var, width=16).pack()
+
+        from test_bench.scoring import contract, registry
+        from test_bench.scoring.arc_2d import SELECTIONS
+        implemented = set(registry.list_methods())
+        methods = [(f"{m} (not implemented)" if m not in implemented else m, m, m in implemented)
+                   for m in contract.METHODS]
+        self.method_group = CheckGroup(right, "methods", methods,
+                                       default_checked=list(implemented))
+        n_opts = [(str(v), v, True) for v in (4, 6, 8, 12, 20, "all")]
+        self.n_group = CheckGroup(right, "n_points", n_opts,
+                                  default_checked=(4, 6, 8, 12, 20, "all"))
+        sel_opts = [(s, s, True) for s in SELECTIONS]
+        self.sel_group = CheckGroup(right, "selections", sel_opts,
+                                    default_checked=("last_n", "all", "ransac_inliers"))
+        self.method_group.pack(fill="x", pady=2)
+        self.n_group.pack(fill="x", pady=2)
+        self.sel_group.pack(fill="x", pady=2)
+
         ttk.Button(right, text="Run suite", command=self._run).pack(fill="x", pady=8)
-        self.status = ttk.Label(right, text="", wraplength=180)
+        self.status = ttk.Label(right, text="", wraplength=200)
         self.status.pack()
 
     def refresh(self):
@@ -363,7 +745,9 @@ class RunSuitePane(ttk.Frame):
         for cid in self.app.list_clips():
             cdir = self.app.clip_dir(cid)
             if (cdir / "detections.json").is_file() and (cdir / "ground_truth.json").is_file():
-                self.clip_list.insert("end", cid)
+                man = manifest_mod.read_manifest(cdir)
+                if (man.get("plane") or {}).get("setup_id"):
+                    self.clip_list.insert("end", cid)
 
     def _run(self):
         sel_idx = self.clip_list.curselection()
@@ -371,10 +755,16 @@ class RunSuitePane(ttk.Frame):
             messagebox.showinfo("run suite", "select at least one prepared clip")
             return
         ids = [self.clip_list.get(i) for i in sel_idx]
-        n_vals = [v.strip() for v in self.n_var.get().split(",") if v.strip()]
-        sel_vals = [v.strip() for v in self.sel_var.get().split(",") if v.strip()]
-        n_vals = [int(v) if v != "all" else "all" for v in n_vals]
-        configs = suite_mod.grid_configs(n_vals, sel_vals)
+        methods = self.method_group.selected()
+        n_vals = self.n_group.selected()
+        sel_vals = self.sel_group.selected()
+        if not methods:
+            messagebox.showwarning("run suite", "select at least one method")
+            return
+        if not n_vals or not sel_vals:
+            messagebox.showwarning("run suite", "select at least one n_points value and one selection")
+            return
+        configs = suite_mod.grid_configs(n_vals, sel_vals, methods=methods)
         clips = []
         prov: dict = {}
         for cid in ids:
@@ -382,7 +772,7 @@ class RunSuitePane(ttk.Frame):
             man = manifest_mod.read_manifest(cdir)
             recs = json.loads((cdir / "detections.json").read_text(encoding="utf-8"))
             points = trajectory_mod.assemble(recs)
-            plane = json.loads((cdir / "plane.json").read_text(encoding="utf-8"))
+            plane = manifest_mod.clip_plane(man)
             gt = json.loads((cdir / "ground_truth.json").read_text(encoding="utf-8"))
             clips.append({"clip_id": cid, "points": points, "plane_doc": plane, "gt": gt,
                           "frame_size": [man["meta"]["width"], man["meta"]["height"]]})
@@ -442,9 +832,8 @@ class ResultsPane(ttk.Frame):
         cdir = self.app.clip_dir(cid)
         try:
             man = manifest_mod.read_manifest(cdir)
-            plane_p = cdir / "plane.json"
+            plane = manifest_mod.clip_plane(man)
             gt_p = cdir / "ground_truth.json"
-            plane = json.loads(plane_p.read_text(encoding="utf-8")) if plane_p.is_file() else None
             gt = json.loads(gt_p.read_text(encoding="utf-8")) if gt_p.is_file() else None
         except Exception:  # noqa: BLE001
             return True
@@ -466,147 +855,307 @@ class ResultsPane(ttk.Frame):
 
 
 class ComparePane(_FramePane):
+    """Per-method visual review: GT, each run's selected detections, fitted curve,
+    entry point, and the GT→entry error vector — all with the dynamic line style."""
+
+    #: Stable per-run palette (one colour per checked run, shown in the legend).
+    PALETTE = ("#00e5ff", "#ff5cff", "#3cf03c", "#ffa500", "#ffe14d",
+               "#ff6b6b", "#b388ff", "#69f0ae", "#ff80ab", "#80d8ff")
+    #: The judge reference line (drawn at X = judge distance) and its legend swatch.
+    JUDGE_COLOUR = "#ffca28"
+
     def __init__(self, parent, app):
         super().__init__(parent, app)
-        self.run_vars = []     # (tk.BooleanVar, run_dict)
+        self.runs = []          # [(run_dict, colour)] from the active run
         self.gt = None
-        self.ctl = ttk.Frame(self)
-        self.ctl.pack(fill="x", padx=8, pady=4)
+        self.plane_doc = None
+        self.points = []        # accepted detections (post-deselection)
+        self.filter_frame = ttk.Frame(self)
+        self.filter_frame.pack(fill="x", padx=8, pady=4)
+        self.legend = ttk.Frame(self)
+        self.legend.pack(fill="x", padx=8, pady=2)
+        self.method_group = None
+        self.n_group = None
+        self.sel_group = None
 
+        op = ttk.Frame(self)
+        op.pack(fill="x", padx=8, pady=2)
+        ttk.Label(op, text="element opacity:").pack(side="left")
+        self.element_opacity = tk.DoubleVar(value=100.0)
+        tk.Scale(op, from_=0, to=100, orient="horizontal", variable=self.element_opacity,
+                 showvalue=False, command=self._on_opacity).pack(side="left", padx=(4, 0))
+        ttk.Label(op, text="grid opacity:").pack(side="left", padx=(16, 0))
+        self.grid_opacity = tk.DoubleVar(value=100.0)
+        tk.Scale(op, from_=0, to=100, orient="horizontal", variable=self.grid_opacity,
+                 showvalue=False, command=self._on_opacity).pack(side="left", padx=(4, 0))
+        self.show_det = tk.BooleanVar(value=True)
+        self.show_vec = tk.BooleanVar(value=True)
+        self.show_grid = tk.BooleanVar(value=True)
+        for text, var in (("detections", self.show_det), ("error vectors", self.show_vec),
+                          ("grid", self.show_grid)):
+            ttk.Checkbutton(op, text=text, variable=var,
+                            command=self._redraw).pack(side="left", padx=(12, 0))
+
+    # -- loading ------------------------------------------------------------
     def load_clip(self, clip_id):
         self.clip_var.set(clip_id)
         self._on_clip()
-        self._rebuild_overlay_toggles()
 
-    def _rebuild_overlay_toggles(self):
-        for w in self.ctl.winfo_children():
+    def _on_clip(self):
+        super()._on_clip()
+        self._load_data()
+        self._rebuild_filters()
+
+    def _load_data(self):
+        cid = self.clip_var.get()
+        self.gt = None
+        self.plane_doc = None
+        self.points = []
+        if not cid or not self.man:
+            return
+        cdir = self.app.clip_dir(cid)
+        gt_path = cdir / "ground_truth.json"
+        self.gt = json.loads(gt_path.read_text(encoding="utf-8")) if gt_path.is_file() else None
+        self.plane_doc = manifest_mod.clip_plane(self.man)
+        det_path = cdir / "detections.json"
+        if det_path.is_file():
+            recs = json.loads(det_path.read_text(encoding="utf-8"))
+            self.points = trajectory_mod.assemble(recs)
+
+    # -- overlay model ------------------------------------------------------
+    def _rebuild_filters(self):
+        for w in self.filter_frame.winfo_children():
             w.destroy()
         cid = self.clip_var.get()
-        if not cid:
-            return
-        gt_path = self.app.clip_dir(cid) / "ground_truth.json"
-        self.gt = json.loads(gt_path.read_text(encoding="utf-8")) if gt_path.is_file() else None
-        self.run_vars = []
-        for doc in self._run_docs_for(cid):
-            for r in doc["runs"]:
-                v = tk.BooleanVar(value=True)
-                cb = ttk.Checkbutton(self.ctl, text=f"{r['method']} n={r.get('n_points')} {r.get('selection')}",
-                                     variable=v, command=self._redraw)
-                cb.pack(side="left", padx=4)
-                self.run_vars.append((v, r))
+        self.runs = []
+        if cid:
+            runs = self._active_runs_for(cid)
+            for i, r in enumerate(runs):
+                self.runs.append((r, self.PALETTE[i % len(self.PALETTE)]))
+        methods = sorted({r["method"] for r, _ in self.runs})
+        n_pts = sorted({r.get("n_points") for r, _ in self.runs},
+                       key=lambda v: (v == "all", v if v != "all" else 0))
+        sels = sorted({r.get("selection") for r, _ in self.runs})
+        self.method_group = CheckGroup(self.filter_frame, "methods",
+                                       [(m, m, True) for m in methods],
+                                       on_change=self._on_filter, default_checked=methods)
+        self.n_group = CheckGroup(self.filter_frame, "n_points",
+                                  [(str(v), v, True) for v in n_pts],
+                                  on_change=self._on_filter, default_checked=n_pts)
+        self.sel_group = CheckGroup(self.filter_frame, "selections",
+                                    [(s, s, True) for s in sels],
+                                    on_change=self._on_filter, default_checked=sels)
+        self.method_group.pack(side="left", anchor="n", padx=4)
+        self.n_group.pack(side="left", anchor="n", padx=4)
+        self.sel_group.pack(side="left", anchor="n", padx=4)
+        self._rebuild_legend()
         self._redraw()
 
-    def _run_docs_for(self, cid):
+    def _on_filter(self):
+        self._rebuild_legend()
+        self._redraw()
+
+    def _run_visible(self, r):
+        if self.method_group is not None and r["method"] not in self.method_group.selected():
+            return False
+        if self.n_group is not None and r.get("n_points") not in self.n_group.selected():
+            return False
+        if self.sel_group is not None and r.get("selection") not in self.sel_group.selected():
+            return False
+        return True
+
+    def _legend_row(self, colour, text):
+        row = ttk.Frame(self.legend)
+        row.pack(side="left", padx=8)
+        swatch = tk.Canvas(row, width=12, height=12, highlightthickness=0)
+        swatch.create_rectangle(1, 1, 11, 11, fill=colour, outline="")
+        swatch.pack(side="left")
+        ttk.Label(row, text=text).pack(side="left")
+
+    def _rebuild_legend(self):
+        for w in self.legend.winfo_children():
+            w.destroy()
+        if self.gt and self.gt.get("judge_present") and self.gt.get("judge_in") is not None:
+            self._legend_row(self.JUDGE_COLOUR, f"judge {float(self.gt['judge_in']):.1f} in")
+        visible = [rc for rc in self.runs if self._run_visible(rc[0])]
+        if not visible:
+            if not self.legend.winfo_children():
+                ttk.Label(self.legend, text="no runs for this clip (run a suite first)").pack(side="left")
+            return
+        for r, colour in visible:
+            px = _fmt(r.get("pixel_error_px"))
+            inch = _fmt(r.get("score_error_in"))
+            self._legend_row(colour, f"{r['method']} n={r.get('n_points')} {r.get('selection')}  "
+                                     f"Δ{px}px/{inch}in")
+
+    def _active_runs_for(self, cid):
+        """The runs for ``cid`` in the newest results file (the active bench run)."""
         rdir = self.app.root_dir / "results"
         if not rdir.is_dir():
             return []
-        out = []
-        for p in sorted(rdir.glob("*.json"), key=lambda p: p.stat().st_mtime):
-            doc = json.loads(p.read_text(encoding="utf-8"))
+        files = sorted(rdir.glob("*.json"), key=lambda p: p.stat().st_mtime)
+        for p in reversed(files):
+            try:
+                doc = json.loads(p.read_text(encoding="utf-8"))
+            except Exception:  # noqa: BLE001
+                continue
             for row in doc.get("rows", []):
                 if row["clip_id"] == cid:
-                    out.append({"runs": row["runs"], "gt": row.get("gt", {})})
-        return out
+                    return row["runs"]
+        return []
 
-    def _redraw(self):
+    def _selected_px_for(self, r):
+        fit = (r["score"].get("fit") or {})
+        sel = fit.get("selected_px")
+        if sel:
+            return sel
+        if not self.points:
+            return []
+        try:
+            from test_bench.scoring.arc_2d import _select
+            pts = _select(self.points, r.get("selection", "all"), r.get("n_points", "all"))
+            return [[float(p["x"]), float(p["y"])] for p in pts]
+        except Exception:  # noqa: BLE001
+            return []
+
+    def _grid_lines(self):
+        doc = self.plane_doc
+        if not doc or not (doc.get("plane") or {}):
+            return []
+        try:
+            from dog_diving.pool import calib as _calib
+            from dog_diving.pool import plane as _plane
+            block = doc["plane"]
+            length = float(block.get("length_ft") or _plane.DEFAULT_LENGTH_FT)
+            width = float(block.get("width_ft") or _plane.DEFAULT_WIDTH_FT)
+            lens = _calib.lens_from_document(doc)
+            spec = _plane.grid_spec(doc["homography"], length_ft=length, width_ft=width, lens=lens)
+        except Exception:  # noqa: BLE001
+            return []
+        return [(tuple(ln["a"]), tuple(ln["b"]), bool(ln.get("major")))
+                for ln in spec.get("lines", [])]
+
+    def _judge_line(self):
+        """The judge reference as an image-space line at ``X = judge distance``.
+
+        Returns ``(a, b)`` image-px endpoints (across the pool width), or ``None``
+        when there is no judge, no plane, or the projection folds.
+        """
+        gt = self.gt
+        if not gt or not gt.get("judge_present") or gt.get("judge_in") is None:
+            return None
+        doc = self.plane_doc
+        if not doc or not (doc.get("plane") or {}):
+            return None
+        try:
+            import numpy as _np
+            from dog_diving.pool import calib as _calib
+            from dog_diving.pool import homography as _hom
+            from dog_diving.pool import lens as _lens
+            from dog_diving.pool import plane as _plane
+            block = doc["plane"]
+            width = float(block.get("width_ft") or _plane.DEFAULT_WIDTH_FT)
+            judge_ft = float(gt["judge_in"]) / 12.0
+            H = _np.asarray(doc["homography"], dtype=float).reshape(3, 3)
+            pts = _hom.apply_homography(H, [(judge_ft, 0.0), (judge_ft, width)])
+            try:
+                lens = _calib.lens_from_document(doc)
+            except Exception:  # noqa: BLE001 — a plane without a lens is still drawable
+                lens = None
+            if lens is not None:
+                pts = _lens.distort_points(pts, lens)
+            a = (float(pts[0][0]), float(pts[0][1]))
+            b = (float(pts[1][0]), float(pts[1][1]))
+            if not (_np.all(_np.isfinite(a)) and _np.all(_np.isfinite(b))):
+                return None
+            return a, b
+        except Exception:  # noqa: BLE001
+            return None
+
+    def _build_overlays(self):
         overlays = []
         if self.gt and self.gt.get("x_px") is not None:
-            overlays.append(("marker", (self.gt["x_px"], self.gt["y_px"], 7.0), "red"))
-        for i, (v, r) in enumerate(self.run_vars):
-            if not v.get():
+            overlays.append(("marker", (self.gt["x_px"], self.gt["y_px"], 2.2), "red"))
+        judge = self._judge_line()
+        if judge is not None:
+            a, b = judge
+            overlays.append(("segment", (a[0], a[1], b[0], b[1]), self.JUDGE_COLOUR))
+            overlays.append(("label", (a[0], a[1], f"judge {float(self.gt['judge_in']):.1f}in"),
+                             self.JUDGE_COLOUR))
+        if self.show_grid.get():
+            gl = self._grid_lines()
+            if gl:
+                overlays.append(("grid", gl, "#3a6ea5"))
+        for r, colour in self.runs:
+            if not self._run_visible(r):
                 continue
-            colour = ("cyan", "magenta", "lime", "orange", "yellow")[i % 5]
             sc = r["score"]
-            if sc.get("entry_px"):
-                overlays.append(("marker", (sc["entry_px"][0], sc["entry_px"][1], 5.0), colour))
-            curve = (sc.get("fit") or {}).get("curve")
-            if curve and len(curve) >= 2:
+            if self.show_det.get():
+                for px in self._selected_px_for(r):
+                    overlays.append(("dot", (px[0], px[1], 1.0), colour))
+            fit = sc.get("fit") or {}
+            curve = fit.get("curve")
+            if curve and len(curve) >= 2 and fit.get("curve_space", "px") == "px":
                 overlays.append(("curve", curve, colour))
-        self.view.set_overlays(overlays)
+            ep = sc.get("entry_px")
+            if ep:
+                overlays.append(("marker", (ep[0], ep[1], 1.5), colour))
+                if self.show_vec.get() and self.gt and self.gt.get("x_px") is not None:
+                    overlays.append(("segment", (self.gt["x_px"], self.gt["y_px"], ep[0], ep[1]), colour))
+                    px = r.get("pixel_error_px")
+                    if px is not None:
+                        overlays.append(("label", (ep[0], ep[1], f"Δ{px:.1f}px"), colour))
+        return overlays
+
+    def _on_opacity(self, _v=None):
+        self.view.element_opacity = self.element_opacity.get() / 100.0
+        self.view.grid_opacity = self.grid_opacity.get() / 100.0
+        self.view.set_overlays(self._build_overlays())
+
+    def _redraw(self):
+        self.view.element_opacity = self.element_opacity.get() / 100.0
+        self.view.grid_opacity = self.grid_opacity.get() / 100.0
+        self.view.set_overlays(self._build_overlays())
 
     def _on_frame(self):
         super()._on_frame()
         self._redraw()
 
 
-class PlaneDrawDialog(tk.Toplevel):
-    """Click the four pool corners (00, 10, 11, 01) to re-fit the plane homography."""
+class CalibratePane(ttk.Frame):
+    """The parent's Calibrate tab, plus a clip picker (it calibrates one clip at a time)."""
 
-    _ORDER = ("00", "10", "11", "01")
-    _COLOURS = ("#ff5555", "#ffaa00", "#55ff55", "#55aaff")
-
-    def __init__(self, app, clip_id):
-        super().__init__(app.root)
+    def __init__(self, parent, app):
+        super().__init__(parent)
         self.app = app
-        self.clip_id = clip_id
-        self.title(f"Re-draw plane — {clip_id}")
-        self.corners: dict[str, list[float]] = {}
-        self.idx = 0
+        bar = ttk.Frame(self)
+        bar.pack(fill="x", padx=8, pady=4)
+        ttk.Label(bar, text="Clip:").pack(side="left")
+        self.clip_var = tk.StringVar()
+        self.clip_box = ttk.Combobox(bar, textvariable=self.clip_var, width=44, state="readonly")
+        self.clip_box.pack(side="left", padx=4)
+        ttk.Button(bar, text="Load for calibration", command=self._load).pack(side="left", padx=4)
+        self.cal = CalibrateTab(self, on_plane_saved=self._on_plane_saved)
+        self.cal.pack(fill="both", expand=True)
 
-        cdir = app.clip_dir(clip_id)
+    def refresh(self):
+        self.clip_box["values"] = self.app.list_clips()
+
+    def _load(self):
+        cid = self.clip_var.get()
+        if not cid:
+            return
+        cdir = self.app.clip_dir(cid)
         man = manifest_mod.read_manifest(cdir)
-        self.plane_p = cdir / "plane.json"
-        if not self.plane_p.is_file():
-            messagebox.showerror("re-draw", "no plane.json — assign a plane first", parent=self)
-            self.destroy()
+        clip = manifest_mod.clip_video_path(man, cdir)
+        if clip is None:
+            messagebox.showerror("calibrate", "clip file not found")
             return
-        self.existing = json.loads(self.plane_p.read_text(encoding="utf-8"))
-        frame = _load_frame(cdir, man, 0)
-        if frame is None:
-            messagebox.showerror("re-draw", "could not read a frame from the clip", parent=self)
-            self.destroy()
-            return
+        self.cal.load_clip(clip)
 
-        self.inst = ttk.Label(self, text=f"click corner {self._ORDER[0]}")
-        self.inst.pack(fill="x", padx=8, pady=4)
-        self.canvas = tk.Canvas(self, background="black")
-        self.canvas.pack(fill="both", expand=True, padx=8, pady=4)
-        self.view = FrameView(self.canvas, max_w=900, max_h=560)
-        self.view.bind_zoom()
-        self.view.on_click(self._on_click)
-        self.view.show(frame)
-
-        ov = []
-        for k, col in zip(self._ORDER, self._COLOURS):
-            c = (self.existing.get("plane", {}).get("corners") or {}).get(k)
-            if c:
-                ov.append(("marker", (c[0], c[1], 5.0), col))
-        self.view.set_overlays(ov)
-
-    def _on_click(self, ix, iy):
-        if self.idx >= len(self._ORDER):
-            return
-        k = self._ORDER[self.idx]
-        self.corners[k] = [ix, iy]
-        self.idx += 1
-        self.view.set_overlays([
-            ("marker", (v[0], v[1], 6.0), self._COLOURS[self._ORDER.index(kk)])
-            for kk, v in self.corners.items()])
-        if self.idx < len(self._ORDER):
-            self.inst.config(text=f"click corner {self._ORDER[self.idx]}")
-        else:
-            self._finish()
-
-    def _finish(self):
-        try:
-            redrawn = plane_draw_mod.redraw_plane(self.existing, self.corners)
-        except Exception as e:  # noqa: BLE001
-            messagebox.showerror("re-draw", str(e), parent=self)
-            return
-        manifest_mod.write_json(self.plane_p, redrawn)
-        cdir = self.app.clip_dir(self.clip_id)
-        gt_p = cdir / "ground_truth.json"
-        if gt_p.is_file():
-            try:
-                gt = json.loads(gt_p.read_text(encoding="utf-8"))
-                gt2 = gt_mod.set_ground_truth(redrawn, frame=int(gt["frame"]),
-                                               x_px=float(gt["x_px"]), y_px=float(gt["y_px"]),
-                                               judge_in=gt.get("judge_in"))
-                gt_mod.write_ground_truth(gt2, cdir)
-            except Exception:  # noqa: BLE001
-                pass  # GT stays; it will be flagged stale on load
+    def _on_plane_saved(self, setup_id, path):
+        # A new plane landed in the saved-planes folder: refresh the Analyze dropdown.
         self.app.on_clips_changed()
-        self.destroy()
 
 
 def _fmt(v):
@@ -625,13 +1174,14 @@ class App:
         self.nb = ttk.Notebook(root)
         self.nb.pack(fill="both", expand=True)
         self.ingest = IngestPane(self.nb, self)
+        self.calibrate = CalibratePane(self.nb, self)
         self.analyze = AnalyzePane(self.nb, self)
-        self.gt = GroundTruthPane(self.nb, self)
         self.run = RunSuitePane(self.nb, self)
         self.results = ResultsPane(self.nb, self)
         self.compare = ComparePane(self.nb, self)
-        for name, pane in (("Ingest", self.ingest), ("Analyze", self.analyze),
-                           ("Ground truth", self.gt), ("Run suite", self.run),
+        for name, pane in (("Select clips", self.ingest), ("Calibrate", self.calibrate),
+                           ("Analyze", self.analyze),
+                           ("Run suite", self.run),
                            ("Results", self.results), ("Compare", self.compare)):
             self.nb.add(pane, text=name)
         self.on_clips_changed()
@@ -644,8 +1194,8 @@ class App:
                       if p.is_dir() and (p / "manifest.json").is_file())
 
     def on_clips_changed(self):
+        self.calibrate.refresh()
         self.analyze.refresh()
-        self.gt.refresh_clips()
         self.compare.refresh_clips()
         self.run.refresh()
         self.results.refresh()

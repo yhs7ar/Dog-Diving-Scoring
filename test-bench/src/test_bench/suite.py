@@ -17,10 +17,12 @@ from .scoring import registry
 
 
 def grid_configs(n_points_values: Sequence[Any], selection_values: Sequence[str],
-                 method: str = "arc_2d") -> list[dict[str, Any]]:
-    """The cross-product of the two free axes, pinned to one method."""
-    return [{"method": method, "n_points": n, "selection": s}
-            for n in n_points_values for s in selection_values]
+                 methods: Sequence[str] = ("arc_2d",)) -> list[dict[str, Any]]:
+    """The cross-product of the axes (method x n_points x selection)."""
+    if isinstance(methods, str):
+        methods = (methods,)
+    return [{"method": m, "n_points": n, "selection": s}
+            for m in methods for n in n_points_values for s in selection_values]
 
 
 def _errors_for(clip: dict, cfg: dict) -> dict[str, Any]:
@@ -65,12 +67,14 @@ def clip_provenance(manifest: dict, plane_doc: dict | None, gt: dict | None) -> 
 
     ROADMAP §6.4/§9.3: re-place GT, re-detect with a different model, or re-assign
     the plane all change one of these three, so a stale ``results/*.json`` is
-    flagged instead of silently shown.
+    flagged instead of silently shown.  Deselecting a detection (Review) changes
+    ``excluded_frames`` and must invalidate the run the same way.
     """
     return {
         "model_sha": (manifest.get("detections") or {}).get("model_sha"),
         "plane_setup_id": (plane_doc or {}).get("setup_id"),
         "gt_updated": (gt or {}).get("updated"),
+        "excluded_frames": (manifest.get("excluded_frames") or []),
     }
 
 
