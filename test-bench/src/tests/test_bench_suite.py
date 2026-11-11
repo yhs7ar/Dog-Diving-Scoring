@@ -33,6 +33,18 @@ def test_pixel_score_judge_errors():
     assert e["pixel_error_px"] == pytest.approx(5.0)      # hypot(3, 4)
     assert e["score_error_in"] == pytest.approx(1.1)      # |99.1 - 98.0|
     assert e["judge_error_in"] == pytest.approx(1.5)      # |96.5 - 98.0|
+    assert e["accuracy_pct"] == pytest.approx(100.0 * (1.0 - 1.1 / 98.0))
+
+
+def test_score_accuracy_pct_clamps_and_nulls():
+    gt = {"gt_in": 98.0}
+    assert metrics.score_accuracy_pct({"distance_in": 98.0}, gt) == 100.0
+    assert metrics.score_accuracy_pct({"distance_in": 49.0}, gt) == 50.0
+    assert metrics.score_accuracy_pct({"distance_in": 0.0}, gt) == 0.0      # clamped
+    assert metrics.score_accuracy_pct({"distance_in": 196.0}, gt) == 0.0    # clamped
+    assert metrics.score_accuracy_pct({"distance_in": None}, gt) is None
+    assert metrics.score_accuracy_pct({"distance_in": 98.0}, {}) is None
+    assert metrics.score_accuracy_pct({"distance_in": 98.0}, {"gt_in": 0.0}) is None
 
 
 def test_judge_absent_is_null_and_still_comparable():
@@ -42,6 +54,7 @@ def test_judge_absent_is_null_and_still_comparable():
     assert e["pixel_error_px"] == 0.0
     assert e["score_error_in"] == 0.0
     assert e["judge_error_in"] is None
+    assert e["accuracy_pct"] == 100.0
 
 
 def test_mean_ignores_none():
@@ -90,8 +103,10 @@ def test_run_suite_dispatch_and_average(seg01):
     assert isinstance(run["pixel_error_px"], float)
     assert isinstance(run["score_error_in"], float)
     assert isinstance(run["judge_error_in"], float)
+    assert isinstance(run["accuracy_pct"], float)
     assert res["averages"]["per_method"]["arc_2d"]["pixel_error_px"] == pytest.approx(run["pixel_error_px"])
     assert res["averages"]["overall"]["judge_error_in"] == pytest.approx(run["judge_error_in"])
+    assert res["averages"]["overall"]["accuracy_pct"] == pytest.approx(run["accuracy_pct"])
 
 
 def test_run_suite_judge_absent_average(seg01):

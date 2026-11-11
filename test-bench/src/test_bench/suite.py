@@ -49,6 +49,7 @@ def run_suite(clips: Iterable[dict], configs: Sequence[dict]) -> dict[str, Any]:
             "pixel_error_px": metrics.mean(r["pixel_error_px"] for r in all_runs),
             "score_error_in": metrics.mean(r["score_error_in"] for r in all_runs),
             "judge_error_in": metrics.mean(metrics.judge_error_in(g) for g in judge_present_runs),
+            "accuracy_pct": metrics.mean(r["accuracy_pct"] for r in all_runs),
         },
         "per_method": {},
     }
@@ -58,6 +59,7 @@ def run_suite(clips: Iterable[dict], configs: Sequence[dict]) -> dict[str, Any]:
             "pixel_error_px": metrics.mean(r["pixel_error_px"] for r in m_runs),
             "score_error_in": metrics.mean(r["score_error_in"] for r in m_runs),
             "judge_error_in": metrics.mean(r["judge_error_in"] for r in m_runs),
+            "accuracy_pct": metrics.mean(r["accuracy_pct"] for r in m_runs),
         }
     return {"rows": rows, "averages": averages}
 

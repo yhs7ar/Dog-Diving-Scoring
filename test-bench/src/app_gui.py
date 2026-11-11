@@ -797,10 +797,12 @@ class ResultsPane(ttk.Frame):
         self.app = app
         self.avg_lbl = ttk.Label(self, text="")
         self.avg_lbl.pack(fill="x", padx=8, pady=4)
-        cols = ("clip", "method", "n_points", "selection", "pixel_px", "score_in", "judge_in", "status")
+        cols = ("clip", "method", "n_points", "selection", "pixel_px", "score_in",
+                "judge_in", "accuracy_pct", "status")
         self.tree = ttk.Treeview(self, columns=cols, show="headings")
-        for c, w in zip(cols, (260, 70, 60, 90, 70, 70, 70, 90)):
-            self.tree.heading(c, text=c)
+        headings = {"accuracy_pct": "accuracy %"}
+        for c, w in zip(cols, (260, 70, 60, 90, 70, 70, 70, 70, 90)):
+            self.tree.heading(c, text=headings.get(c, c))
             self.tree.column(c, width=w, anchor="center")
         self.tree.pack(fill="both", expand=True, padx=8, pady=4)
         self.tree.bind("<<TreeviewSelect>>", lambda e: self._on_select())
@@ -823,10 +825,12 @@ class ResultsPane(ttk.Frame):
                 self.tree.insert("", "end", values=(
                     row["clip_id"], r["method"], r.get("n_points"), r.get("selection"),
                     _fmt(r.get("pixel_error_px")), _fmt(r.get("score_error_in")),
-                    _fmt(r.get("judge_error_in")), status))
+                    _fmt(r.get("judge_error_in")), _fmt_pct(r.get("accuracy_pct")),
+                    status))
         av = doc.get("averages", {}).get("overall", {})
-        self.avg_lbl.config(text="averages — pixel: %s px   score: %s in   judge: %s in" % (
-            _fmt(av.get("pixel_error_px")), _fmt(av.get("score_error_in")), _fmt(av.get("judge_error_in"))))
+        self.avg_lbl.config(text="averages — pixel: %s px   score: %s in   judge: %s in   accuracy: %s" % (
+            _fmt(av.get("pixel_error_px")), _fmt(av.get("score_error_in")),
+            _fmt(av.get("judge_error_in")), _fmt_pct(av.get("accuracy_pct"))))
 
     def _clip_stale(self, cid, recorded):
         cdir = self.app.clip_dir(cid)
@@ -1160,6 +1164,10 @@ class CalibratePane(ttk.Frame):
 
 def _fmt(v):
     return "" if v is None else f"{v:.2f}"
+
+
+def _fmt_pct(v):
+    return "" if v is None else f"{v:.1f}%"
 
 
 class App:

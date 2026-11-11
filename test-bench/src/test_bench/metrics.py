@@ -40,12 +40,27 @@ def judge_error_in(gt: dict[str, Any]) -> float | None:
     return float(abs(gt["judge_in"] - gt["gt_in"]))
 
 
+def score_accuracy_pct(score: dict[str, Any], gt: dict[str, Any]) -> float | None:
+    """The score's distance accuracy as a percentage of ground truth.
+
+    ``100`` = exact; declines toward 0 as ``|score − GT|`` grows, clamped to
+    ``[0, 100]``.  ``None`` when the score or GT distance is missing (or GT is
+    non-positive, so a percentage is undefined).
+    """
+    err = score_error_in(score, gt)
+    gt_in = gt.get("gt_in")
+    if err is None or gt_in is None or float(gt_in) <= 0:
+        return None
+    return float(max(0.0, min(100.0, 100.0 * (1.0 - err / float(gt_in)))))
+
+
 def compute_errors(score: dict[str, Any], gt: dict[str, Any]) -> dict[str, float | None]:
-    """All three errors for one (clip, method-config) cell."""
+    """All error metrics for one (clip, method-config) cell."""
     return {
         "pixel_error_px": pixel_error_px(score, gt),
         "score_error_in": score_error_in(score, gt),
         "judge_error_in": judge_error_in(gt),
+        "accuracy_pct": score_accuracy_pct(score, gt),
     }
 
 
