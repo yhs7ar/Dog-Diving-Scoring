@@ -3,8 +3,8 @@ zed_recorder.py — Dual ZED X Rolling SVO2 & Clip Buffer (rig-proven config)
 
 Capture standard (see scripts/dual_recording/WORKAROUNDS_AND_LIMITATIONS.md):
 
-  * Resolution: **SVGA (1200x720)** @ **30 FPS** — the only dual-camera config proven
-    on the Jetson Orin Nano (HD1080@30, VGA, and 15 FPS all FAIL on the rig).
+  * Resolution: **SVGA (1200x720)** @ **60 FPS** — the only dual-camera config proven
+    on the Jetson Orin Nano (HD1080@60, VGA, and 30 FPS all FAIL on the rig).
   * Compression: **LOSSLESS** only. Orin Nano has NO NVENC, so H264/H265 crash the
     daemon / corrupt SVO2.
   * Depth: captured **NONE** and computed off-line from the recorded SVO2.

@@ -1,0 +1,17 @@
+{
+  "width": 1920,
+  "height": 1080,
+  "fps": 30.0,
+  "codec": "h264",
+  "n_frames": 240,
+  "vfr": false,
+  "declared_vs_decoded": [
+    240,
+    240
+  ],
+  "duration_s": 8.0,
+  "backend": "cv2",
+  "probe_warnings": [
+    "ffprobe unavailable \u2014 metadata from cv2 only (no VFR detection)"
+  ]
+}

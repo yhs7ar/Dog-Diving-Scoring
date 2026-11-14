@@ -9,7 +9,9 @@
     270,
     270
   ],
-  "duration_s": 9.002667,
-  "backend": "ffprobe",
-  "probe_warnings": []
+  "duration_s": 9.0,
+  "backend": "cv2",
+  "probe_warnings": [
+    "ffprobe unavailable \u2014 metadata from cv2 only (no VFR detection)"
+  ]
 }

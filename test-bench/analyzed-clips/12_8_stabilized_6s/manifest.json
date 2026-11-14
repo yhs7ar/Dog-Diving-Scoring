@@ -2,7 +2,7 @@
   "schema": "test_bench.manifest/1",
   "clip_id": "12_8_stabilized_6s",
   "source": {
-    "original_path": "C:\\Users\\harri\\Documents\\GitHub\\Dog-Diving-Scoring\\Scored dog diving videos\\12_8_stabilized_6s.mp4",
+    "original_path": "/home/dogdiving/Documents/Captstone-Repo/Scored dog diving videos/12_8_stabilized_6s.mp4",
     "sha256": "e13a76d0a8f6450a25d311eb9f850f82a58b19559d339333f02768cfe9c66ff7",
     "kind": "mp4",
     "filename": "12_8_stabilized_6s.mp4"
@@ -18,19 +18,39 @@
       180,
       180
     ],
-    "duration_s": 6.016,
-    "backend": "ffprobe",
-    "probe_warnings": []
+    "duration_s": 6.0,
+    "backend": "cv2",
+    "probe_warnings": [
+      "ffprobe unavailable \u2014 metadata from cv2 only (no VFR detection)"
+    ]
   },
   "plane": {
-    "setup_id": null,
-    "present": false
+    "setup_id": "12_8_2026-11-13_10-27-12_2026-11-13_10-27-52.pool",
+    "present": true
   },
-  "detections": {},
-  "trajectory": {},
+  "detections": {
+    "path": "detections.json",
+    "model_sha": "bdb7688775ee39201d4a77ef0041c7c3e9eb9202f7a5df287a11c98e80ef82e4",
+    "n_detections": 21,
+    "n_accepted": 21
+  },
+  "trajectory": {
+    "path": "trajectory.json",
+    "n_points": 14
+  },
   "ground_truth": {
     "path": "ground_truth.json",
-    "judge_present": false
+    "judge_present": true,
+    "gt_in": 139.6535203753062
   },
-  "results": []
+  "results": [],
+  "excluded_frames": [
+    58,
+    163,
+    165,
+    166,
+    167,
+    169,
+    170
+  ]
 }

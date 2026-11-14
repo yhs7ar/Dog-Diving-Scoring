@@ -2,7 +2,7 @@
   "schema": "test_bench.manifest/1",
   "clip_id": "19_7_stabilized",
   "source": {
-    "original_path": "C:\\Users\\harri\\Documents\\GitHub\\Dog-Diving-Scoring\\Scored dog diving videos\\19_7_stabilized.mp4",
+    "original_path": "/home/dogdiving/Documents/Captstone-Repo/Scored dog diving videos/19_7_stabilized.mp4",
     "sha256": "9a24a547b8551f151fcad0efd3516f2e28f1c02f7fae7b169e1141d575c04cec",
     "kind": "mp4",
     "filename": "19_7_stabilized.mp4"
@@ -18,9 +18,11 @@
       150,
       150
     ],
-    "duration_s": 5.013333,
-    "backend": "ffprobe",
-    "probe_warnings": []
+    "duration_s": 5.0,
+    "backend": "cv2",
+    "probe_warnings": [
+      "ffprobe unavailable \u2014 metadata from cv2 only (no VFR detection)"
+    ]
   },
   "plane": {
     "setup_id": null,

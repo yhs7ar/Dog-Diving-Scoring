@@ -63,12 +63,16 @@ class FrameView:
         return max(self.fit_zoom, min(MAX_ZOOM, float(z)))
 
     def _update_scrollregion(self) -> None:
+        if self._src is None:
+            return
         h, w = self._src.shape[:2]
         self.canvas.configure(scrollregion=(0, 0, w * self.zoom, h * self.zoom))
 
     # -- display -----------------------------------------------------------
     def show(self, bgr, *, reset_view: bool = False) -> None:
         self._src = bgr[:, :, ::-1]          # BGR -> RGB
+        if self._src is None:
+            return
         h, w = self._src.shape[:2]
         self.fit_zoom = min(1.0, self.max_w / w, self.max_h / h)
         if reset_view or not self._shown:
@@ -81,6 +85,8 @@ class FrameView:
 
     def _render(self) -> None:
         z = self.zoom
+        if self._src is None:
+            return
         H, W = self._src.shape[:2]
         cw, ch = self._viewport()
         self.canvas.delete("all")
@@ -111,6 +117,8 @@ class FrameView:
         iy = self.canvas.canvasy(anchor[1]) / self.zoom
         self.zoom = self._clamp_zoom(z)
         self._update_scrollregion()
+        if self._src is None:
+                    return
         H, W = self._src.shape[:2]
         self.canvas.xview_moveto(
             min(1.0, max(0.0, (ix * self.zoom - anchor[0]) / max(1.0, W * self.zoom))))
@@ -140,6 +148,8 @@ class FrameView:
         if self.cursor_var is None or self._src is None:
             return
         ix, iy = self.to_image(event.x, event.y)
+        if self._src is None:
+            return
         h, w = self._src.shape[:2]
         inside = 0 <= ix < w and 0 <= iy < h
         self.cursor_var.set(f"x={ix:7.2f}  y={iy:7.2f} px" + ("" if inside else "  (outside)"))
@@ -199,6 +209,8 @@ class FrameView:
         if self._click_cb is None or self._src is None:
             return
         ix, iy = self.to_image(event.x, event.y)
+        if self._src is None:
+            return
         h, w = self._src.shape[:2]
         if 0 <= ix < w and 0 <= iy < h:
             self._click_cb(float(ix), float(iy))

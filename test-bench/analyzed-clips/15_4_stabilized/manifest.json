@@ -1,0 +1,38 @@
+{
+  "schema": "test_bench.manifest/1",
+  "clip_id": "15_4_stabilized",
+  "source": {
+    "original_path": "/home/dogdiving/Documents/Captstone-Repo/Scored dog diving videos/15_4_stabilized.mp4",
+    "sha256": "5c58c0d4f92c74927eda67b1cbb11d1b2dbb9e8f243efa5362f73dfa997bed8a",
+    "kind": "mp4",
+    "filename": "15_4_stabilized.mp4"
+  },
+  "meta": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30.0,
+    "codec": "h264",
+    "n_frames": 240,
+    "vfr": false,
+    "declared_vs_decoded": [
+      240,
+      240
+    ],
+    "duration_s": 8.0,
+    "backend": "cv2",
+    "probe_warnings": [
+      "ffprobe unavailable \u2014 metadata from cv2 only (no VFR detection)"
+    ]
+  },
+  "plane": {
+    "setup_id": null,
+    "present": false
+  },
+  "detections": {},
+  "trajectory": {},
+  "ground_truth": {
+    "path": "ground_truth.json",
+    "judge_present": false
+  },
+  "results": []
+}

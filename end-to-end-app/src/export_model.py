@@ -11,7 +11,7 @@ from dog_diving.detect import export_engine
 
 def export() -> None:
     print(f"Exporting {MODEL_PATH} to TensorRT engine...")
-    engine = export_engine(MODEL_PATH)
+    engine = export_engine(MODEL_PATH, imgsz=640)
     print(f"Export complete: {engine}")
 
 
