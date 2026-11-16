@@ -40,6 +40,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 import sys
+import os
 
 # Safe ZED SDK import
 try:
