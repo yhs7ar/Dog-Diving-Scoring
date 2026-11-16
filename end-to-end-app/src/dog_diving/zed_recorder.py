@@ -417,7 +417,13 @@ class DualZEDXLiveBuffer(ZEDRecorder):
 
             self.active_slot = 1 if self.active_slot == 0 else 0
 
-    def _commit_jump_data(self, slot: int, prefix: str) -> None:
+    def _commit_jump_data(
+        self,
+        slot: int,
+        prefix: str,
+        frames1: list | None = None,
+        frames2: list | None = None,
+    ) -> None:
         c1_src = self.temp_dir / f"chunk_{slot}_cam1.svo2"
         c2_src = self.temp_dir / f"chunk_{slot}_cam2.svo2"
         dst_c1 = self.output_dir / f"{prefix}_cam1.svo2"
@@ -430,9 +436,11 @@ class DualZEDXLiveBuffer(ZEDRecorder):
 
         # Use the passed snapshot or fallback to ring
         if frames1 is None:
-            frames1 = self._pending_frames if self._pending_frames else list(self._ring)
+            with self.lock:
+                frames1 = list(self._pending_frames) if self._pending_frames else list(self._ring)
         if frames2 is None:
-            frames2 = self._pending_frames2 if self._pending_frames2 else list(self._ring2)
+            with self.lock:
+                frames2 = list(self._pending_frames2) if self._pending_frames2 else list(self._ring2)
 
         right_path = self.clips_dir / clip_name(prefix, CLIP_CAM1_SUFFIX)
         left_path = self.clips_dir / clip_name(prefix, CLIP_CAM2_SUFFIX)
@@ -456,11 +464,10 @@ class DualZEDXLiveBuffer(ZEDRecorder):
             return None
 
         with self.lock:
-            # Snapshot both rings AT the trigger so the clips are the last N seconds ending
-            # now — not whatever the next completed chunk happens to contain.
             self._pending_frames = list(self._ring)
             self._pending_frames2 = list(self._ring2)
             self.save_prefix = prefix
+            self.last_saved_mp4 = None
             self.save_requested = True
 
         for _ in range(60):
