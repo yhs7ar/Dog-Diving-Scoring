@@ -39,6 +39,8 @@ from pathlib import Path
 
 import cv2
 import numpy as np
+import sys
+import os
 
 # Safe ZED SDK import
 try:
@@ -72,18 +74,41 @@ CLIP_CAM1_SUFFIX = "right"   # cam1's LEFT view
 CLIP_CAM2_SUFFIX = "left"    # cam2's LEFT view
 
 
+def elevate_to_realtime(cpu_cores=(4, 5), priority=80):
+    """Pins calling thread to dedicated cores and sets Linux real-time FIFO scheduling."""
+    if sys.platform != "linux":
+        return
+    # Pin to dedicated CPU cores (away from desktop on Cores 0-1)
+    try:
+        os.sched_setaffinity(0, set(cpu_cores))
+    except Exception as e:
+        print(f"[ZED Priority] Failed to pin to cores {cpu_cores}: {e}")
+
+    # Elevate to SCHED_FIFO real-time scheduler
+    try:
+        param = os.sched_param(priority)
+        os.sched_setscheduler(0, os.SCHED_FIFO, param)
+        print(f"[ZED Priority] Capture thread elevated to SCHED_FIFO (prio={priority}) on cores {cpu_cores}")
+    except PermissionError:
+        print("[ZED Priority] Warning: Real-time permission denied. Configure /etc/security/limits.d/ or run with high priority.")
+    except Exception as e:
+        print(f"[ZED Priority] Scheduler elevation failed: {e}")
+
 def clip_name(prefix: str, camera: str) -> str:
     """Pipeline-clip filename for one camera: ``{prefix}_{camera}.mp4``."""
     return f"{prefix}_{camera}.mp4"
 
 
 def _write_mp4(path: Path, frames: list, fps: int) -> Path:
-    """Write ``frames`` (BGR numpy arrays) to ``path`` as an mp4v-encoded MP4."""
+    """Write ``frames`` (BGRA or BGR numpy arrays) to ``path`` as an mp4v-encoded MP4."""
     if frames:
         h, w = frames[0].shape[:2]
         fourcc = cv2.VideoWriter_fourcc(*"mp4v")
         writer = cv2.VideoWriter(str(path), fourcc, fps, (w, h))
         for f in frames:
+            # Convert color here at export time, off the real-time capture path
+            if f.shape[2] == 4:
+                f = cv2.cvtColor(f, cv2.COLOR_BGRA2BGR)
             writer.write(f)
         writer.release()
     return path
@@ -218,7 +243,10 @@ class DualZEDXLiveBuffer(ZEDRecorder):
     ) -> None:
         self.output_dir = Path(output_dir)
         self.clips_dir = Path(clips_dir)
-        self.temp_dir = self.output_dir / "temp_rolling_buffer"
+        if sys.platform == "linux" and Path("/dev/shm").is_dir():
+            self.temp_dir = Path("/dev/shm/zed_temp_rolling_buffer")
+        else:
+            self.temp_dir = self.output_dir / "temp_rolling_buffer"
 
         self.chunk_seconds = chunk_seconds
         self.fps = fps
@@ -323,12 +351,14 @@ class DualZEDXLiveBuffer(ZEDRecorder):
             return False
 
     def _record_worker(self) -> None:
+        # Elevate this thread to real-time priority on CPU Cores 4 & 5
+        elevate_to_realtime(cpu_cores=(4, 5), priority=80)
+
         runtime_p = sl.RuntimeParameters()
         img1 = sl.Mat()
         img2 = sl.Mat()
 
         while self.running:
-            # Backpressure: yield to scoring compute while suspended/overloaded.
             while self.running and not self._governor_allows():
                 time.sleep(0.05)
             if not self.running:
@@ -346,6 +376,7 @@ class DualZEDXLiveBuffer(ZEDRecorder):
                 if not self._governor_allows():
                     time.sleep(0.05)
                     continue
+
                 if (
                     self.zed1.grab(runtime_p) == sl.ERROR_CODE.SUCCESS
                     and self.zed2.grab(runtime_p) == sl.ERROR_CODE.SUCCESS
@@ -353,21 +384,46 @@ class DualZEDXLiveBuffer(ZEDRecorder):
                     frame_count += 1
                     self.zed1.retrieve_image(img1, sl.VIEW.LEFT)
                     self.zed2.retrieve_image(img2, sl.VIEW.LEFT)
+
+                    # FAST COPY of raw BGRA buffers.
+                    # DO NOT do cv2.cvtColor in this real-time loop!
+                    raw1 = img1.get_data().copy()
+                    raw2 = img2.get_data().copy()
+
                     with self.lock:
-                        self._ring.append(cv2.cvtColor(img1.get_data(), cv2.COLOR_BGRA2BGR))
-                        self._ring2.append(cv2.cvtColor(img2.get_data(), cv2.COLOR_BGRA2BGR))
+                        self._ring.append(raw1)
+                        self._ring2.append(raw2)
 
             self.zed1.disable_recording()
             self.zed2.disable_recording()
 
+            # Check if save was requested and offload to a background thread
             with self.lock:
                 if self.save_requested:
-                    self._commit_jump_data(slot, self.save_prefix)
+                    prefix = self.save_prefix
+                    slot_to_commit = slot
+                    # Snapshot current frames
+                    frames1 = list(self._pending_frames) if self._pending_frames else list(self._ring)
+                    frames2 = list(self._pending_frames2) if self._pending_frames2 else list(self._ring2)
                     self.save_requested = False
+
+                    # Run file copy and MP4 encoding ASYNCHRONOUSLY
+                    # so this capture thread never stops grabbing!
+                    threading.Thread(
+                        target=self._commit_jump_data,
+                        args=(slot_to_commit, prefix, frames1, frames2),
+                        daemon=True
+                    ).start()
 
             self.active_slot = 1 if self.active_slot == 0 else 0
 
-    def _commit_jump_data(self, slot: int, prefix: str) -> None:
+    def _commit_jump_data(
+        self,
+        slot: int,
+        prefix: str,
+        frames1: list | None = None,
+        frames2: list | None = None,
+    ) -> None:
         c1_src = self.temp_dir / f"chunk_{slot}_cam1.svo2"
         c2_src = self.temp_dir / f"chunk_{slot}_cam2.svo2"
         dst_c1 = self.output_dir / f"{prefix}_cam1.svo2"
@@ -378,22 +434,25 @@ class DualZEDXLiveBuffer(ZEDRecorder):
         if c2_src.exists():
             shutil.copy2(c2_src, dst_c2)
 
-        # The pipeline clips come from the trigger-time ring snapshots — the last N
-        # seconds ending at the request, independent of which SVO2 chunk is current.
-        # One clip per camera (step 2c): cam1 -> "{prefix}_right.mp4", cam2 -> "{prefix}_left.mp4".
-        frames1 = self._pending_frames if self._pending_frames else list(self._ring)
-        frames2 = self._pending_frames2 if self._pending_frames2 else list(self._ring2)
+        # Use the passed snapshot or fallback to ring
+        if frames1 is None:
+            with self.lock:
+                frames1 = list(self._pending_frames) if self._pending_frames else list(self._ring)
+        if frames2 is None:
+            with self.lock:
+                frames2 = list(self._pending_frames2) if self._pending_frames2 else list(self._ring2)
 
         right_path = self.clips_dir / clip_name(prefix, CLIP_CAM1_SUFFIX)
         left_path = self.clips_dir / clip_name(prefix, CLIP_CAM2_SUFFIX)
         _write_mp4(right_path, frames1, self.fps)
         _write_mp4(left_path, frames2, self.fps)
 
-        self.last_saved_mp4 = right_path
-        self.last_saved_clips = {
-            CLIP_CAM1_SUFFIX: right_path,
-            CLIP_CAM2_SUFFIX: left_path,
-        }
+        with self.lock:
+            self.last_saved_mp4 = right_path
+            self.last_saved_clips = {
+                CLIP_CAM1_SUFFIX: right_path,
+                CLIP_CAM2_SUFFIX: left_path,
+            }
         print(
             f"[ZED] Saved SVO2 pair & pipeline clips: "
             f"{right_path.name} (cam1) + {left_path.name} (cam2)"
@@ -405,11 +464,10 @@ class DualZEDXLiveBuffer(ZEDRecorder):
             return None
 
         with self.lock:
-            # Snapshot both rings AT the trigger so the clips are the last N seconds ending
-            # now — not whatever the next completed chunk happens to contain.
             self._pending_frames = list(self._ring)
             self._pending_frames2 = list(self._ring2)
             self.save_prefix = prefix
+            self.last_saved_mp4 = None
             self.save_requested = True
 
         for _ in range(60):
