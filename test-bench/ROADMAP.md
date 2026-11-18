@@ -320,6 +320,20 @@ Average accuracy = the **mean** of each metric over the clips included in the ru
 pixel and score averages but are excluded from the judge average — and are still
 fully comparable (auto vs GT), per the spec.
 
+> **The run-file `averages` above are mean-only.** The **Accuracy** tab
+> (`src/test_bench/accuracy.py` + `AccuracyPane` in `src/app_gui.py`) reports the
+> proposal's full distance-accuracy set on the same runs, read-only — **median** and
+> **mean** score error in inches **and percent**, the share of jumps within
+> **±2 / ±4 / ±6 in**, judge-vs-GT error in inches **and percent**, and
+> **inches-per-pixel** (nominal, from the plane's distance marks, and local at the
+> scored entry point via the homography). Percent error is `err/GT × 100` — *not*
+> `metrics.score_accuracy_pct` (`100·(1 − err/GT)`), which reads ~95 % on a 120 in
+> jump even at ±6 in and is therefore not reported by the tab. The plan of record is
+> `ACCURACY_TAB_PLAN.md`; the step-by-step build log is `ACCURACY_TAB_PROGRESS.md`.
+> Note: the ~6.45 in figure in the plan's smoke checklist is the **all-configs** mean
+> (6.4485 in over 17 cells) — no single per-config cell equals it (per-config means
+> range 2.04 → 8.38 in across n_points values).
+
 ---
 
 ## 6. Workflows

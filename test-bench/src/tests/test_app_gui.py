@@ -40,8 +40,9 @@ def root():
 
 def test_app_constructs_headless(root):
     app = app_gui.App(root)
-    assert len(app.nb.tabs()) == 6
+    assert len(app.nb.tabs()) == 7
     assert "Calibrate" in [app.nb.tab(t, "text") for t in app.nb.tabs()]
+    assert "Accuracy" in [app.nb.tab(t, "text") for t in app.nb.tabs()]
     tabs = app.nb.tabs()
     assert app.nb.tab(tabs[0], "text") == "Select clips"
     app.on_clips_changed()          # zero-clip refresh must not crash

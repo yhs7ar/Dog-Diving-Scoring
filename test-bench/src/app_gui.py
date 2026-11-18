@@ -30,6 +30,7 @@ from test_bench import ingest as ingest_mod         # noqa: E402
 from test_bench import manifest as manifest_mod     # noqa: E402
 from test_bench import suite as suite_mod           # noqa: E402
 from test_bench import analyze as analyze_mod       # noqa: E402
+from test_bench import accuracy as accuracy_mod     # noqa: E402
 from test_bench.frame_view import ZOOM_STEPS, FrameView  # noqa: E402
 from dog_diving import trajectory as trajectory_mod  # noqa: E402
 from dog_diving.config import MODEL_PATH  # noqa: E402
@@ -1170,6 +1171,219 @@ def _fmt_pct(v):
     return "" if v is None else f"{v:.1f}%"
 
 
+class AccuracyPane(ttk.Frame):
+    """Read-only, proposal-facing accuracy metrics over the active run's results.
+
+    Selects a run JSON + one method config, then tabulates each selected clip's
+    nominal / local in-per-pixel, score error (in and %), judge error (in and %),
+    and the ±2 / ±4 / ±6 in pass marks, with a mean/median summary footer and a
+    stale banner when the run's recorded provenance no longer matches the clip's
+    current inputs.  Never writes results.
+    """
+
+    COLS = ("clip", "nominal_px", "local_px", "score_in", "score_pct",
+            "judge_in", "judge_pct", "w2", "w4", "w6")
+
+    def __init__(self, parent, app):
+        super().__init__(parent)
+        self.app = app
+        self.doc = None
+        self._configs: list = []          # doc["config"]["methods"] entries
+        self._run_paths: dict = {}        # label -> results/*.json path
+
+        bar = ttk.Frame(self)
+        bar.pack(fill="x", padx=8, pady=4)
+        ttk.Label(bar, text="Run:").pack(side="left")
+        self.run_var = tk.StringVar()
+        self.run_box = ttk.Combobox(bar, textvariable=self.run_var, width=30, state="readonly")
+        self.run_box.pack(side="left", padx=4)
+        self.run_box.bind("<<ComboboxSelected>>", lambda e: self._load_run())
+        ttk.Label(bar, text="Method config:").pack(side="left", padx=(12, 0))
+        self.cfg_var = tk.StringVar()
+        self.cfg_box = ttk.Combobox(bar, textvariable=self.cfg_var, width=38, state="readonly")
+        self.cfg_box.pack(side="left", padx=4)
+        self.cfg_box.bind("<<ComboboxSelected>>", lambda e: self._render())
+
+        body = ttk.Frame(self)
+        body.pack(fill="both", expand=True, padx=8, pady=4)
+        left = ttk.Frame(body)
+        left.pack(side="left", fill="y")
+        ttk.Label(left, text="Clips (empty = all):").pack(anchor="w")
+        self.clip_list = tk.Listbox(left, selectmode="extended", exportselection=False,
+                                    width=28, height=10)
+        self.clip_list.pack(fill="y", expand=True, padx=(0, 6))
+        self.clip_list.bind("<<ListboxSelect>>", lambda e: self._on_clip_select())
+
+        self.tree = ttk.Treeview(body, columns=self.COLS, show="headings")
+        headings = {"nominal_px": "nominal in/px", "local_px": "local in/px @entry",
+                    "score_in": "score err (in)", "score_pct": "score err (%)",
+                    "judge_in": "judge err (in)", "judge_pct": "judge err (%)",
+                    "w2": "±2 in", "w4": "±4 in", "w6": "±6 in"}
+        widths = {"clip": 220, "nominal_px": 90, "local_px": 100, "score_in": 90,
+                  "score_pct": 90, "judge_in": 90, "judge_pct": 90,
+                  "w2": 55, "w4": 55, "w6": 55}
+        for c in self.COLS:
+            self.tree.heading(c, text=headings.get(c, c))
+            self.tree.column(c, width=widths.get(c, 100), anchor="center")
+        self.tree.column("clip", anchor="w")
+        self.tree.pack(side="left", fill="both", expand=True)
+
+        self.summary_lbl = ttk.Label(self, text="", anchor="w")
+        self.summary_lbl.pack(fill="x", padx=8, pady=2)
+        self.stale_lbl = ttk.Label(self, text="", foreground="#b00020", anchor="w")
+        self.res_lbl = ttk.Label(self, text="", foreground="#b05000", anchor="w")
+
+    # -- refresh ------------------------------------------------------------
+    def refresh(self):
+        rdir = self.app.root_dir / "results"
+        files = sorted(rdir.glob("*.json"), key=lambda p: p.stat().st_mtime) if rdir.is_dir() else []
+        self._run_paths = {}
+        for p in files:
+            label = p.stem.split(".", 1)[0] if "." in p.stem else p.stem
+            self._run_paths[label] = p
+        labels = list(self._run_paths)
+        self.run_box["values"] = labels
+        self.run_var.set(labels[-1] if labels else "")   # newest (mtime-sorted)
+        self._load_run()
+
+    def _load_run(self):
+        self.doc = None
+        self._configs = []
+        path = self._run_paths.get(self.run_var.get())
+        if path is None or not path.is_file():
+            self._clear()
+            return
+        try:
+            self.doc = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:  # noqa: BLE001
+            self.doc = None
+            self._clear()
+            return
+        self._configs = list((self.doc.get("config") or {}).get("methods") or [])
+        cfg_labels = [f"{c.get('method')} · n={c.get('n_points')} · {c.get('selection')}"
+                      for c in self._configs]
+        self.cfg_box["values"] = cfg_labels
+        self.cfg_var.set(cfg_labels[0] if cfg_labels else "")
+        self._populate_clips()
+        self._render()
+
+    def _populate_clips(self):
+        self._populating = True
+        try:
+            self.clip_list.delete(0, "end")
+            if not self.doc:
+                return
+            gt_indices = []
+            for i, row in enumerate(self.doc.get("rows") or []):
+                self.clip_list.insert("end", row.get("clip_id"))
+                if (row.get("gt") or {}).get("gt_in") is not None:
+                    gt_indices.append(i)
+            for i in gt_indices:
+                self.clip_list.selection_set(i)   # default: all clips with GT
+        finally:
+            self._populating = False
+
+    def _on_clip_select(self):
+        if getattr(self, "_populating", False):
+            return
+        self._render()
+
+    def _clear(self):
+        self.tree.delete(*self.tree.get_children())
+        self.clip_list.delete(0, "end")
+        self.cfg_box["values"] = []
+        self.cfg_var.set("")
+        self.summary_lbl.config(text="")
+        self.stale_lbl.pack_forget()
+        self.res_lbl.pack_forget()
+
+    def _render(self):
+        self.tree.delete(*self.tree.get_children())
+        self.summary_lbl.config(text="")
+        self.stale_lbl.pack_forget()
+        self.res_lbl.pack_forget()
+        if not self.doc or not self._configs:
+            return
+        idx = self.cfg_box.current()
+        method_cfg = self._configs[idx if idx >= 0 else 0]
+
+        sel = self.clip_list.curselection()
+        clip_ids = [self.clip_list.get(i) for i in sel] if sel else None
+
+        recorded = self.doc.get("provenance") or {}
+        rows = []
+        any_stale = False
+        res_mismatch = []
+        for row in self.doc.get("rows") or []:
+            r = dict(row)
+            cid = row.get("clip_id")
+            man = plane = gt_disk = None
+            try:
+                cdir = self.app.clip_dir(cid)
+                man = manifest_mod.read_manifest(cdir)
+                plane = manifest_mod.clip_plane(man)
+                gt_p = cdir / "ground_truth.json"
+                gt_disk = json.loads(gt_p.read_text(encoding="utf-8")) if gt_p.is_file() else None
+            except Exception:  # noqa: BLE001
+                man = plane = gt_disk = None
+            r["plane_doc"] = plane
+            if suite_mod.is_stale(recorded.get(cid), man, plane, gt_disk):
+                any_stale = True
+            psize = (plane or {}).get("image_size")
+            meta = (man or {}).get("meta") or {}
+            mw, mh = meta.get("width"), meta.get("height")
+            if (isinstance(psize, (list, tuple)) and len(psize) == 2
+                    and mw is not None and mh is not None
+                    and (int(psize[0]) != int(mw) or int(psize[1]) != int(mh))):
+                res_mismatch.append(cid)
+            rows.append(r)
+
+        res = accuracy_mod.aggregate(rows, method_cfg, clip_ids=clip_ids)
+
+        for clip in res["clips"]:
+            self.tree.insert("", "end", values=(
+                clip["clip_id"],
+                _fmt(clip.get("in_per_px_nominal")),
+                _fmt(clip.get("in_per_px_local")),
+                _fmt(clip.get("score_error_in")),
+                _fmt_pct(clip.get("score_error_pct")),
+                _fmt(clip.get("judge_error_in")),
+                _fmt_pct(clip.get("judge_error_pct")),
+                self._pass(clip, "within_2"),
+                self._pass(clip, "within_4"),
+                self._pass(clip, "within_6"),
+            ))
+
+        s = res["summary"]
+        bins = s.get("bins") or {}
+        self.summary_lbl.config(text=(
+            "n clips: %d   mean: %s in (%s)   median: %s in (%s)   "
+            "within ±2/±4/±6: %s / %s / %s   judge mean: %s in (%s, n=%d)" % (
+                s.get("n_clips", 0),
+                _fmt(s.get("mean_in")), _fmt_pct(s.get("mean_pct")),
+                _fmt(s.get("median_in")), _fmt_pct(s.get("median_pct")),
+                _fmt_pct(bins.get(2, {}).get("pct")),
+                _fmt_pct(bins.get(4, {}).get("pct")),
+                _fmt_pct(bins.get(6, {}).get("pct")),
+                _fmt(s.get("judge_mean_in")), _fmt_pct(s.get("judge_mean_pct")),
+                s.get("n_with_judge", 0),
+            )))
+
+        if any_stale:
+            self.stale_lbl.config(text="stale: recorded provenance no longer matches current inputs")
+            self.stale_lbl.pack(fill="x", padx=8, pady=2)
+
+        if res_mismatch:
+            self.res_lbl.config(text="in/px assumes native-resolution plane: " + ", ".join(res_mismatch))
+            self.res_lbl.pack(fill="x", padx=8, pady=2)
+
+    @staticmethod
+    def _pass(clip, key):
+        if clip.get("score_error_in") is None:
+            return "—"
+        return "✓" if clip.get(key) else "✗"
+
+
 class App:
     def __init__(self, root: tk.Tk):
         self.root = root
@@ -1187,10 +1401,12 @@ class App:
         self.run = RunSuitePane(self.nb, self)
         self.results = ResultsPane(self.nb, self)
         self.compare = ComparePane(self.nb, self)
+        self.accuracy = AccuracyPane(self.nb, self)
         for name, pane in (("Select clips", self.ingest), ("Calibrate", self.calibrate),
                            ("Analyze", self.analyze),
                            ("Run suite", self.run),
-                           ("Results", self.results), ("Compare", self.compare)):
+                           ("Results", self.results), ("Compare", self.compare),
+                           ("Accuracy", self.accuracy)):
             self.nb.add(pane, text=name)
         self.on_clips_changed()
 
@@ -1207,6 +1423,7 @@ class App:
         self.compare.refresh_clips()
         self.run.refresh()
         self.results.refresh()
+        self.accuracy.refresh()
 
     def open_compare(self, clip_id):
         self.compare.load_clip(clip_id)
