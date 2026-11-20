@@ -1,0 +1,2490 @@
+{
+  "run_id": "2026-11-18T17-39-17.177837Z00-00",
+  "config": {
+    "clips": [
+      "11_7_stabilized",
+      "12_8_stabilized_6s",
+      "15_4_stabilized",
+      "16_7_stabilized",
+      "18_11_stabilized",
+      "19_7_stabilized",
+      "19_8_stabilized",
+      "9_1_stabilized",
+      "test-clip-video004_right"
+    ],
+    "methods": [
+      {
+        "method": "arc_2d_centerline",
+        "n_points": 4,
+        "selection": "last_n"
+      }
+    ]
+  },
+  "provenance": {
+    "11_7_stabilized": {
+      "model_sha": "bdb7688775ee39201d4a77ef0041c7c3e9eb9202f7a5df287a11c98e80ef82e4",
+      "plane_setup_id": "11_7_bad_2026-11-11_14-44-57",
+      "gt_updated": "2026-11-11T19:57:59.730462+00:00",
+      "excluded_frames": [
+        10,
+        492
+      ]
+    },
+    "12_8_stabilized_6s": {
+      "model_sha": "bdb7688775ee39201d4a77ef0041c7c3e9eb9202f7a5df287a11c98e80ef82e4",
+      "plane_setup_id": "12_8_2026-11-13_10-27-12_2026-11-13_10-27-52",
+      "gt_updated": "2026-11-13T16:04:25.838959+00:00",
+      "excluded_frames": [
+        58,
+        163,
+        165,
+        166,
+        167,
+        169,
+        170
+      ]
+    },
+    "15_4_stabilized": {
+      "model_sha": "bdb7688775ee39201d4a77ef0041c7c3e9eb9202f7a5df287a11c98e80ef82e4",
+      "plane_setup_id": "15_4_2026-11-18_10-51-37",
+      "gt_updated": "2026-11-18T15:52:21.220479+00:00",
+      "excluded_frames": [
+        114,
+        124,
+        125,
+        216,
+        218
+      ]
+    },
+    "16_7_stabilized": {
+      "model_sha": "bdb7688775ee39201d4a77ef0041c7c3e9eb9202f7a5df287a11c98e80ef82e4",
+      "plane_setup_id": "16_7_bad_2026-11-11_15-34-31",
+      "gt_updated": "2026-11-11T20:38:21.327183+00:00",
+      "excluded_frames": []
+    },
+    "18_11_stabilized": {
+      "model_sha": "bdb7688775ee39201d4a77ef0041c7c3e9eb9202f7a5df287a11c98e80ef82e4",
+      "plane_setup_id": "18_11_best_2026-11-18_12-11-20",
+      "gt_updated": "2026-11-18T17:06:04.083403+00:00",
+      "excluded_frames": [
+        114,
+        115,
+        116,
+        118,
+        121,
+        127,
+        128,
+        135,
+        140,
+        146,
+        147,
+        149
+      ]
+    },
+    "19_7_stabilized": {
+      "model_sha": "bdb7688775ee39201d4a77ef0041c7c3e9eb9202f7a5df287a11c98e80ef82e4",
+      "plane_setup_id": "19_7_2026-11-18_12-19-20",
+      "gt_updated": "2026-11-18T17:21:32.539298+00:00",
+      "excluded_frames": []
+    },
+    "19_8_stabilized": {
+      "model_sha": "bdb7688775ee39201d4a77ef0041c7c3e9eb9202f7a5df287a11c98e80ef82e4",
+      "plane_setup_id": "19_8_2026-11-18_12-25-07",
+      "gt_updated": "2026-11-18T17:27:06.851530+00:00",
+      "excluded_frames": [
+        129,
+        130,
+        131,
+        135,
+        156,
+        157,
+        158,
+        159,
+        160,
+        161,
+        162,
+        163,
+        205,
+        260,
+        261
+      ]
+    },
+    "9_1_stabilized": {
+      "model_sha": "bdb7688775ee39201d4a77ef0041c7c3e9eb9202f7a5df287a11c98e80ef82e4",
+      "plane_setup_id": "9_1_2026-11-18_12-29-48",
+      "gt_updated": "2026-11-18T17:33:41.387175+00:00",
+      "excluded_frames": []
+    },
+    "test-clip-video004_right": {
+      "model_sha": "ef2d896bd03943fbbae556a38f05dba5f2c227da9628509753636f7f64ecc948",
+      "plane_setup_id": "pts-10-2_2026-11-11_10-10-12",
+      "gt_updated": "2026-11-11T18:22:53.447381+00:00",
+      "excluded_frames": [
+        0,
+        1,
+        9,
+        72,
+        73,
+        74
+      ]
+    }
+  },
+  "rows": [
+    {
+      "clip_id": "11_7_stabilized",
+      "gt": {
+        "schema": "test_bench.ground_truth/1",
+        "frame": 477,
+        "x_px": 965.2223169877333,
+        "y_px": 775.6710936576,
+        "gt_in": 119.76872577301103,
+        "gt_in_source": "plane_homography",
+        "judge_in": 139.0,
+        "judge_present": true,
+        "updated": "2026-11-11T19:57:59.730462+00:00",
+        "warnings": [
+          "the homography route and the ray/plane route disagree by 5.038e-01 ft (6.045e+00 in); the answer came from the homography. They are the same map, so a disagreement means the pose is not self-consistent \u2014 with an assumed lens it is not, and on the synthetic scene that costs the ray/plane route several inches while the homography barely moves."
+        ]
+      },
+      "runs": [
+        {
+          "method": "arc_2d_centerline",
+          "n_points": 4,
+          "selection": "last_n",
+          "pixel_error_px": 15.76651648189808,
+          "score_error_in": 0.8821538768331152,
+          "judge_error_in": 19.231274226988972,
+          "accuracy_pct": 99.2634522316744,
+          "score": {
+            "schema": "test_bench.scoring/1",
+            "method": "arc_2d_centerline",
+            "route": "arc_2d_centerline",
+            "config": {
+              "n_points": 4,
+              "selection": "last_n",
+              "frame_size": [
+                1920,
+                1080
+              ]
+            },
+            "status": "ok",
+            "entry_px": [
+              962.7234387895368,
+              791.2383236528349
+            ],
+            "entry_frame": null,
+            "distance_in": 120.65087964984414,
+            "distance_ft": 10.054239970820346,
+            "x_px": 962.7234387895368,
+            "y_px": 791.2383236528349,
+            "warnings": [],
+            "fit": {
+              "centerline_yc_ft": 10.5,
+              "n_selected": 4,
+              "coeffs": {
+                "a": 0.012884656666261374,
+                "b": -27.345233910960683,
+                "c": 15175.166896651826
+              },
+              "n_points_used": 4,
+              "n_curve_points": 30,
+              "curve": [
+                [
+                  1069.0,
+                  667.0
+                ],
+                [
+                  1066.0,
+                  666.0
+                ],
+                [
+                  1063.0,
+                  666.0
+                ],
+                [
+                  1060.0,
+                  666.0
+                ],
+                [
+                  1057.0,
+                  666.0
+                ],
+                [
+                  1054.0,
+                  667.0
+                ],
+                [
+                  1051.0,
+                  667.0
+                ],
+                [
+                  1048.0,
+                  668.0
+                ],
+                [
+                  1045.0,
+                  669.0
+                ],
+                [
+                  1042.0,
+                  671.0
+                ],
+                [
+                  1039.0,
+                  672.0
+                ],
+                [
+                  1036.0,
+                  674.0
+                ],
+                [
+                  1033.0,
+                  676.0
+                ],
+                [
+                  1030.0,
+                  678.0
+                ],
+                [
+                  1027.0,
+                  681.0
+                ],
+                [
+                  1024.0,
+                  684.0
+                ],
+                [
+                  1021.0,
+                  687.0
+                ],
+                [
+                  1018.0,
+                  690.0
+                ],
+                [
+                  1015.0,
+                  693.0
+                ],
+                [
+                  1012.0,
+                  697.0
+                ],
+                [
+                  1009.0,
+                  701.0
+                ],
+                [
+                  1006.0,
+                  705.0
+                ],
+                [
+                  1003.0,
+                  709.0
+                ],
+                [
+                  1000.0,
+                  714.0
+                ],
+                [
+                  997.0,
+                  719.0
+                ],
+                [
+                  994.0,
+                  724.0
+                ],
+                [
+                  991.0,
+                  729.0
+                ],
+                [
+                  988.0,
+                  735.0
+                ],
+                [
+                  985.0,
+                  741.0
+                ],
+                [
+                  985.0,
+                  741.0
+                ]
+              ],
+              "selected_px": [
+                [
+                  1069.2601318359375,
+                  666.7860717773438
+                ],
+                [
+                  1030.8966064453125,
+                  680.786865234375
+                ],
+                [
+                  1012.0799560546875,
+                  694.4747314453125
+                ],
+                [
+                  985.3341674804688,
+                  741.3054809570312
+                ]
+              ],
+              "selected_frames": [
+                473,
+                474,
+                475,
+                476
+              ],
+              "curve_space": "px",
+              "rms_px": 2.0220686548448903,
+              "contact_px": null,
+              "last_point_frame": 476,
+              "centerline_line_px": [
+                [
+                  1517.6771143443816,
+                  792.0131309761342
+                ],
+                [
+                  -541.4650831533867,
+                  789.1382271335
+                ]
+              ],
+              "crossing_x_px": 962.7234387895368,
+              "crossing_y_px": 791.2383236528349,
+              "crossing_side": "down_pool",
+              "n_crossings": 2
+            }
+          }
+        }
+      ]
+    },
+    {
+      "clip_id": "12_8_stabilized_6s",
+      "gt": {
+        "schema": "test_bench.ground_truth/1",
+        "frame": 132,
+        "x_px": 1063.0,
+        "y_px": 672.0,
+        "gt_in": 139.6535203753062,
+        "gt_in_source": "plane_homography",
+        "judge_in": 152.0,
+        "judge_present": true,
+        "updated": "2026-11-13T16:04:25.838959+00:00",
+        "warnings": [
+          "the homography route and the ray/plane route disagree by 1.485e+00 ft (1.782e+01 in); the answer came from the homography. They are the same map, so a disagreement means the pose is not self-consistent \u2014 with an assumed lens it is not, and on the synthetic scene that costs the ray/plane route several inches while the homography barely moves."
+        ]
+      },
+      "runs": [
+        {
+          "method": "arc_2d_centerline",
+          "n_points": 4,
+          "selection": "last_n",
+          "pixel_error_px": null,
+          "score_error_in": null,
+          "judge_error_in": 12.346479624693814,
+          "accuracy_pct": null,
+          "score": {
+            "schema": "test_bench.scoring/1",
+            "method": "arc_2d_centerline",
+            "route": "arc_2d_centerline",
+            "config": {
+              "n_points": 4,
+              "selection": "last_n",
+              "frame_size": [
+                1920,
+                1080
+              ]
+            },
+            "status": "no_crossing",
+            "entry_px": null,
+            "entry_frame": null,
+            "distance_in": null,
+            "distance_ft": null,
+            "x_px": null,
+            "y_px": null,
+            "warnings": [
+              "the fitted parabola does not reach the pool centerline"
+            ],
+            "fit": {
+              "centerline_yc_ft": 10.5,
+              "n_selected": 4,
+              "coeffs": {
+                "a": -0.004783088579026227,
+                "b": 10.883297917245535,
+                "c": -5578.160933643622
+              },
+              "n_points_used": 4,
+              "n_curve_points": 33,
+              "curve": [
+                [
+                  1235.0,
+                  567.0
+                ],
+                [
+                  1232.0,
+                  570.0
+                ],
+                [
+                  1229.0,
+                  572.0
+                ],
+                [
+                  1226.0,
+                  575.0
+                ],
+                [
+                  1223.0,
+                  577.0
+                ],
+                [
+                  1220.0,
+                  580.0
+                ],
+                [
+                  1217.0,
+                  582.0
+                ],
+                [
+                  1214.0,
+                  584.0
+                ],
+                [
+                  1211.0,
+                  587.0
+                ],
+                [
+                  1208.0,
+                  589.0
+                ],
+                [
+                  1205.0,
+                  591.0
+                ],
+                [
+                  1202.0,
+                  592.0
+                ],
+                [
+                  1199.0,
+                  594.0
+                ],
+                [
+                  1196.0,
+                  596.0
+                ],
+                [
+                  1193.0,
+                  598.0
+                ],
+                [
+                  1190.0,
+                  599.0
+                ],
+                [
+                  1187.0,
+                  601.0
+                ],
+                [
+                  1184.0,
+                  602.0
+                ],
+                [
+                  1181.0,
+                  603.0
+                ],
+                [
+                  1178.0,
+                  604.0
+                ],
+                [
+                  1175.0,
+                  606.0
+                ],
+                [
+                  1172.0,
+                  607.0
+                ],
+                [
+                  1169.0,
+                  608.0
+                ],
+                [
+                  1166.0,
+                  608.0
+                ],
+                [
+                  1163.0,
+                  609.0
+                ],
+                [
+                  1160.0,
+                  610.0
+                ],
+                [
+                  1157.0,
+                  610.0
+                ],
+                [
+                  1154.0,
+                  611.0
+                ],
+                [
+                  1151.0,
+                  611.0
+                ],
+                [
+                  1148.0,
+                  612.0
+                ],
+                [
+                  1145.0,
+                  612.0
+                ],
+                [
+                  1142.0,
+                  612.0
+                ],
+                [
+                  1141.0,
+                  612.0
+                ]
+              ],
+              "selected_px": [
+                [
+                  1235.447021484375,
+                  567.167236328125
+                ],
+                [
+                  1205.412841796875,
+                  590.2864990234375
+                ],
+                [
+                  1178.7568359375,
+                  605.1040649414062
+                ],
+                [
+                  1141.43017578125,
+                  612.542236328125
+                ]
+              ],
+              "selected_frames": [
+                126,
+                127,
+                128,
+                129
+              ],
+              "curve_space": "px",
+              "rms_px": 0.34868182095334765,
+              "contact_px": null,
+              "last_point_frame": 129,
+              "centerline_line_px": [
+                [
+                  1632.9375350444411,
+                  687.3847078167141
+                ],
+                [
+                  92.54898838054686,
+                  674.9762219710728
+                ]
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "clip_id": "15_4_stabilized",
+      "gt": {
+        "schema": "test_bench.ground_truth/1",
+        "frame": 221,
+        "x_px": 892.0,
+        "y_px": 612.5,
+        "gt_in": 165.27956507019132,
+        "gt_in_source": "plane_homography",
+        "judge_in": 184.0,
+        "judge_present": true,
+        "updated": "2026-11-18T15:52:21.220479+00:00",
+        "warnings": [
+          "the homography route and the ray/plane route disagree by 1.390e+00 ft (1.668e+01 in); the answer came from the homography. They are the same map, so a disagreement means the pose is not self-consistent \u2014 with an assumed lens it is not, and on the synthetic scene that costs the ray/plane route several inches while the homography barely moves."
+        ]
+      },
+      "runs": [
+        {
+          "method": "arc_2d_centerline",
+          "n_points": 4,
+          "selection": "last_n",
+          "pixel_error_px": 72.95999710483812,
+          "score_error_in": 13.890074509553017,
+          "judge_error_in": 18.720434929808675,
+          "accuracy_pct": 91.59601218477665,
+          "score": {
+            "schema": "test_bench.scoring/1",
+            "method": "arc_2d_centerline",
+            "route": "arc_2d_centerline",
+            "config": {
+              "n_points": 4,
+              "selection": "last_n",
+              "frame_size": [
+                1920,
+                1080
+              ]
+            },
+            "status": "ok",
+            "entry_px": [
+              819.9184314659307,
+              623.7875442504671
+            ],
+            "entry_frame": null,
+            "distance_in": 179.16963957974434,
+            "distance_ft": 14.930803298312028,
+            "x_px": 819.9184314659307,
+            "y_px": 623.7875442504671,
+            "warnings": [],
+            "fit": {
+              "centerline_yc_ft": 10.5,
+              "n_selected": 4,
+              "coeffs": {
+                "a": 0.0003819103938397261,
+                "b": -1.1955526381466999,
+                "c": 1347.2977257642135
+              },
+              "n_points_used": 4,
+              "n_curve_points": 79,
+              "curve": [
+                [
+                  1153.0,
+                  476.0
+                ],
+                [
+                  1150.0,
+                  477.0
+                ],
+                [
+                  1147.0,
+                  478.0
+                ],
+                [
+                  1144.0,
+                  479.0
+                ],
+                [
+                  1141.0,
+                  480.0
+                ],
+                [
+                  1138.0,
+                  481.0
+                ],
+                [
+                  1135.0,
+                  482.0
+                ],
+                [
+                  1132.0,
+                  483.0
+                ],
+                [
+                  1129.0,
+                  484.0
+                ],
+                [
+                  1126.0,
+                  485.0
+                ],
+                [
+                  1123.0,
+                  486.0
+                ],
+                [
+                  1120.0,
+                  487.0
+                ],
+                [
+                  1117.0,
+                  488.0
+                ],
+                [
+                  1114.0,
+                  489.0
+                ],
+                [
+                  1111.0,
+                  490.0
+                ],
+                [
+                  1108.0,
+                  491.0
+                ],
+                [
+                  1105.0,
+                  492.0
+                ],
+                [
+                  1102.0,
+                  493.0
+                ],
+                [
+                  1099.0,
+                  494.0
+                ],
+                [
+                  1096.0,
+                  495.0
+                ],
+                [
+                  1093.0,
+                  496.0
+                ],
+                [
+                  1090.0,
+                  497.0
+                ],
+                [
+                  1087.0,
+                  498.0
+                ],
+                [
+                  1084.0,
+                  500.0
+                ],
+                [
+                  1081.0,
+                  501.0
+                ],
+                [
+                  1078.0,
+                  502.0
+                ],
+                [
+                  1075.0,
+                  503.0
+                ],
+                [
+                  1072.0,
+                  504.0
+                ],
+                [
+                  1069.0,
+                  505.0
+                ],
+                [
+                  1066.0,
+                  506.0
+                ],
+                [
+                  1063.0,
+                  507.0
+                ],
+                [
+                  1060.0,
+                  509.0
+                ],
+                [
+                  1057.0,
+                  510.0
+                ],
+                [
+                  1054.0,
+                  511.0
+                ],
+                [
+                  1051.0,
+                  512.0
+                ],
+                [
+                  1048.0,
+                  513.0
+                ],
+                [
+                  1045.0,
+                  515.0
+                ],
+                [
+                  1042.0,
+                  516.0
+                ],
+                [
+                  1039.0,
+                  517.0
+                ],
+                [
+                  1036.0,
+                  518.0
+                ],
+                [
+                  1033.0,
+                  519.0
+                ],
+                [
+                  1030.0,
+                  521.0
+                ],
+                [
+                  1027.0,
+                  522.0
+                ],
+                [
+                  1024.0,
+                  523.0
+                ],
+                [
+                  1021.0,
+                  524.0
+                ],
+                [
+                  1018.0,
+                  526.0
+                ],
+                [
+                  1015.0,
+                  527.0
+                ],
+                [
+                  1012.0,
+                  528.0
+                ],
+                [
+                  1009.0,
+                  529.0
+                ],
+                [
+                  1006.0,
+                  531.0
+                ],
+                [
+                  1003.0,
+                  532.0
+                ],
+                [
+                  1000.0,
+                  533.0
+                ],
+                [
+                  997.0,
+                  534.0
+                ],
+                [
+                  994.0,
+                  536.0
+                ],
+                [
+                  991.0,
+                  537.0
+                ],
+                [
+                  988.0,
+                  538.0
+                ],
+                [
+                  985.0,
+                  540.0
+                ],
+                [
+                  982.0,
+                  541.0
+                ],
+                [
+                  979.0,
+                  542.0
+                ],
+                [
+                  976.0,
+                  544.0
+                ],
+                [
+                  973.0,
+                  545.0
+                ],
+                [
+                  970.0,
+                  546.0
+                ],
+                [
+                  967.0,
+                  548.0
+                ],
+                [
+                  964.0,
+                  549.0
+                ],
+                [
+                  961.0,
+                  551.0
+                ],
+                [
+                  958.0,
+                  552.0
+                ],
+                [
+                  955.0,
+                  553.0
+                ],
+                [
+                  952.0,
+                  555.0
+                ],
+                [
+                  949.0,
+                  556.0
+                ],
+                [
+                  946.0,
+                  558.0
+                ],
+                [
+                  943.0,
+                  559.0
+                ],
+                [
+                  940.0,
+                  560.0
+                ],
+                [
+                  937.0,
+                  562.0
+                ],
+                [
+                  934.0,
+                  563.0
+                ],
+                [
+                  931.0,
+                  565.0
+                ],
+                [
+                  928.0,
+                  566.0
+                ],
+                [
+                  925.0,
+                  568.0
+                ],
+                [
+                  922.0,
+                  569.0
+                ],
+                [
+                  920.0,
+                  570.0
+                ]
+              ],
+              "selected_px": [
+                [
+                  1153.107421875,
+                  478.34381103515625
+                ],
+                [
+                  1101.688720703125,
+                  487.1065979003906
+                ],
+                [
+                  1073.054931640625,
+                  509.18707275390625
+                ],
+                [
+                  920.8289794921875,
+                  569.955322265625
+                ]
+              ],
+              "selected_frames": [
+                213,
+                214,
+                215,
+                219
+              ],
+              "curve_space": "px",
+              "rms_px": 4.251187196723024,
+              "contact_px": null,
+              "last_point_frame": 219,
+              "centerline_line_px": [
+                [
+                  1575.8628693053422,
+                  619.8127725386829
+                ],
+                [
+                  -73.29663805911392,
+                  628.4840878232129
+                ]
+              ],
+              "crossing_x_px": 819.9184314659307,
+              "crossing_y_px": 623.7875442504671,
+              "crossing_side": "down_pool",
+              "n_crossings": 2
+            }
+          }
+        }
+      ]
+    },
+    {
+      "clip_id": "16_7_stabilized",
+      "gt": {
+        "schema": "test_bench.ground_truth/1",
+        "frame": 112,
+        "x_px": 716.5150774340267,
+        "y_px": 578.1598642722133,
+        "gt_in": 174.016531883334,
+        "gt_in_source": "plane_homography",
+        "judge_in": 199.0,
+        "judge_present": true,
+        "updated": "2026-11-11T20:38:21.327183+00:00",
+        "warnings": [
+          "the homography route and the ray/plane route disagree by 2.181e+00 ft (2.617e+01 in); the answer came from the homography. They are the same map, so a disagreement means the pose is not self-consistent \u2014 with an assumed lens it is not, and on the synthetic scene that costs the ray/plane route several inches while the homography barely moves."
+        ]
+      },
+      "runs": [
+        {
+          "method": "arc_2d_centerline",
+          "n_points": 4,
+          "selection": "last_n",
+          "pixel_error_px": 29.63004410693326,
+          "score_error_in": 3.1907420424098802,
+          "judge_error_in": 24.98346811666599,
+          "accuracy_pct": 98.16641441598833,
+          "score": {
+            "schema": "test_bench.scoring/1",
+            "method": "arc_2d_centerline",
+            "route": "arc_2d_centerline",
+            "config": {
+              "n_points": 4,
+              "selection": "last_n",
+              "frame_size": [
+                1920,
+                1080
+              ]
+            },
+            "status": "ok",
+            "entry_px": [
+              687.597802497279,
+              584.6197964708786
+            ],
+            "entry_frame": null,
+            "distance_in": 177.2072739257439,
+            "distance_ft": 14.767272827145323,
+            "x_px": 687.597802497279,
+            "y_px": 584.6197964708786,
+            "warnings": [],
+            "fit": {
+              "centerline_yc_ft": 10.5,
+              "n_selected": 4,
+              "coeffs": {
+                "a": 0.0007155946231163785,
+                "b": -1.662373301612644,
+                "c": 1389.3375156185077
+              },
+              "n_points_used": 4,
+              "n_curve_points": 51,
+              "curve": [
+                [
+                  915.0,
+                  467.0
+                ],
+                [
+                  912.0,
+                  468.0
+                ],
+                [
+                  909.0,
+                  469.0
+                ],
+                [
+                  906.0,
+                  470.0
+                ],
+                [
+                  903.0,
+                  471.0
+                ],
+                [
+                  900.0,
+                  472.0
+                ],
+                [
+                  897.0,
+                  473.0
+                ],
+                [
+                  894.0,
+                  475.0
+                ],
+                [
+                  891.0,
+                  476.0
+                ],
+                [
+                  888.0,
+                  477.0
+                ],
+                [
+                  885.0,
+                  478.0
+                ],
+                [
+                  882.0,
+                  479.0
+                ],
+                [
+                  879.0,
+                  481.0
+                ],
+                [
+                  876.0,
+                  482.0
+                ],
+                [
+                  873.0,
+                  483.0
+                ],
+                [
+                  870.0,
+                  484.0
+                ],
+                [
+                  867.0,
+                  485.0
+                ],
+                [
+                  864.0,
+                  487.0
+                ],
+                [
+                  861.0,
+                  488.0
+                ],
+                [
+                  858.0,
+                  489.0
+                ],
+                [
+                  855.0,
+                  491.0
+                ],
+                [
+                  852.0,
+                  492.0
+                ],
+                [
+                  849.0,
+                  493.0
+                ],
+                [
+                  846.0,
+                  495.0
+                ],
+                [
+                  843.0,
+                  496.0
+                ],
+                [
+                  840.0,
+                  497.0
+                ],
+                [
+                  837.0,
+                  499.0
+                ],
+                [
+                  834.0,
+                  500.0
+                ],
+                [
+                  831.0,
+                  502.0
+                ],
+                [
+                  828.0,
+                  503.0
+                ],
+                [
+                  825.0,
+                  504.0
+                ],
+                [
+                  822.0,
+                  506.0
+                ],
+                [
+                  819.0,
+                  507.0
+                ],
+                [
+                  816.0,
+                  509.0
+                ],
+                [
+                  813.0,
+                  510.0
+                ],
+                [
+                  810.0,
+                  512.0
+                ],
+                [
+                  807.0,
+                  513.0
+                ],
+                [
+                  804.0,
+                  515.0
+                ],
+                [
+                  801.0,
+                  516.0
+                ],
+                [
+                  798.0,
+                  518.0
+                ],
+                [
+                  795.0,
+                  520.0
+                ],
+                [
+                  792.0,
+                  521.0
+                ],
+                [
+                  789.0,
+                  523.0
+                ],
+                [
+                  786.0,
+                  524.0
+                ],
+                [
+                  783.0,
+                  526.0
+                ],
+                [
+                  780.0,
+                  528.0
+                ],
+                [
+                  777.0,
+                  529.0
+                ],
+                [
+                  774.0,
+                  531.0
+                ],
+                [
+                  771.0,
+                  533.0
+                ],
+                [
+                  768.0,
+                  534.0
+                ],
+                [
+                  766.0,
+                  535.0
+                ]
+              ],
+              "selected_px": [
+                [
+                  915.4761352539062,
+                  467.4900817871094
+                ],
+                [
+                  859.0086059570312,
+                  488.3500671386719
+                ],
+                [
+                  815.4234619140625,
+                  510.7071838378906
+                ],
+                [
+                  766.51171875,
+                  535.2020263671875
+                ]
+              ],
+              "selected_frames": [
+                107,
+                108,
+                109,
+                110
+              ],
+              "curve_space": "px",
+              "rms_px": 0.7845360050239214,
+              "contact_px": null,
+              "last_point_frame": 110,
+              "centerline_line_px": [
+                [
+                  1438.0045656213665,
+                  588.4583121570525
+                ],
+                [
+                  -155.75916613625554,
+                  580.3058175567398
+                ]
+              ],
+              "crossing_x_px": 687.597802497279,
+              "crossing_y_px": 584.6197964708786,
+              "crossing_side": "down_pool",
+              "n_crossings": 2
+            }
+          }
+        }
+      ]
+    },
+    {
+      "clip_id": "18_11_stabilized",
+      "gt": {
+        "schema": "test_bench.ground_truth/1",
+        "frame": 140,
+        "x_px": 670.0,
+        "y_px": 719.0,
+        "gt_in": 221.61121494974347,
+        "gt_in_source": "plane_homography",
+        "judge_in": 227.0,
+        "judge_present": true,
+        "updated": "2026-11-18T17:06:04.083403+00:00",
+        "warnings": [
+          "the homography route and the ray/plane route disagree by 1.525e+00 ft (1.830e+01 in); the answer came from the homography. They are the same map, so a disagreement means the pose is not self-consistent \u2014 with an assumed lens it is not, and on the synthetic scene that costs the ray/plane route several inches while the homography barely moves."
+        ]
+      },
+      "runs": [
+        {
+          "method": "arc_2d_centerline",
+          "n_points": 4,
+          "selection": "last_n",
+          "pixel_error_px": null,
+          "score_error_in": null,
+          "judge_error_in": 5.38878505025653,
+          "accuracy_pct": null,
+          "score": {
+            "schema": "test_bench.scoring/1",
+            "method": "arc_2d_centerline",
+            "route": "arc_2d_centerline",
+            "config": {
+              "n_points": 4,
+              "selection": "last_n",
+              "frame_size": [
+                1920,
+                1080
+              ]
+            },
+            "status": "no_fit",
+            "entry_px": null,
+            "entry_frame": null,
+            "distance_in": null,
+            "distance_ft": null,
+            "x_px": null,
+            "y_px": null,
+            "warnings": [
+              "parabola fit rejected (insufficient x-span or fit failure)"
+            ],
+            "fit": {
+              "centerline_yc_ft": 10.5,
+              "n_selected": 3
+            }
+          }
+        }
+      ]
+    },
+    {
+      "clip_id": "19_7_stabilized",
+      "gt": {
+        "schema": "test_bench.ground_truth/1",
+        "frame": 139,
+        "x_px": 700.0,
+        "y_px": 622.0,
+        "gt_in": 222.88721516550788,
+        "gt_in_source": "plane_homography",
+        "judge_in": 235.0,
+        "judge_present": true,
+        "updated": "2026-11-18T17:21:32.539298+00:00",
+        "warnings": [
+          "the homography route and the ray/plane route disagree by 1.890e+00 ft (2.268e+01 in); the answer came from the homography. They are the same map, so a disagreement means the pose is not self-consistent \u2014 with an assumed lens it is not, and on the synthetic scene that costs the ray/plane route several inches while the homography barely moves."
+        ]
+      },
+      "runs": [
+        {
+          "method": "arc_2d_centerline",
+          "n_points": 4,
+          "selection": "last_n",
+          "pixel_error_px": 292.1733145026907,
+          "score_error_in": 72.22033480397448,
+          "judge_error_in": 12.112784834492118,
+          "accuracy_pct": 67.5978118572901,
+          "score": {
+            "schema": "test_bench.scoring/1",
+            "method": "arc_2d_centerline",
+            "route": "arc_2d_centerline",
+            "config": {
+              "n_points": 4,
+              "selection": "last_n",
+              "frame_size": [
+                1920,
+                1080
+              ]
+            },
+            "status": "ok",
+            "entry_px": [
+              407.85155895161296,
+              625.8123615365436
+            ],
+            "entry_frame": null,
+            "distance_in": 295.10754996948236,
+            "distance_ft": 24.592295830790196,
+            "x_px": 407.85155895161296,
+            "y_px": 625.8123615365436,
+            "warnings": [],
+            "fit": {
+              "centerline_yc_ft": 10.5,
+              "n_selected": 4,
+              "coeffs": {
+                "a": 0.00015400156745350792,
+                "b": -0.4425205154672978,
+                "c": 780.6779772057532
+              },
+              "n_points_used": 4,
+              "n_curve_points": 63,
+              "curve": [
+                [
+                  1331.0,
+                  464.0
+                ],
+                [
+                  1328.0,
+                  464.0
+                ],
+                [
+                  1325.0,
+                  464.0
+                ],
+                [
+                  1322.0,
+                  464.0
+                ],
+                [
+                  1319.0,
+                  464.0
+                ],
+                [
+                  1316.0,
+                  465.0
+                ],
+                [
+                  1313.0,
+                  465.0
+                ],
+                [
+                  1310.0,
+                  465.0
+                ],
+                [
+                  1307.0,
+                  465.0
+                ],
+                [
+                  1304.0,
+                  465.0
+                ],
+                [
+                  1301.0,
+                  465.0
+                ],
+                [
+                  1298.0,
+                  465.0
+                ],
+                [
+                  1295.0,
+                  465.0
+                ],
+                [
+                  1292.0,
+                  466.0
+                ],
+                [
+                  1289.0,
+                  466.0
+                ],
+                [
+                  1286.0,
+                  466.0
+                ],
+                [
+                  1283.0,
+                  466.0
+                ],
+                [
+                  1280.0,
+                  466.0
+                ],
+                [
+                  1277.0,
+                  466.0
+                ],
+                [
+                  1274.0,
+                  466.0
+                ],
+                [
+                  1271.0,
+                  467.0
+                ],
+                [
+                  1268.0,
+                  467.0
+                ],
+                [
+                  1265.0,
+                  467.0
+                ],
+                [
+                  1262.0,
+                  467.0
+                ],
+                [
+                  1259.0,
+                  467.0
+                ],
+                [
+                  1256.0,
+                  467.0
+                ],
+                [
+                  1253.0,
+                  467.0
+                ],
+                [
+                  1250.0,
+                  468.0
+                ],
+                [
+                  1247.0,
+                  468.0
+                ],
+                [
+                  1244.0,
+                  468.0
+                ],
+                [
+                  1241.0,
+                  468.0
+                ],
+                [
+                  1238.0,
+                  468.0
+                ],
+                [
+                  1235.0,
+                  469.0
+                ],
+                [
+                  1232.0,
+                  469.0
+                ],
+                [
+                  1229.0,
+                  469.0
+                ],
+                [
+                  1226.0,
+                  469.0
+                ],
+                [
+                  1223.0,
+                  469.0
+                ],
+                [
+                  1220.0,
+                  470.0
+                ],
+                [
+                  1217.0,
+                  470.0
+                ],
+                [
+                  1214.0,
+                  470.0
+                ],
+                [
+                  1211.0,
+                  470.0
+                ],
+                [
+                  1208.0,
+                  470.0
+                ],
+                [
+                  1205.0,
+                  471.0
+                ],
+                [
+                  1202.0,
+                  471.0
+                ],
+                [
+                  1199.0,
+                  471.0
+                ],
+                [
+                  1196.0,
+                  471.0
+                ],
+                [
+                  1193.0,
+                  471.0
+                ],
+                [
+                  1190.0,
+                  472.0
+                ],
+                [
+                  1187.0,
+                  472.0
+                ],
+                [
+                  1184.0,
+                  472.0
+                ],
+                [
+                  1181.0,
+                  472.0
+                ],
+                [
+                  1178.0,
+                  473.0
+                ],
+                [
+                  1175.0,
+                  473.0
+                ],
+                [
+                  1172.0,
+                  473.0
+                ],
+                [
+                  1169.0,
+                  473.0
+                ],
+                [
+                  1166.0,
+                  474.0
+                ],
+                [
+                  1163.0,
+                  474.0
+                ],
+                [
+                  1160.0,
+                  474.0
+                ],
+                [
+                  1157.0,
+                  474.0
+                ],
+                [
+                  1154.0,
+                  475.0
+                ],
+                [
+                  1151.0,
+                  475.0
+                ],
+                [
+                  1148.0,
+                  475.0
+                ],
+                [
+                  1148.0,
+                  475.0
+                ]
+              ],
+              "selected_px": [
+                [
+                  1331.7623291015625,
+                  461.9127197265625
+                ],
+                [
+                  1308.9822998046875,
+                  469.3151550292969
+                ],
+                [
+                  1247.34130859375,
+                  466.5500793457031
+                ],
+                [
+                  1148.317138671875,
+                  475.9060363769531
+                ]
+              ],
+              "selected_frames": [
+                125,
+                126,
+                127,
+                129
+              ],
+              "curve_space": "px",
+              "rms_px": 2.545856899476603,
+              "contact_px": null,
+              "last_point_frame": 129,
+              "centerline_line_px": [
+                [
+                  1559.8923119900921,
+                  624.8493321949229
+                ],
+                [
+                  -63.6921923810766,
+                  626.2065407070232
+                ]
+              ],
+              "crossing_x_px": 407.85155895161296,
+              "crossing_y_px": 625.8123615365436,
+              "crossing_side": "down_pool",
+              "n_crossings": 2
+            }
+          }
+        }
+      ]
+    },
+    {
+      "clip_id": "19_8_stabilized",
+      "gt": {
+        "schema": "test_bench.ground_truth/1",
+        "frame": 260,
+        "x_px": 498.0,
+        "y_px": 616.0,
+        "gt_in": 202.76595859078975,
+        "gt_in_source": "plane_homography",
+        "judge_in": 236.0,
+        "judge_present": true,
+        "updated": "2026-11-18T17:27:06.851530+00:00",
+        "warnings": [
+          "the homography route and the ray/plane route disagree by 1.032e+00 ft (1.239e+01 in); the answer came from the homography. They are the same map, so a disagreement means the pose is not self-consistent \u2014 with an assumed lens it is not, and on the synthetic scene that costs the ray/plane route several inches while the homography barely moves."
+        ]
+      },
+      "runs": [
+        {
+          "method": "arc_2d_centerline",
+          "n_points": 4,
+          "selection": "last_n",
+          "pixel_error_px": 23.66440885350949,
+          "score_error_in": 9.976046640359613,
+          "judge_error_in": 33.23404140921025,
+          "accuracy_pct": 95.08001899840956,
+          "score": {
+            "schema": "test_bench.scoring/1",
+            "method": "arc_2d_centerline",
+            "route": "arc_2d_centerline",
+            "config": {
+              "n_points": 4,
+              "selection": "last_n",
+              "frame_size": [
+                1920,
+                1080
+              ]
+            },
+            "status": "ok",
+            "entry_px": [
+              475.26370936237146,
+              609.4375816631867
+            ],
+            "entry_frame": null,
+            "distance_in": 212.74200523114936,
+            "distance_ft": 17.728500435929114,
+            "x_px": 475.26370936237146,
+            "y_px": 609.4375816631867,
+            "warnings": [],
+            "fit": {
+              "centerline_yc_ft": 10.5,
+              "n_selected": 4,
+              "coeffs": {
+                "a": 0.0007950772578302409,
+                "b": -1.4321279098463746,
+                "c": 1110.487456937581
+              },
+              "n_points_used": 4,
+              "n_curve_points": 52,
+              "curve": [
+                [
+                  689.0,
+                  501.0
+                ],
+                [
+                  686.0,
+                  502.0
+                ],
+                [
+                  683.0,
+                  503.0
+                ],
+                [
+                  680.0,
+                  504.0
+                ],
+                [
+                  677.0,
+                  505.0
+                ],
+                [
+                  674.0,
+                  506.0
+                ],
+                [
+                  671.0,
+                  507.0
+                ],
+                [
+                  668.0,
+                  508.0
+                ],
+                [
+                  665.0,
+                  509.0
+                ],
+                [
+                  662.0,
+                  510.0
+                ],
+                [
+                  659.0,
+                  512.0
+                ],
+                [
+                  656.0,
+                  513.0
+                ],
+                [
+                  653.0,
+                  514.0
+                ],
+                [
+                  650.0,
+                  515.0
+                ],
+                [
+                  647.0,
+                  516.0
+                ],
+                [
+                  644.0,
+                  517.0
+                ],
+                [
+                  641.0,
+                  519.0
+                ],
+                [
+                  638.0,
+                  520.0
+                ],
+                [
+                  635.0,
+                  521.0
+                ],
+                [
+                  632.0,
+                  522.0
+                ],
+                [
+                  629.0,
+                  524.0
+                ],
+                [
+                  626.0,
+                  525.0
+                ],
+                [
+                  623.0,
+                  526.0
+                ],
+                [
+                  620.0,
+                  528.0
+                ],
+                [
+                  617.0,
+                  529.0
+                ],
+                [
+                  614.0,
+                  530.0
+                ],
+                [
+                  611.0,
+                  532.0
+                ],
+                [
+                  608.0,
+                  533.0
+                ],
+                [
+                  605.0,
+                  535.0
+                ],
+                [
+                  602.0,
+                  536.0
+                ],
+                [
+                  599.0,
+                  537.0
+                ],
+                [
+                  596.0,
+                  539.0
+                ],
+                [
+                  593.0,
+                  540.0
+                ],
+                [
+                  590.0,
+                  542.0
+                ],
+                [
+                  587.0,
+                  543.0
+                ],
+                [
+                  584.0,
+                  545.0
+                ],
+                [
+                  581.0,
+                  546.0
+                ],
+                [
+                  578.0,
+                  548.0
+                ],
+                [
+                  575.0,
+                  549.0
+                ],
+                [
+                  572.0,
+                  551.0
+                ],
+                [
+                  569.0,
+                  553.0
+                ],
+                [
+                  566.0,
+                  554.0
+                ],
+                [
+                  563.0,
+                  556.0
+                ],
+                [
+                  560.0,
+                  557.0
+                ],
+                [
+                  557.0,
+                  559.0
+                ],
+                [
+                  554.0,
+                  561.0
+                ],
+                [
+                  551.0,
+                  562.0
+                ],
+                [
+                  548.0,
+                  564.0
+                ],
+                [
+                  545.0,
+                  566.0
+                ],
+                [
+                  542.0,
+                  567.0
+                ],
+                [
+                  539.0,
+                  569.0
+                ],
+                [
+                  537.0,
+                  570.0
+                ]
+              ],
+              "selected_px": [
+                [
+                  689.7465209960938,
+                  499.8548583984375
+                ],
+                [
+                  636.8528442382812,
+                  524.276611328125
+                ],
+                [
+                  585.62353515625,
+                  540.9541015625
+                ],
+                [
+                  537.00390625,
+                  571.939697265625
+                ]
+              ],
+              "selected_frames": [
+                256,
+                257,
+                258,
+                259
+              ],
+              "curve_space": "px",
+              "rms_px": 2.573238419652343,
+              "contact_px": null,
+              "last_point_frame": 259,
+              "centerline_line_px": [
+                [
+                  1478.506845064472,
+                  608.5286697542472
+                ],
+                [
+                  -428.1913902333972,
+                  610.2560882345177
+                ]
+              ],
+              "crossing_x_px": 475.26370936237146,
+              "crossing_y_px": 609.4375816631867,
+              "crossing_side": "down_pool",
+              "n_crossings": 2
+            }
+          }
+        }
+      ]
+    },
+    {
+      "clip_id": "9_1_stabilized",
+      "gt": {
+        "schema": "test_bench.ground_truth/1",
+        "frame": 125,
+        "x_px": 1147.0,
+        "y_px": 617.5,
+        "gt_in": 88.22984592048046,
+        "gt_in_source": "plane_homography",
+        "judge_in": 109.0,
+        "judge_present": true,
+        "updated": "2026-11-18T17:33:41.387175+00:00",
+        "warnings": [
+          "the homography route and the ray/plane route disagree by 5.765e-01 ft (6.918e+00 in); the answer came from the homography. They are the same map, so a disagreement means the pose is not self-consistent \u2014 with an assumed lens it is not, and on the synthetic scene that costs the ray/plane route several inches while the homography barely moves."
+        ]
+      },
+      "runs": [
+        {
+          "method": "arc_2d_centerline",
+          "n_points": 4,
+          "selection": "last_n",
+          "pixel_error_px": null,
+          "score_error_in": null,
+          "judge_error_in": 20.770154079519543,
+          "accuracy_pct": null,
+          "score": {
+            "schema": "test_bench.scoring/1",
+            "method": "arc_2d_centerline",
+            "route": "arc_2d_centerline",
+            "config": {
+              "n_points": 4,
+              "selection": "last_n",
+              "frame_size": [
+                1920,
+                1080
+              ]
+            },
+            "status": "no_crossing",
+            "entry_px": null,
+            "entry_frame": null,
+            "distance_in": null,
+            "distance_ft": null,
+            "x_px": null,
+            "y_px": null,
+            "warnings": [
+              "the fitted parabola does not reach the pool centerline"
+            ],
+            "fit": {
+              "centerline_yc_ft": 10.5,
+              "n_selected": 4,
+              "coeffs": {
+                "a": -0.002954964894047216,
+                "b": 6.591693049983242,
+                "c": -3080.8593110643883
+              },
+              "n_points_used": 4,
+              "n_curve_points": 41,
+              "curve": [
+                [
+                  1276.0,
+                  518.0
+                ],
+                [
+                  1273.0,
+                  521.0
+                ],
+                [
+                  1270.0,
+                  524.0
+                ],
+                [
+                  1267.0,
+                  527.0
+                ],
+                [
+                  1264.0,
+                  529.0
+                ],
+                [
+                  1261.0,
+                  532.0
+                ],
+                [
+                  1258.0,
+                  535.0
+                ],
+                [
+                  1255.0,
+                  537.0
+                ],
+                [
+                  1252.0,
+                  540.0
+                ],
+                [
+                  1249.0,
+                  542.0
+                ],
+                [
+                  1246.0,
+                  544.0
+                ],
+                [
+                  1243.0,
+                  547.0
+                ],
+                [
+                  1240.0,
+                  549.0
+                ],
+                [
+                  1237.0,
+                  551.0
+                ],
+                [
+                  1234.0,
+                  553.0
+                ],
+                [
+                  1231.0,
+                  555.0
+                ],
+                [
+                  1228.0,
+                  557.0
+                ],
+                [
+                  1225.0,
+                  559.0
+                ],
+                [
+                  1222.0,
+                  561.0
+                ],
+                [
+                  1219.0,
+                  563.0
+                ],
+                [
+                  1216.0,
+                  565.0
+                ],
+                [
+                  1213.0,
+                  567.0
+                ],
+                [
+                  1210.0,
+                  568.0
+                ],
+                [
+                  1207.0,
+                  570.0
+                ],
+                [
+                  1204.0,
+                  571.0
+                ],
+                [
+                  1201.0,
+                  573.0
+                ],
+                [
+                  1198.0,
+                  575.0
+                ],
+                [
+                  1195.0,
+                  576.0
+                ],
+                [
+                  1192.0,
+                  577.0
+                ],
+                [
+                  1189.0,
+                  579.0
+                ],
+                [
+                  1186.0,
+                  580.0
+                ],
+                [
+                  1183.0,
+                  581.0
+                ],
+                [
+                  1180.0,
+                  582.0
+                ],
+                [
+                  1177.0,
+                  583.0
+                ],
+                [
+                  1174.0,
+                  585.0
+                ],
+                [
+                  1171.0,
+                  586.0
+                ],
+                [
+                  1168.0,
+                  587.0
+                ],
+                [
+                  1165.0,
+                  587.0
+                ],
+                [
+                  1162.0,
+                  588.0
+                ],
+                [
+                  1159.0,
+                  589.0
+                ],
+                [
+                  1159.0,
+                  589.0
+                ]
+              ],
+              "selected_px": [
+                [
+                  1276.37109375,
+                  519.94580078125
+                ],
+                [
+                  1251.365966796875,
+                  537.2078857421875
+                ],
+                [
+                  1224.250732421875,
+                  562.4132690429688
+                ],
+                [
+                  1159.1492919921875,
+                  589.2308349609375
+                ]
+              ],
+              "selected_frames": [
+                120,
+                121,
+                122,
+                124
+              ],
+              "curve_space": "px",
+              "rms_px": 2.1266139461923412,
+              "contact_px": null,
+              "last_point_frame": 124,
+              "centerline_line_px": [
+                [
+                  1587.2604945782527,
+                  613.4894603986062
+                ],
+                [
+                  -344.2166691831461,
+                  618.1886076998663
+                ]
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "clip_id": "test-clip-video004_right",
+      "gt": {
+        "schema": "test_bench.ground_truth/1",
+        "frame": 71,
+        "x_px": 272.7795565714285,
+        "y_px": 322.66181485714276,
+        "gt_in": 259.5797979198351,
+        "gt_in_source": "plane_homography",
+        "judge_in": null,
+        "judge_present": false,
+        "updated": "2026-11-11T18:22:53.447381+00:00",
+        "warnings": [
+          "the homography route and the ray/plane route disagree by 1.043e+01 ft (1.252e+02 in); the answer came from the homography. They are the same map, so a disagreement means the pose is not self-consistent \u2014 with an assumed lens it is not, and on the synthetic scene that costs the ray/plane route several inches while the homography barely moves."
+        ]
+      },
+      "runs": [
+        {
+          "method": "arc_2d_centerline",
+          "n_points": 4,
+          "selection": "last_n",
+          "pixel_error_px": null,
+          "score_error_in": null,
+          "judge_error_in": null,
+          "accuracy_pct": null,
+          "score": {
+            "schema": "test_bench.scoring/1",
+            "method": "arc_2d_centerline",
+            "route": "arc_2d_centerline",
+            "config": {
+              "n_points": 4,
+              "selection": "last_n",
+              "frame_size": [
+                960,
+                600
+              ]
+            },
+            "status": "no_crossing",
+            "entry_px": null,
+            "entry_frame": null,
+            "distance_in": null,
+            "distance_ft": null,
+            "x_px": null,
+            "y_px": null,
+            "warnings": [
+              "the fitted parabola does not reach the pool centerline"
+            ],
+            "fit": {
+              "centerline_yc_ft": 10.5,
+              "n_selected": 4,
+              "coeffs": {
+                "a": -0.002694524886091916,
+                "b": 1.3439935547144115,
+                "c": 154.15895392166962
+              },
+              "n_points_used": 4,
+              "n_curve_points": 12,
+              "curve": [
+                [
+                  302.0,
+                  314.0
+                ],
+                [
+                  299.0,
+                  315.0
+                ],
+                [
+                  296.0,
+                  315.0
+                ],
+                [
+                  293.0,
+                  316.0
+                ],
+                [
+                  290.0,
+                  317.0
+                ],
+                [
+                  287.0,
+                  317.0
+                ],
+                [
+                  284.0,
+                  318.0
+                ],
+                [
+                  281.0,
+                  319.0
+                ],
+                [
+                  278.0,
+                  319.0
+                ],
+                [
+                  275.0,
+                  319.0
+                ],
+                [
+                  272.0,
+                  320.0
+                ],
+                [
+                  270.0,
+                  320.0
+                ]
+              ],
+              "selected_px": [
+                [
+                  302.99560546875,
+                  314.3770446777344
+                ],
+                [
+                  290.9774169921875,
+                  315.8194274902344
+                ],
+                [
+                  280.6941833496094,
+                  320.4983825683594
+                ],
+                [
+                  270.6627502441406,
+                  320.0470275878906
+                ]
+              ],
+              "selected_frames": [
+                68,
+                69,
+                70,
+                71
+              ],
+              "curve_space": "px",
+              "rms_px": 0.9891333810553755,
+              "contact_px": null,
+              "last_point_frame": 71,
+              "centerline_line_px": [
+                [
+                  742.0900084982933,
+                  330.7971442071667
+                ],
+                [
+                  -85.95971054769568,
+                  330.3091079564822
+                ]
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "averages": {
+    "overall": {
+      "pixel_error_px": 86.83885620997393,
+      "score_error_in": 20.03187037462602,
+      "judge_error_in": 18.348427783954484,
+      "accuracy_pct": 90.34074193762781
+    },
+    "per_method": {
+      "arc_2d_centerline": {
+        "pixel_error_px": 86.83885620997393,
+        "score_error_in": 20.03187037462602,
+        "judge_error_in": 18.348427783954484,
+        "accuracy_pct": 90.34074193762781
+      }
+    }
+  }
+}

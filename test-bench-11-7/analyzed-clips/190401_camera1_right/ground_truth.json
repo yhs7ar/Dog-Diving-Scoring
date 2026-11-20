@@ -1,0 +1,16 @@
+{
+  "schema": "test_bench.ground_truth/1",
+  "frame": null,
+  "x_px": null,
+  "y_px": null,
+  "gt_in": null,
+  "gt_in_source": null,
+  "judge_in": 258.0,
+  "judge_present": true,
+  "reference": {
+    "dog": "lida ford",
+    "score_raw": "21'6\"",
+    "csv_line": 5
+  },
+  "updated": "2026-11-20T08:19:51.415227+00:00"
+}

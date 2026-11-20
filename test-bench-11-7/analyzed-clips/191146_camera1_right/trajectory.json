@@ -1,0 +1,65 @@
+{
+  "clip_id": "191146_camera1_right",
+  "n_points": 2,
+  "points": [
+    {
+      "frame": 3,
+      "x": 688.9368896484375,
+      "y": 265.5677490234375,
+      "kp_conf": 0.9751048684120178
+    },
+    {
+      "frame": 4,
+      "x": 686.9486083984375,
+      "y": 265.3568115234375,
+      "kp_conf": 0.9730105400085449
+    }
+  ],
+  "runs": [
+    {
+      "i0": 0,
+      "i1": 2,
+      "start_frame": 3,
+      "end_frame": 4,
+      "n": 2
+    }
+  ],
+  "flight_run": null,
+  "airborne_frame_range": null,
+  "n_before_leave": 0,
+  "n_before_entry": 0,
+  "coeffs": null,
+  "inliers": [],
+  "n_outliers": 0,
+  "arc_rms_px": null,
+  "arc_rms_all_px": null,
+  "max_inlier_res_px": null,
+  "residuals": null,
+  "flight_points": [],
+  "last_arc_frame": null,
+  "last_contact_candidate": {
+    "frame": 4,
+    "x": 686.9486083984375,
+    "y": 265.3568115234375,
+    "kp_conf": 0.9730105400085449
+  },
+  "cfg": {
+    "arc_outlier_px": 20,
+    "max_frame_gap": 10,
+    "min_run_points": 3,
+    "ransac_iters": 3000,
+    "seed": 0,
+    "space": "2d",
+    "arc_outlier_ft": 0.35
+  },
+  "parabola": null,
+  "curve": [],
+  "contact_point": null,
+  "fit_points": [],
+  "fit_rms_px": null,
+  "fit_note": "the fork's gates rejected the last 2 point(s) (needs >= 6 points and an x-span of >= 30 px)",
+  "space": "2d",
+  "arc_rms_ft": null,
+  "max_inlier_res_ft": null,
+  "plane": null
+}
