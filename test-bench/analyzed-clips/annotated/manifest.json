@@ -1,0 +1,36 @@
+{
+  "schema": "test_bench.manifest/1",
+  "clip_id": "annotated",
+  "source": {
+    "original_path": "C:\\Users\\harri\\Documents\\GitHub\\Dog-Diving-Scoring\\end-to-end-app\\out\\video004_right-00.00.36.812-00.00.38.328-seg01\\annotated.mp4",
+    "sha256": "2267d98a826de26dab30a0693dee52171d7775dac4a3bc94226462bf6d72ae99",
+    "kind": "mp4",
+    "filename": "annotated.mp4"
+  },
+  "meta": {
+    "width": 960,
+    "height": 600,
+    "fps": 60.0,
+    "codec": "mpeg4",
+    "n_frames": 92,
+    "vfr": false,
+    "declared_vs_decoded": [
+      92,
+      92
+    ],
+    "duration_s": 1.533333,
+    "backend": "ffprobe",
+    "probe_warnings": []
+  },
+  "plane": {
+    "setup_id": null,
+    "present": false
+  },
+  "detections": {},
+  "trajectory": {},
+  "ground_truth": {
+    "path": "ground_truth.json",
+    "judge_present": false
+  },
+  "results": []
+}
