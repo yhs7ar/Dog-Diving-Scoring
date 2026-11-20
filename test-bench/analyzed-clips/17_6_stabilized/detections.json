@@ -1,962 +1,482 @@
 [
   {
     "frame": 0,
-    "nose": [
-      1516.3187255859375,
-      368.72137451171875,
-      0.9335358142852783
-    ],
-    "tailset": [
-      1552.4478149414062,
-      475.4468536376953,
-      0.9206315875053406
-    ],
-    "box_conf": 0.8385687470436096,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 1,
-    "nose": [
-      1520.6177978515625,
-      369.25335693359375,
-      0.9389488101005554
-    ],
-    "tailset": [
-      1556.5244750976562,
-      474.25355529785156,
-      0.917743444442749
-    ],
-    "box_conf": 0.8407673835754395,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 2,
-    "nose": [
-      1525.576416015625,
-      368.9322509765625,
-      0.9371801614761353
-    ],
-    "tailset": [
-      1561.4630737304688,
-      473.20310974121094,
-      0.9349139332771301
-    ],
-    "box_conf": 0.8436484336853027,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 3,
-    "nose": [
-      1530.8604736328125,
-      368.6630859375,
-      0.9455223679542542
-    ],
-    "tailset": [
-      1565.684326171875,
-      476.28196716308594,
-      0.9532458186149597
-    ],
-    "box_conf": 0.8331167101860046,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 4,
-    "nose": [
-      1537.50732421875,
-      368.2160339355469,
-      0.9392249584197998
-    ],
-    "tailset": [
-      1569.0996704101562,
-      476.8544616699219,
-      0.933497965335846
-    ],
-    "box_conf": 0.8223039507865906,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 5,
-    "nose": [
-      1542.74755859375,
-      368.0510559082031,
-      0.9589685201644897
-    ],
-    "tailset": [
-      1572.2505493164062,
-      475.2494354248047,
-      0.953568160533905
-    ],
-    "box_conf": 0.831794023513794,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 6,
-    "nose": [
-      1548.1920166015625,
-      367.4402160644531,
-      0.9725565910339355
-    ],
-    "tailset": [
-      1575.5042724609375,
-      472.8669128417969,
-      0.9619861841201782
-    ],
-    "box_conf": 0.8508815169334412,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 7,
-    "nose": [
-      1554.4185791015625,
-      366.2537536621094,
-      0.976842999458313
-    ],
-    "tailset": [
-      1580.3120727539062,
-      474.38771057128906,
-      0.9669532775878906
-    ],
-    "box_conf": 0.8563304543495178,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 8,
-    "nose": [
-      1561.1865234375,
-      365.2048645019531,
-      0.9835489988327026
-    ],
-    "tailset": [
-      1584.6419067382812,
-      474.7071838378906,
-      0.9749839901924133
-    ],
-    "box_conf": 0.8631356358528137,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 9,
-    "nose": [
-      1568.230224609375,
-      364.9004211425781,
-      0.987287163734436
-    ],
-    "tailset": [
-      1589.591552734375,
-      473.29087829589844,
-      0.9702807664871216
-    ],
-    "box_conf": 0.8714401125907898,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 10,
-    "nose": [
-      1575.102294921875,
-      365.2444152832031,
-      0.9896389245986938
-    ],
-    "tailset": [
-      1595.201416015625,
-      472.00645446777344,
-      0.979927659034729
-    ],
-    "box_conf": 0.8804935216903687,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 11,
-    "nose": [
-      1582.2974853515625,
-      364.4718322753906,
-      0.9906741976737976
-    ],
-    "tailset": [
-      1600.4235229492188,
-      472.0183563232422,
-      0.982917845249176
-    ],
-    "box_conf": 0.8866055011749268,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 12,
-    "nose": [
-      1589.4686279296875,
-      363.8231506347656,
-      0.9916195869445801
-    ],
-    "tailset": [
-      1604.7865600585938,
-      470.6377258300781,
-      0.9874486327171326
-    ],
-    "box_conf": 0.8937562108039856,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 13,
-    "nose": [
-      1597.0191650390625,
-      363.17755126953125,
-      0.9929392337799072
-    ],
-    "tailset": [
-      1608.5718383789062,
-      469.1855773925781,
-      0.98970627784729
-    ],
-    "box_conf": 0.8944827914237976,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 14,
-    "nose": [
-      1603.9791259765625,
-      362.80877685546875,
-      0.9940119385719299
-    ],
-    "tailset": [
-      1611.8941650390625,
-      469.1597595214844,
-      0.9936627149581909
-    ],
-    "box_conf": 0.8968912959098816,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 15,
-    "nose": [
-      1610.505615234375,
-      362.00885009765625,
-      0.9931018352508545
-    ],
-    "tailset": [
-      1614.8233032226562,
-      467.8005676269531,
-      0.9947735667228699
-    ],
-    "box_conf": 0.8869697451591492,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 16,
-    "nose": [
-      1616.7476806640625,
-      360.8727111816406,
-      0.9927127957344055
-    ],
-    "tailset": [
-      1620.4986572265625,
-      466.16603088378906,
-      0.9949612617492676
-    ],
-    "box_conf": 0.8819407820701599,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 17,
-    "nose": [
-      1622.9923095703125,
-      360.4221496582031,
-      0.9918113946914673
-    ],
-    "tailset": [
-      1624.459228515625,
-      466.2302703857422,
-      0.9957913160324097
-    ],
-    "box_conf": 0.880739152431488,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 18,
-    "nose": [
-      1628.9949951171875,
-      359.83154296875,
-      0.9926159381866455
-    ],
-    "tailset": [
-      1628.3436279296875,
-      464.6041564941406,
-      0.9963153004646301
-    ],
-    "box_conf": 0.8831530213356018,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 19,
-    "nose": [
-      1634.1541748046875,
-      358.7986145019531,
-      0.9910118579864502
-    ],
-    "tailset": [
-      1631.8362426757812,
-      463.46893310546875,
-      0.9958691000938416
-    ],
-    "box_conf": 0.8808110356330872,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 20,
-    "nose": [
-      1639.817138671875,
-      358.1329650878906,
-      0.9925466179847717
-    ],
-    "tailset": [
-      1635.5729370117188,
-      463.0585479736328,
-      0.9950807094573975
-    ],
-    "box_conf": 0.8834971785545349,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 21,
-    "nose": [
-      1644.7896728515625,
-      357.37078857421875,
-      0.9936174154281616
-    ],
-    "tailset": [
-      1640.1720581054688,
-      461.5235290527344,
-      0.9936360120773315
-    ],
-    "box_conf": 0.8810423016548157,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 22,
-    "nose": [
-      1650.0677490234375,
-      356.92254638671875,
-      0.9939858913421631
-    ],
-    "tailset": [
-      1644.36279296875,
-      459.5092315673828,
-      0.9914284348487854
-    ],
-    "box_conf": 0.8779492974281311,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 23,
-    "nose": [
-      1655.1966552734375,
-      356.0885925292969,
-      0.9935495257377625
-    ],
-    "tailset": [
-      1647.5467529296875,
-      458.6474609375,
-      0.9917224049568176
-    ],
-    "box_conf": 0.8727959990501404,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 24,
-    "nose": [
-      1659.630615234375,
-      354.95855712890625,
-      0.994247317314148
-    ],
-    "tailset": [
-      1649.1790161132812,
-      456.30039978027344,
-      0.9911126494407654
-    ],
-    "box_conf": 0.8799143433570862,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 25,
-    "nose": [
-      1664.1029052734375,
-      353.9023742675781,
-      0.993474543094635
-    ],
-    "tailset": [
-      1651.0679321289062,
-      457.26019287109375,
-      0.9909824728965759
-    ],
-    "box_conf": 0.8869014978408813,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 26,
-    "nose": [
-      1668.4764404296875,
-      352.925537109375,
-      0.9935266971588135
-    ],
-    "tailset": [
-      1654.474609375,
-      457.88096618652344,
-      0.9893057942390442
-    ],
-    "box_conf": 0.8733541965484619,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 27,
-    "nose": [
-      1672.53955078125,
-      352.76715087890625,
-      0.9916319251060486
-    ],
-    "tailset": [
-      1657.3519897460938,
-      456.3518371582031,
-      0.9864534735679626
-    ],
-    "box_conf": 0.8513421416282654,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 28,
-    "nose": [
-      1675.9637451171875,
-      352.4844970703125,
-      0.9917962551116943
-    ],
-    "tailset": [
-      1661.2046508789062,
-      457.3112030029297,
-      0.9876391291618347
-    ],
-    "box_conf": 0.8593555688858032,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 29,
-    "nose": [
-      1679.451904296875,
-      351.7363586425781,
-      0.9891286492347717
-    ],
-    "tailset": [
-      1665.2391357421875,
-      456.3424072265625,
-      0.989547848701477
-    ],
-    "box_conf": 0.8518900275230408,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 30,
-    "nose": [
-      1682.848388671875,
-      351.4479064941406,
-      0.9881529211997986
-    ],
-    "tailset": [
-      1668.3684692382812,
-      457.03160095214844,
-      0.9873443841934204
-    ],
-    "box_conf": 0.8676505088806152,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 31,
-    "nose": [
-      1685.39697265625,
-      349.92462158203125,
-      0.9898684024810791
-    ],
-    "tailset": [
-      1672.4765014648438,
-      455.5073547363281,
-      0.9909020066261292
-    ],
-    "box_conf": 0.8722168207168579,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 32,
-    "nose": [
-      1689.2047119140625,
-      349.2847595214844,
-      0.9907405376434326
-    ],
-    "tailset": [
-      1675.7351684570312,
-      453.7088317871094,
-      0.9911835193634033
-    ],
-    "box_conf": 0.8730022311210632,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 33,
-    "nose": [
-      1691.281982421875,
-      348.15252685546875,
-      0.9910898208618164
-    ],
-    "tailset": [
-      1679.7597045898438,
-      452.9534606933594,
-      0.9909364581108093
-    ],
-    "box_conf": 0.8794023990631104,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 34,
-    "nose": [
-      6.661710262298584,
-      709.2239990234375,
-      0.01911906898021698
-    ],
-    "tailset": [
-      0.0,
-      898.91064453125,
-      0.010890815407037735
-    ],
-    "box_conf": 0.8461974859237671,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
     "accepted": false
   },
   {
     "frame": 35,
-    "nose": [
-      1695.771240234375,
-      346.47833251953125,
-      0.987747073173523
-    ],
-    "tailset": [
-      1687.0732421875,
-      451.4161071777344,
-      0.9886483550071716
-    ],
-    "box_conf": 0.8543039560317993,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 36,
-    "nose": [
-      6.87114143371582,
-      710.0615234375,
-      0.018518740311264992
-    ],
-    "tailset": [
-      0.0,
-      897.2251586914062,
-      0.012753824703395367
-    ],
-    "box_conf": 0.8517479300498962,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
     "accepted": false
   },
   {
     "frame": 37,
-    "nose": [
-      7.215160846710205,
-      709.9847412109375,
-      0.018760064616799355
-    ],
-    "tailset": [
-      0.0,
-      899.6818542480469,
-      0.014128005132079124
-    ],
-    "box_conf": 0.856285810470581,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
     "accepted": false
   },
   {
     "frame": 38,
-    "nose": [
-      7.145060062408447,
-      709.2639770507812,
-      0.018223674967885017
-    ],
-    "tailset": [
-      0.0,
-      898.1107177734375,
-      0.01455282885581255
-    ],
-    "box_conf": 0.8551651239395142,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
     "accepted": false
   },
   {
     "frame": 39,
-    "nose": [
-      1707.951171875,
-      342.44287109375,
-      0.9855198264122009
-    ],
-    "tailset": [
-      1701.117919921875,
-      448.4204864501953,
-      0.9931069016456604
-    ],
-    "box_conf": 0.863265872001648,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 40,
-    "nose": [
-      1711.2674560546875,
-      341.4855651855469,
-      0.9845342636108398
-    ],
-    "tailset": [
-      1702.346435546875,
-      448.643798828125,
-      0.991242527961731
-    ],
-    "box_conf": 0.8758928775787354,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 41,
-    "nose": [
-      1714.215087890625,
-      341.40240478515625,
-      0.987894594669342
-    ],
-    "tailset": [
-      1703.2030029296875,
-      449.28086853027344,
-      0.990532636642456
-    ],
-    "box_conf": 0.8735863566398621,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 42,
-    "nose": [
-      1716.7523193359375,
-      340.9269104003906,
-      0.9886192083358765
-    ],
-    "tailset": [
-      1706.6651611328125,
-      449.47483825683594,
-      0.9911400675773621
-    ],
-    "box_conf": 0.8619886636734009,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 43,
-    "nose": [
-      1718.7265625,
-      340.4859313964844,
-      0.9850990772247314
-    ],
-    "tailset": [
-      1709.81640625,
-      450.37867736816406,
-      0.9920781254768372
-    ],
-    "box_conf": 0.8642808794975281,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 44,
-    "nose": [
-      1721.8114013671875,
-      339.66290283203125,
-      0.982758104801178
-    ],
-    "tailset": [
-      1712.2561645507812,
-      449.4206237792969,
-      0.9913517236709595
-    ],
-    "box_conf": 0.8728546500205994,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 45,
-    "nose": [
-      1724.0020751953125,
-      339.9047546386719,
-      0.9839019179344177
-    ],
-    "tailset": [
-      1714.356689453125,
-      448.779052734375,
-      0.9922695159912109
-    ],
-    "box_conf": 0.870513916015625,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 46,
-    "nose": [
-      1726.62646484375,
-      340.3568420410156,
-      0.9844161868095398
-    ],
-    "tailset": [
-      1716.2186279296875,
-      448.5453643798828,
-      0.9940647482872009
-    ],
-    "box_conf": 0.8752754926681519,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 47,
-    "nose": [
-      1728.871337890625,
-      340.4365234375,
-      0.9858884215354919
-    ],
-    "tailset": [
-      1719.267822265625,
-      448.5675354003906,
-      0.9940357208251953
-    ],
-    "box_conf": 0.8727747201919556,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 48,
-    "nose": [
-      1730.6802978515625,
-      340.7170104980469,
-      0.9865072965621948
-    ],
-    "tailset": [
-      1722.2086791992188,
-      450.0079345703125,
-      0.9943501353263855
-    ],
-    "box_conf": 0.8690803050994873,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 49,
-    "nose": [
-      1732.7960205078125,
-      340.9726867675781,
-      0.9882569909095764
-    ],
-    "tailset": [
-      1723.32666015625,
-      449.79237365722656,
-      0.9948453903198242
-    ],
-    "box_conf": 0.8685503005981445,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 50,
-    "nose": [
-      1734.99609375,
-      340.7042541503906,
-      0.9870530962944031
-    ],
-    "tailset": [
-      1723.9876098632812,
-      448.756591796875,
-      0.9951105713844299
-    ],
-    "box_conf": 0.8661486506462097,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 51,
-    "nose": [
-      1737.4410400390625,
-      341.5994567871094,
-      0.988565981388092
-    ],
-    "tailset": [
-      1726.6080322265625,
-      450.2081604003906,
-      0.9952551126480103
-    ],
-    "box_conf": 0.8714197278022766,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 52,
-    "nose": [
-      1739.291748046875,
-      341.98150634765625,
-      0.9901494979858398
-    ],
-    "tailset": [
-      1728.983642578125,
-      450.95631408691406,
-      0.9955774545669556
-    ],
-    "box_conf": 0.8757071495056152,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 53,
-    "nose": [
-      1741.0321044921875,
-      341.9424743652344,
-      0.9903109073638916
-    ],
-    "tailset": [
-      1731.362060546875,
-      451.454833984375,
-      0.9960569143295288
-    ],
-    "box_conf": 0.885786235332489,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 54,
-    "nose": [
-      1743.008056640625,
-      342.2294616699219,
-      0.9901981353759766
-    ],
-    "tailset": [
-      1733.5394287109375,
-      451.8672637939453,
-      0.9961014986038208
-    ],
-    "box_conf": 0.8905038833618164,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 55,
-    "nose": [
-      1744.75830078125,
-      341.8448791503906,
-      0.9902889728546143
-    ],
-    "tailset": [
-      1735.3677978515625,
-      452.1357116699219,
-      0.9960501790046692
-    ],
-    "box_conf": 0.8884224891662598,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 56,
-    "nose": [
-      1746.4970703125,
-      342.01922607421875,
-      0.9887079000473022
-    ],
-    "tailset": [
-      1736.88916015625,
-      451.5787048339844,
-      0.9951504468917847
-    ],
-    "box_conf": 0.8846217393875122,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 57,
-    "nose": [
-      1748.2156982421875,
-      342.18121337890625,
-      0.9912344217300415
-    ],
-    "tailset": [
-      1738.019287109375,
-      449.4781494140625,
-      0.9959914088249207
-    ],
-    "box_conf": 0.8844131827354431,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 58,
-    "nose": [
-      1750.6336669921875,
-      342.309814453125,
-      0.9904905557632446
-    ],
-    "tailset": [
-      1738.8693237304688,
-      450.36370849609375,
-      0.9960979223251343
-    ],
-    "box_conf": 0.8851431608200073,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   },
   {
     "frame": 59,
-    "nose": [
-      1752.3289794921875,
-      342.0591125488281,
-      0.98935866355896
-    ],
-    "tailset": [
-      1739.9235229492188,
-      449.3374328613281,
-      0.9948478937149048
-    ],
-    "box_conf": 0.8863723874092102,
+    "nose": null,
+    "tailset": null,
+    "box_conf": null,
     "track_id": null,
-    "accepted": true
+    "accepted": false
   }
 ]
