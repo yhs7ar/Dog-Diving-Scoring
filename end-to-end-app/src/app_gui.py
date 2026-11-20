@@ -3668,6 +3668,22 @@ class App:
                                        f"this checkpoint sees the person, not the dog."))
         return model
 
+    def _model_load_failed(self, exc: BaseException) -> None:
+        """Report a checkpoint-load failure in the log, not as a dead worker thread.
+
+        ``_model_for`` runs *outside* ``run_pipeline``, so its exceptions used to escape the
+        worker: the thread died with only a stderr traceback, no outcome was queued, and Run
+        stayed disabled for the rest of the session.  A missing ``ultralytics`` is the common
+        case (wrong interpreter — see ``run_app.cmd``), so it gets its own message.
+        """
+        msg = f"{type(exc).__name__}: {exc}"
+        missing = getattr(exc, "name", None) or ""
+        if isinstance(exc, ModuleNotFoundError) and missing.split(".")[0] == "ultralytics":
+            msg = (f"pose model cannot load — no 'ultralytics' in {sys.executable}. "
+                   f"Install requirements.txt into that interpreter, or start the app with "
+                   f"run_app.cmd so the project venv is used.")
+        self.q.put(("run_error", msg))
+
     def on_run(self) -> None:
         if not self.clip:
             self.log("load a clip first")
@@ -3739,7 +3755,11 @@ class App:
                     self.q.put(("log", f"engine build FAILED: {exc} — using the .pt"))
             cfg = detect_mod.DetectConfig(model_path=selection, imgsz=DEFAULT_IMGSZ,
                                           conf=DEFAULT_CONF, kp_conf=DEFAULT_KP_CONF)
-            model = self._model_for(cfg)
+            try:
+                model = self._model_for(cfg)
+            except Exception as exc:  # noqa: BLE001 — a dead thread must not leave Run disabled
+                self._model_load_failed(exc)
+                return
             outcome = run_pipeline(
                 clip, calib=calib, pool_calib=pool_calib, pool_calib_path=pool_path,
                 cfg=cfg, model=model,
@@ -5080,6 +5100,11 @@ class App:
                     self._on_progress(payload)
                 elif kind == "outcome":
                     self._on_outcome(payload)
+                elif kind == "run_error":
+                    self.run_btn.configure(state="normal")
+                    self.cancel_btn.configure(state="disabled")
+                    self.progress_label.configure(text="failed")
+                    self.log(f"run FAILED: {payload}")
                 elif kind == "stability":
                     self._show_stability(payload)
                 elif kind == "log":
