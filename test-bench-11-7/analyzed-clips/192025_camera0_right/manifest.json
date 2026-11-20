@@ -1,0 +1,53 @@
+{
+  "schema": "test_bench.manifest/1",
+  "clip_id": "192025_camera0_right",
+  "source": {
+    "original_path": "C:\\Users\\harri\\Videos\\Dog-Diving-Videos\\Documents\\Captstone-Repo\\end-to-end-app\\data\\clips_11-7\\live_jump_19691231_192025_camera0_right.mp4",
+    "sha256": "80dcc6e9abb3677380cf82028f9d37977290f531cb34b676663886588f7e5fae",
+    "kind": "mp4",
+    "filename": "live_jump_19691231_192025_camera0_right.mp4"
+  },
+  "meta": {
+    "width": 960,
+    "height": 600,
+    "fps": 30.0,
+    "codec": "mpeg4",
+    "n_frames": 150,
+    "vfr": false,
+    "declared_vs_decoded": [
+      150,
+      150
+    ],
+    "duration_s": 5.0,
+    "backend": "ffprobe",
+    "probe_warnings": []
+  },
+  "plane": {
+    "setup_id": "camera0_right_2026-11-20_01-44-19",
+    "present": true
+  },
+  "detections": {
+    "path": "detections.json",
+    "model_sha": "bdb7688775ee39201d4a77ef0041c7c3e9eb9202f7a5df287a11c98e80ef82e4",
+    "n_detections": 32,
+    "n_accepted": 32,
+    "status": "detected"
+  },
+  "trajectory": {
+    "path": "trajectory.json",
+    "n_points": 32
+  },
+  "ground_truth": {
+    "path": "ground_truth.json",
+    "judge_present": false
+  },
+  "results": [],
+  "labels": {
+    "dog": "joule",
+    "judge_score_in": 120,
+    "score_raw": "10'0\"",
+    "csv_line": 26,
+    "camera": "camera0_right",
+    "jump_time": "192025"
+  }
+}

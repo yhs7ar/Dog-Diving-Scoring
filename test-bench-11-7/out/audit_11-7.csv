@@ -1,0 +1,117 @@
+jump_time,dog,camera,judge_score_in,distance_in,error_in,status
+190321,lida ford,camera1_right,238,187.13,50.87,ok
+190321,lida ford,camera0_right,238,93.04,144.96,ok
+190347,lida ford,camera1_right,250,,,failed:no_detection
+190347,lida ford,camera0_right,250,,,failed:no_detection
+190401,lida ford,camera1_right,258,,,failed:no_crossing
+190401,lida ford,camera0_right,258,-740.84,998.84,failed:out_of_extent
+190453,lida ford,camera1_right,256,191.51,64.49,ok
+190453,lida ford,camera0_right,256,308.5,52.5,ok
+190623,lida ford,camera1_right,214,-117.36,331.36,failed:out_of_extent
+190623,lida ford,camera0_right,214,222.68,8.68,ok
+190746,lida ford,camera1_right,221,165.5,55.5,ok
+190746,lida ford,camera0_right,221,223.55,2.55,ok
+190832,lida ford,camera1_right,176,725.55,549.55,failed:out_of_extent
+190832,lida ford,camera0_right,176,138.4,37.6,ok
+191021,ICE,camera1_right,130,,,failed:no_detection
+191021,ICE,camera0_right,130,,,failed:few_points
+191059,ICE,camera1_right,118,,,failed:few_points
+191059,ICE,camera0_right,118,,,failed:no_crossing
+191116,ICE,camera1_right,86,,,failed:few_points
+191116,ICE,camera0_right,86,34.86,51.14,ok
+191146,ICE,camera1_right,91,,,failed:few_points
+191146,ICE,camera0_right,91,,,failed:no_crossing
+191230,ICE,camera1_right,104,,,failed:few_points
+191230,ICE,camera0_right,104,69.14,34.86,ok
+191312,ICE,camera1_right,109,,,failed:no_crossing
+191312,ICE,camera0_right,109,,,failed:no_crossing
+191507,ICE,camera1_right,111,-116.71,227.71,failed:out_of_extent
+191507,ICE,camera0_right,111,93.5,17.5,ok
+191551,ICE,camera1_right,113,-175.74,288.74,failed:out_of_extent
+191551,ICE,camera0_right,113,94.79,18.21,ok
+191638,ICE,camera1_right,120,,,failed:no_crossing
+191638,ICE,camera0_right,120,72.6,47.4,ok
+191808,joule,camera1_right,146,,,failed:no_crossing
+191808,joule,camera0_right,146,120.43,25.57,ok
+191843,joule,camera1_right,139,19.76,119.24,ok
+191843,joule,camera0_right,139,112.89,26.11,ok
+191952,joule,camera1_right,123,172.66,49.66,ok
+191952,joule,camera0_right,123,150.84,27.84,ok
+192025,joule,camera1_right,120,-161.27,281.27,failed:out_of_extent
+192025,joule,camera0_right,120,-223.75,343.75,failed:out_of_extent
+192056,sable,camera1_right,154,199.22,45.22,ok
+192056,sable,camera0_right,154,184.56,30.56,ok
+192101,joule,camera1_right,108,,,failed:no_crossing
+192101,joule,camera0_right,108,286.04,178.04,ok
+192148,joule,camera1_right,112,,,failed:no_crossing
+192148,joule,camera0_right,112,482.96,370.96,failed:out_of_extent
+192235,joule,camera1_right,143,,,failed:no_crossing
+192235,joule,camera0_right,143,147.11,4.11,ok
+192240,sable,camera1_right,130,7.73,122.27,ok
+192240,sable,camera0_right,130,196.01,66.01,ok
+192414,lida ford,camera1_right,263,,,failed:few_points
+192414,lida ford,camera0_right,263,298.23,35.23,ok
+192503,lida ford,camera1_right,266,222.35,43.65,ok
+192503,lida ford,camera0_right,266,317.46,51.46,ok
+192557,lida ford,camera1_right,282,233.28,48.72,ok
+192557,lida ford,camera0_right,282,-289.22,571.22,failed:out_of_extent
+192728,lida ford,camera1_right,268,,,failed:no_detection
+192728,lida ford,camera0_right,268,,,failed:no_crossing
+192807,lida ford,camera1_right,259,219.95,39.05,ok
+192807,lida ford,camera0_right,259,246.81,12.19,ok
+192901,lida ford,camera1_right,263,,,failed:few_points
+192901,lida ford,camera0_right,263,,,failed:no_detection
+192953,lida ford,camera1_right,268,63.36,204.64,ok
+192953,lida ford,camera0_right,268,185.53,82.47,ok
+193205,lydia,camera1_right,292,,,failed:few_points
+193205,lydia,camera0_right,292,147.42,144.58,ok
+193304,lydia,camera1_right,294,107.7,186.3,ok
+193304,lydia,camera0_right,294,306.27,12.27,ok
+193413,lydia,camera1_right,299,494.83,195.83,failed:out_of_extent
+193413,lydia,camera0_right,299,-977.03,1276.03,failed:out_of_extent
+193524,lydia,camera1_right,303,,,failed:few_points
+193524,lydia,camera0_right,303,218.83,84.17,ok
+193908,sapper,camera1_right,247,60.96,186.04,ok
+193908,sapper,camera0_right,247,301.29,54.29,ok
+194059,sapper,camera1_right,215,-1531.27,1746.27,failed:out_of_extent
+194059,sapper,camera0_right,215,185.65,29.35,ok
+194148,sapper,camera1_right,205,2179.26,1974.26,failed:out_of_extent
+194148,sapper,camera0_right,205,174.37,30.63,ok
+194259,sapper,camera1_right,184,,,failed:no_crossing
+194259,sapper,camera0_right,184,263.78,79.78,ok
+194523,joule,camera1_right,136,40.37,95.63,ok
+194523,joule,camera0_right,136,114.98,21.02,ok
+194607,joule,camera1_right,154,,,failed:no_detection
+194607,joule,camera0_right,154,,,failed:no_detection
+194647,joule,camera1_right,159,,,failed:no_crossing
+194647,joule,camera0_right,159,149.5,9.5,ok
+194725,joule,camera1_right,133,-219.16,352.16,failed:out_of_extent
+194725,joule,camera0_right,133,241.52,108.52,ok
+194756,joule,camera1_right,159,40.05,118.95,ok
+194756,joule,camera0_right,159,148.73,10.27,ok
+194840,joule,camera1_right,165,142.72,22.28,ok
+194840,joule,camera0_right,165,155.37,9.63,ok
+194934,joule,camera1_right,124,,,failed:no_crossing
+194934,joule,camera0_right,124,59.56,64.44,ok
+195014,joule,camera1_right,163,,,failed:few_points
+195014,joule,camera0_right,163,-395.02,558.02,failed:out_of_extent
+195309,lucian,camera1_right,287,183.63,103.37,ok
+195309,lucian,camera0_right,287,237.0,50.0,ok
+195501,lucian,camera1_right,291,545.75,254.75,failed:out_of_extent
+195501,lucian,camera0_right,291,-388.98,679.98,failed:out_of_extent
+195725,lucian,camera1_right,292,455.29,163.29,failed:out_of_extent
+195725,lucian,camera0_right,292,-333.53,625.53,failed:out_of_extent
+195818,lucian,camera1_right,284,322.48,38.48,ok
+195818,lucian,camera0_right,284,247.37,36.63,ok
+195919,lucian,camera1_right,271,235.26,35.74,ok
+195919,lucian,camera0_right,271,228.8,42.2,ok
+200200,surfer,camera1_right,152,,,failed:few_points
+200200,surfer,camera0_right,152,,,failed:no_crossing
+200306,surfer,camera1_right,158,86.23,71.77,ok
+200306,surfer,camera0_right,158,,,failed:no_crossing
+200349,surfer,camera1_right,164,,,failed:no_detection
+200349,surfer,camera0_right,164,,,failed:no_crossing
+200436,surfer,camera1_right,146,,,failed:no_detection
+200436,surfer,camera0_right,146,,,failed:few_points
+200741,blue,camera1_right,246,,,failed:no_detection
+200741,blue,camera0_right,246,607.66,361.66,failed:out_of_extent

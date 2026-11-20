@@ -1,0 +1,53 @@
+{
+  "schema": "test_bench.manifest/1",
+  "clip_id": "192503_camera0_right",
+  "source": {
+    "original_path": "C:\\Users\\harri\\Videos\\Dog-Diving-Videos\\Documents\\Captstone-Repo\\end-to-end-app\\data\\clips_11-7\\live_jump_19691231_192503_camera0_right.mp4",
+    "sha256": "c53ccc680a1b0cb09dafb0c29905d8413e70301f497aae32a8a6a806406b913d",
+    "kind": "mp4",
+    "filename": "live_jump_19691231_192503_camera0_right.mp4"
+  },
+  "meta": {
+    "width": 960,
+    "height": 600,
+    "fps": 30.0,
+    "codec": "mpeg4",
+    "n_frames": 150,
+    "vfr": false,
+    "declared_vs_decoded": [
+      150,
+      150
+    ],
+    "duration_s": 5.0,
+    "backend": "ffprobe",
+    "probe_warnings": []
+  },
+  "plane": {
+    "setup_id": "camera0_right_2026-11-20_01-44-19",
+    "present": true
+  },
+  "detections": {
+    "path": "detections.json",
+    "model_sha": "bdb7688775ee39201d4a77ef0041c7c3e9eb9202f7a5df287a11c98e80ef82e4",
+    "n_detections": 33,
+    "n_accepted": 33,
+    "status": "detected"
+  },
+  "trajectory": {
+    "path": "trajectory.json",
+    "n_points": 33
+  },
+  "ground_truth": {
+    "path": "ground_truth.json",
+    "judge_present": false
+  },
+  "results": [],
+  "labels": {
+    "dog": "lida ford",
+    "judge_score_in": 266,
+    "score_raw": "22'2\"",
+    "csv_line": 33,
+    "camera": "camera0_right",
+    "jump_time": "192503"
+  }
+}

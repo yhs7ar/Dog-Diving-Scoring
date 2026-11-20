@@ -1,0 +1,59 @@
+jump_time,dog,judge_score_in,score_raw,Camera0_Left,Camera0_Right,Camera1_Left,Camera1_Right
+190321,lida ford,238,"19'10""",,ok,,ok
+190347,lida ford,250,"20'10""",,failed:no_detection,,failed:no_detection
+190401,lida ford,258,"21'6""",,failed:out_of_extent,,failed:no_crossing
+190453,lida ford,256,"21'4""",,ok,,ok
+190623,lida ford,214,"17'10""",,ok,,failed:out_of_extent
+190746,lida ford,221,"18'5""",,ok,,ok
+190832,lida ford,176,"14'8""",,ok,,failed:out_of_extent
+191021,ICE,130,"10'10""",,failed:few_points,,failed:no_detection
+191059,ICE,118,"9'10""",,failed:no_crossing,,failed:few_points
+191116,ICE,86,"7'2""",,ok,,failed:few_points
+191146,ICE,91,"7'7""",,failed:no_crossing,,failed:few_points
+191230,ICE,104,"8'8""",,ok,,failed:few_points
+191312,ICE,109,"9'1""",,failed:no_crossing,,failed:no_crossing
+191507,ICE,111,"9'3""",,ok,,failed:out_of_extent
+191551,ICE,113,"9'5""",,ok,,failed:out_of_extent
+191638,ICE,120,"10'0""",,ok,,failed:no_crossing
+191808,joule,146,"12'2""",,ok,,failed:no_crossing
+191843,joule,139,"11'7""",,ok,,ok
+191952,joule,123,"10'3""",,ok,,ok
+192025,joule,120,"10'0""",,failed:out_of_extent,,failed:out_of_extent
+192056,sable,154,"12'10""",,ok,,ok
+192101,joule,108,"9'0""",,ok,,failed:no_crossing
+192148,joule,112,"9'4""",,failed:out_of_extent,,failed:no_crossing
+192235,joule,143,"11'11""",,ok,,failed:no_crossing
+192240,sable,130,"10'10""",,ok,,ok
+192414,lida ford,263,"21'11""",,ok,,failed:few_points
+192503,lida ford,266,"22'2""",,ok,,ok
+192557,lida ford,282,"23'6""",,failed:out_of_extent,,ok
+192728,lida ford,268,"22'4""",,failed:no_crossing,,failed:no_detection
+192807,lida ford,259,"21'7""",,ok,,ok
+192901,lida ford,263,"21'11""",,failed:no_detection,,failed:few_points
+192953,lida ford,268,"22'4""",,ok,,ok
+193205,lydia,292,"24'4""",,ok,,failed:few_points
+193304,lydia,294,"24'6""",,ok,,ok
+193413,lydia,299,"24'11""",,failed:out_of_extent,,failed:out_of_extent
+193524,lydia,303,"25'3""",,ok,,failed:few_points
+193908,sapper,247,"20'7""",,ok,,ok
+194059,sapper,215,"17'11""",,ok,,failed:out_of_extent
+194148,sapper,205,"17'1""",,ok,,failed:out_of_extent
+194259,sapper,184,"15'4""",,ok,,failed:no_crossing
+194523,joule,136,"11'4""",,ok,,ok
+194607,joule,154,"12'10""",,failed:no_detection,,failed:no_detection
+194647,joule,159,"13'3""",,ok,,failed:no_crossing
+194725,joule,133,"11'1""",,ok,,failed:out_of_extent
+194756,joule,159,"13'3""",,ok,,ok
+194840,joule,165,"13'9""",,ok,,ok
+194934,joule,124,"10'4""",,ok,,failed:no_crossing
+195014,joule,163,"13'7""",,failed:out_of_extent,,failed:few_points
+195309,lucian,287,"23'11""",,ok,,ok
+195501,lucian,291,"24'3""",,failed:out_of_extent,,failed:out_of_extent
+195725,lucian,292,"24'4""",,failed:out_of_extent,,failed:out_of_extent
+195818,lucian,284,"23'8""",,ok,,ok
+195919,lucian,271,"22'7""",,ok,,ok
+200200,surfer,152,"12'8""",,failed:no_crossing,,failed:few_points
+200306,surfer,158,"13'2""",,failed:no_crossing,,ok
+200349,surfer,164,"13'8""",,failed:no_crossing,,failed:no_detection
+200436,surfer,146,"12'2""",,failed:few_points,,failed:no_detection
+200741,blue,246,"20'6""",,failed:out_of_extent,,failed:no_detection

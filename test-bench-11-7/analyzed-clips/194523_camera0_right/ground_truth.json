@@ -1,0 +1,16 @@
+{
+  "schema": "test_bench.ground_truth/1",
+  "frame": null,
+  "x_px": null,
+  "y_px": null,
+  "gt_in": null,
+  "gt_in_source": null,
+  "judge_in": 136.0,
+  "judge_present": true,
+  "reference": {
+    "dog": "joule",
+    "score_raw": "11'4\"",
+    "csv_line": 51
+  },
+  "updated": "2026-11-20T06:19:42.698655+00:00"
+}
