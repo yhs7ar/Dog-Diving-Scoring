@@ -97,10 +97,22 @@ class _FramePane(ttk.Frame):
         self._n_frames = 0
 
     def refresh_clips(self):
+        self.clip_box["values"] = self.app.list_clips()
+        self.select_default_clip()
+
+    def select_default_clip(self):
+        """Load the first clip when the pane has none selected (startup or refresh).
+
+        Panes that override ``refresh()`` must call this: without it the combobox
+        stays empty and a processed clip's video/points/GT never render until the
+        operator picks one by hand.
+        """
+        cid = self.clip_var.get()
         ids = self.app.list_clips()
-        self.clip_box["values"] = ids
-        if ids and self.clip_var.get() not in ids:
+        if ids and cid not in ids:
             self.clip_var.set(ids[0])
+            self._on_clip()
+        elif ids and (self.man is None or self.man.get("clip_id") != cid):
             self._on_clip()
 
     def _on_clip(self):
@@ -268,6 +280,9 @@ class AnalyzePane(_FramePane):
             # Default to the end-to-end app's model of record, not the alphabetical first.
             self.model_var.set(MODEL_PATH.name if MODEL_PATH.name in models else models[0])
         self.plane_box["values"] = manifest_mod.list_planes()
+        # Overriding _FramePane.refresh_clips() dropped the auto-select, so an
+        # already-processed clip never rendered its points/GT until picked by hand.
+        self.select_default_clip()
 
     def _log(self, msg):
         self.out.configure(state="normal"); self.out.insert("end", msg + "\n"); self.out.configure(state="disabled")
@@ -304,20 +319,53 @@ class AnalyzePane(_FramePane):
             return
         cdir = self.app.clip_dir(cid)
         self.excluded = set(manifest_mod.read_excluded_frames(cdir))
-        tpath = cdir / "trajectory.json"
-        if tpath.is_file():
-            d = json.loads(tpath.read_text(encoding="utf-8"))
-            self._traj = _Trajectory(d)
-            self._plane_doc = manifest_mod.clip_plane(self.man)
-            self.frame_var.set(int(self._traj.last_frame()))
-            self._n_frames = int(self.man.get("meta", {}).get("n_frames") or 0)
-            self.frame_scale.configure(to=max(1, self._n_frames - 1))
-            self._on_frame()
+
+        # Plane: resolve it and say which one was used.  A manifest's setup_id can
+        # name a plane that was re-saved under a timestamped id; the resolver
+        # falls back by camera tag, and that must never be silent (it is geometry).
+        plane = manifest_mod.plane_resolution(self.man)
+        self._plane_doc = plane["doc"]
+        if plane["doc"] is None:
+            self.plane_lbl.config(text=f"plane: none — {plane['error'] or 'not assigned'}")
+        elif plane["source"] == "camera-auto":
+            self.plane_lbl.config(text=f"plane: {plane['setup_id']} (auto-matched)")
+        else:
+            self.plane_lbl.config(text=f"plane: {plane['setup_id']}")
+
+        # Ground truth: only a placed *pixel* can be drawn.  A record with null
+        # x_px/y_px must leave `pending` None — (None, None) is truthy and used
+        # to send a marker at null coordinates into the overlay list.
         gtp = cdir / "ground_truth.json"
         if gtp.is_file():
-            gt = json.loads(gtp.read_text(encoding="utf-8"))
-            self.pending = (gt.get("x_px"), gt.get("y_px"))
-            self.gt_lbl.config(text=f"GT: {gt.get('gt_in', '')} in")
+            try:
+                gt = json.loads(gtp.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                gt = {}
+            x, y = gt.get("x_px"), gt.get("y_px")
+            gt_in = gt.get("gt_in")
+            judge = gt.get("judge_in")
+            if isinstance(x, (int, float)) and isinstance(y, (int, float)):
+                self.pending = (float(x), float(y))
+                if gt.get("frame") is not None:
+                    self.frame_var.set(int(gt["frame"]))
+            txt = f"GT: {gt_in:.2f} in" if isinstance(gt_in, (int, float)) else "GT: not placed"
+            if isinstance(judge, (int, float)):
+                txt += f"  judge: {judge:.2f} in"
+            self.gt_lbl.config(text=txt)
+
+        tpath = cdir / "trajectory.json"
+        if tpath.is_file():
+            try:
+                self._traj = _Trajectory(json.loads(tpath.read_text(encoding="utf-8")))
+            except (OSError, ValueError):
+                self._traj = None
+            if self._traj is not None and self._traj.points:
+                self._n_frames = int(self.man.get("meta", {}).get("n_frames") or 0)
+                self.frame_scale.configure(to=max(1, self._n_frames - 1))
+                self.frame_var.set(int(self._traj.last_frame()))
+        # Always redraw: the saved points and the GT pixel must appear without the
+        # operator scrubbing a frame first.
+        self._on_frame()
         self._sync_exclude_lbl()
 
     # --- frame / overlay ----------------------------------------------------
@@ -716,9 +764,11 @@ class RunSuitePane(ttk.Frame):
         super().__init__(parent)
         self.app = app
         left = ttk.Frame(self); left.pack(side="left", fill="both", expand=True, padx=8, pady=8)
-        ttk.Label(left, text="Prepared clips (4+ detected pts, GT placed):").pack(anchor="w")
+        ttk.Label(left, text="Prepared clips (4+ detected pts, GT placed, plane resolved):").pack(anchor="w")
         self.clip_list = tk.Listbox(left, selectmode="extended", exportselection=False)
         self.clip_list.pack(fill="both", expand=True)
+        self.summary = ttk.Label(left, text="", wraplength=520, justify="left")
+        self.summary.pack(fill="x", pady=(4, 0))
         right = ttk.Frame(self); right.pack(side="left", fill="y", padx=8, pady=8)
 
         from test_bench.scoring import contract, registry
@@ -743,23 +793,45 @@ class RunSuitePane(ttk.Frame):
         self.status.pack()
 
     def refresh(self):
+        if not self._visible():
+            # Not on screen: defer to on_shown() so launching the app stays
+            # responsive (walking 116 clips' artifacts costs ~2 s cold).
+            return
         self.clip_list.delete(0, "end")
+        # Readiness comes from the clip's artifact files, not the manifest caches
+        # (manifest["detections"]["n_accepted"] is written only by the Analyze
+        # stage, so a clip processed anywhere else arrived with {} and vanished).
+        skipped = []
         for cid in self.app.list_clips():
-            cdir = self.app.clip_dir(cid)
-            if not (cdir / "detections.json").is_file():
+            try:
+                st = manifest_mod.clip_state(self.app.clip_dir(cid))
+            except Exception as e:  # noqa: BLE001 — one broken clip must not blank the pane
+                skipped.append((cid, [f"unreadable: {e}"]))
                 continue
-            if not (cdir / "ground_truth.json").is_file():
-                continue
-            man = manifest_mod.read_manifest(cdir)
-            n_acc = (man.get("detections") or {}).get("n_accepted", 0)
-            if not isinstance(n_acc, int) or n_acc < 4:
-                continue
-            if not (man.get("plane") or {}).get("setup_id"):
-                continue
-            gt = json.loads((cdir / "ground_truth.json").read_text(encoding="utf-8"))
-            if gt.get("gt_in") is None:
-                continue
-            self.clip_list.insert("end", cid)
+            if st["ready"]:
+                self.clip_list.insert("end", cid)
+            else:
+                skipped.append((cid, st["blockers"]))
+        n_ready = self.clip_list.size()
+        if n_ready:
+            msg = f"{n_ready} clip(s) ready"
+        elif skipped:
+            cid, why = skipped[0]
+            msg = (f"0 of {len(skipped)} clip(s) ready — e.g. {cid}: "
+                   + "; ".join(why))
+        else:
+            msg = "no clips selected yet"
+        self.summary.config(text=msg)
+
+    def _visible(self):
+        try:
+            return self.app.nb.nametowidget(self.app.nb.select()) is self
+        except (KeyError, tk.TclError):
+            return True
+
+    def on_shown(self):
+        """Refresh now that this tab is on screen (see refresh())."""
+        self.refresh()
 
     def _run(self):
         sel_idx = self.clip_list.curselection()
@@ -784,11 +856,23 @@ class RunSuitePane(ttk.Frame):
             man = manifest_mod.read_manifest(cdir)
             recs = json.loads((cdir / "detections.json").read_text(encoding="utf-8"))
             points = trajectory_mod.assemble(recs)
-            plane = manifest_mod.clip_plane(man)
-            gt = json.loads((cdir / "ground_truth.json").read_text(encoding="utf-8"))
+            st = manifest_mod.clip_state(cdir, man)
+            plane = st["plane_doc"]
+            gt = dict(st["gt"] or {})
+            # gt_in is always derived from the GT pixel through the plane, never a
+            # stored number, so a record that carries a pixel but no distance (or
+            # was saved under an older plane) scores instead of raising.
+            if plane is not None and gt.get("gt_in") is None and st["gt_placed"]:
+                try:
+                    gt = gt_mod.set_ground_truth(
+                        plane, frame=int(gt.get("frame") or 0),
+                        x_px=float(gt["x_px"]), y_px=float(gt["y_px"]),
+                        judge_in=gt.get("judge_in"), updated=gt.get("updated"))
+                except ValueError as e:
+                    messagebox.showerror("run suite", f"{cid}: {e}")
+                    return
             clips.append({"clip_id": cid, "points": points, "plane_doc": plane, "gt": gt,
                           "frame_size": [man["meta"]["width"], man["meta"]["height"]]})
-            prov[cid] = suite_mod.clip_provenance(man, plane, gt)
         try:
             res = suite_mod.run_suite(clips, configs)
         except Exception as e:  # noqa: BLE001
@@ -1458,6 +1542,7 @@ class App:
         root.geometry("1180x780")
         self.nb = ttk.Notebook(root)
         self.nb.pack(fill="both", expand=True)
+        self.nb.bind("<<NotebookTabChanged>>", lambda _e: self._refresh_visible_pane())
         self.ingest = IngestPane(self.nb, self)
         self.calibrate = CalibratePane(self.nb, self)
         self.analyze = AnalyzePane(self.nb, self)
@@ -1487,6 +1572,16 @@ class App:
         self.run.refresh()
         self.results.refresh()
         self.accuracy.refresh()
+
+    def _refresh_visible_pane(self):
+        """Give the newly shown pane a chance to load its (deferred) data."""
+        try:
+            pane = self.nb.nametowidget(self.nb.select())
+        except (KeyError, tk.TclError):
+            return
+        fn = getattr(pane, "on_shown", None)
+        if callable(fn):
+            fn()
 
     def open_compare(self, clip_id):
         self.compare.load_clip(clip_id)

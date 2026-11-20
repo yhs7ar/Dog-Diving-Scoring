@@ -23,7 +23,8 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
-from typing import Any
+import re
+from typing import Any, Iterable
 
 from dog_diving.config import PLANES_DIR  # test-bench/planes/ — the saved-planes folder
 
@@ -124,21 +125,112 @@ def load_plane(setup_id: str | None) -> dict[str, Any] | None:
     return json.loads(p.read_text(encoding="utf-8"))
 
 
-def clip_plane(manifest: dict[str, Any]) -> dict[str, Any] | None:
-    """Resolve a clip's plane document from its ``plane.setup_id`` (or None).
+def clip_plane(manifest: dict[str, Any], *, allow_camera_fallback: bool = True
+               ) -> dict[str, Any] | None:
+    """Resolve a clip's plane document (see :func:`plane_resolution`).
 
-    A plane whose ``image_size`` disagrees with the clip's ``meta`` width/height is
-    refused with a ``ValueError`` naming both sizes — using it would silently scale
-    every distance.  Set ``DD_ALLOW_PLANE_SIZE_MISMATCH=1`` to override (the only
-    escape hatch; see :func:`plane_size_mismatch`).
+    Order: the manifest's ``plane.setup_id``, then — when that id names no saved
+    plane — the newest saved plane whose id starts with the clip's camera tag
+    (``camera0_right`` -> ``camera0_right_2026-11-20_01-44-19``).  The fallback
+    exists because a re-saved calibration gets a timestamped id while every
+    manifest still carries the older one; without it the same clips silently lose
+    their plane on every machine.  Pass ``allow_camera_fallback=False`` to insist
+    on the exact id.
+
+    Raises ``ValueError`` when the named plane exists but its ``image_size``
+    disagrees with the clip (see :func:`plane_size_mismatch`); returns ``None``
+    when no plane resolves at all.
     """
-    doc = load_plane((manifest.get("plane") or {}).get("setup_id"))
-    if doc is None:
-        return None
-    mm = plane_size_mismatch(manifest, doc)
-    if mm:
-        raise ValueError(f"{mm} (set DD_ALLOW_PLANE_SIZE_MISMATCH=1 to override)")
-    return doc
+    info = plane_resolution(manifest, allow_camera_fallback=allow_camera_fallback)
+    if info.get("error_kind") == "size_mismatch":
+        raise ValueError(f"{info['error']} (set DD_ALLOW_PLANE_SIZE_MISMATCH=1 to override)")
+    return info["doc"]
+
+
+_CAMERA_TAG = re.compile(r"(camera\d+[A-Za-z_]*)")
+
+
+def camera_tag(manifest: dict[str, Any]) -> str | None:
+    """The camera a clip belongs to (``camera0_right``), from labels or clip id."""
+    cam = (manifest.get("labels") or {}).get("camera")
+    for candidate in (cam, manifest.get("clip_id")):
+        if not candidate:
+            continue
+        m = _CAMERA_TAG.search(str(candidate))
+        if m:
+            return m.group(1)
+    return None
+
+
+def plane_documents() -> list[tuple[str, dict[str, Any]]]:
+    """Every saved plane as ``(stem, document)``, skipping unreadable files."""
+    out: list[tuple[str, dict[str, Any]]] = []
+    d = Path(PLANES_DIR)
+    if not d.is_dir():
+        return out
+    for p in sorted(d.glob("*.pool.json")):
+        try:
+            doc = json.loads(p.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if isinstance(doc, dict):
+            out.append((p.stem, doc))
+    return out
+
+
+def plane_resolution(manifest: dict[str, Any], *, allow_camera_fallback: bool = True
+                     ) -> dict[str, Any]:
+    """Resolve a clip's plane, reporting *which* plane was used and why.
+
+    Returns ``{doc, setup_id, requested_id, source, error, error_kind, note}``:
+    ``source`` is ``"manifest"`` (the clip's own id resolved), ``"camera-auto"``
+    (fallback by camera tag), or ``None``.  Callers that display the plane use
+    this rather than :func:`clip_plane` so an auto-matched plane is never silent.
+    """
+    requested = (manifest.get("plane") or {}).get("setup_id")
+    info: dict[str, Any] = {"doc": None, "setup_id": requested, "requested_id": requested,
+                            "source": None, "error": None, "error_kind": None, "note": None}
+
+    doc = load_plane(requested)
+    if doc is not None:
+        info["setup_id"] = doc.get("setup_id") or requested
+        mismatch = plane_size_mismatch(manifest, doc)
+        if mismatch:
+            info["error"] = mismatch.replace(" (set DD_ALLOW_PLANE_SIZE_MISMATCH=1 to override)", "")
+            info["error_kind"] = "size_mismatch"
+            return info
+        info["doc"] = doc
+        info["source"] = "manifest"
+        return info
+
+    if not allow_camera_fallback:
+        info["error"] = f"plane {requested!r} is not saved under {PLANES_DIR}"
+        info["error_kind"] = "not_found"
+        return info
+
+    tag = camera_tag(manifest)
+    if not tag:
+        info["error"] = (f"plane {requested!r} is not saved under {PLANES_DIR} and the clip "
+                         f"names no camera tag to fall back on")
+        info["error_kind"] = "not_found"
+        return info
+
+    candidates = [(stem, d) for stem, d in plane_documents()
+                  if str(d.get("setup_id") or stem).startswith(tag)
+                  and not plane_size_mismatch(manifest, d)]
+    if not candidates:
+        info["error"] = (f"plane {requested!r} is not saved and no saved plane matches camera "
+                         f"tag {tag!r}")
+        info["error_kind"] = "not_found"
+        return info
+
+    candidates.sort(key=lambda item: (str(item[1].get("created") or ""), item[0]))
+    stem, doc = candidates[-1]
+    info.update(doc=doc, setup_id=doc.get("setup_id") or stem, source="camera-auto",
+                note=(f"manifest plane {requested!r} is not saved; using {info.get('setup_id')!r} "
+                      f"matched by camera tag {tag!r}"))
+    info["setup_id"] = doc.get("setup_id") or stem
+    return info
 
 
 def plane_size_mismatch(manifest: dict[str, Any], plane_doc: dict[str, Any] | None) -> str | None:
@@ -241,6 +333,165 @@ def migrate_drop_copied_clips(analyzed_root: str | Path) -> list[dict[str, Any]]
 # A clip's Review state: which detection frames the technician marked faulty.
 # Stored as a bare frame-int list in ``<clip>/excluded_frames.json`` so it is a
 # first-class input to scoring (the suite drops those frames from the point set).
+
+# --- Derived clip state (artifacts are the source of truth) -----------------
+# A manifest's ``detections`` / ``trajectory`` / ``ground_truth`` blocks are
+# *caches*, written only by the stage that last ran.  These 116 clips were found
+# carrying ``detections: {}`` while ``detections.json`` held real accepted
+# points, which made the GUI hide every processed clip.  Anything that decides
+# "is this clip ready?" therefore reads the artifact files; the cached block is
+# consulted only when the artifact is missing.
+
+#: Fewest accepted points a clip needs before the suite can fit a trajectory.
+MIN_SUITE_POINTS = 4
+
+
+def accepted_frames(records: Any, excluded: Iterable[int] = ()) -> list[int]:
+    """Frames of the accepted, non-deselected detections (minus ``excluded``)."""
+    skip = {int(f) for f in excluded or ()}
+    frames: set[int] = set()
+    for r in records if isinstance(records, (list, tuple)) else ():
+        if not isinstance(r, dict) or r.get("frame") is None:
+            continue
+        if not r.get("accepted", True) or r.get("deselected"):
+            continue
+        frame = int(r["frame"])
+        if frame not in skip:
+            frames.add(frame)
+    return sorted(frames)
+
+
+_STATE_CACHE: dict[tuple[str, tuple], dict[str, Any]] = {}
+
+
+def _state_fingerprint(cdir: Path) -> tuple:
+    """(mtime_ns, size) of every artifact a clip_state depends on."""
+    marks = []
+    for name in ("manifest.json", "detections.json", "trajectory.json", "ground_truth.json"):
+        try:
+            st = (cdir / name).stat()
+            marks.append((st.st_mtime_ns, st.st_size))
+        except OSError:
+            marks.append(None)
+    return tuple(marks)
+
+
+def clear_state_cache() -> None:
+    """Drop every memoised clip_state (tests, or after an out-of-band file edit)."""
+    _STATE_CACHE.clear()
+
+
+def clip_state(clip_dir: str | Path, manifest: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Everything the panes need about one clip, read from its artifact files.
+
+    ``{clip_id, has_detections_file, n_detections, n_accepted, accepted_frames,
+    has_trajectory, n_trajectory_points, has_gt_file, gt, gt_placed, gt_in,
+    judge_in, plane_doc, plane_id, plane_source, plane_error, plane_note,
+    excluded_frames, ready, blockers}``.  ``ready``/``blockers`` come from
+    :func:`suite_blockers`, so the Analyze pane and the Run-suite list agree by
+    construction instead of each re-deriving the rule.
+    """
+    cdir = Path(clip_dir)
+    # Memoised on each artifact's mtime+size: a 1200-record detections.json costs
+    # ~15 ms, and the Run-suite list walks every clip on each refresh.
+    use_cache = manifest is None
+    key = None
+    if use_cache:
+        key = (str(cdir), _state_fingerprint(cdir))
+        hit = _STATE_CACHE.get(key)
+        if hit is not None:
+            return dict(hit)
+    man = manifest if manifest is not None else read_manifest(cdir)
+    excluded = sorted({int(f) for f in (man.get("excluded_frames") or [])})
+
+    det_path = cdir / "detections.json"
+    has_det = det_path.is_file()
+    records: Any = []
+    if has_det:
+        try:
+            records = read_json(det_path)
+        except (OSError, ValueError):
+            records = []
+    frames = accepted_frames(records, excluded)
+    n_det = len(records) if isinstance(records, list) else 0
+    n_acc = len(frames)
+    if not has_det:  # legacy clip: fall back to the manifest's cached block
+        cache = man.get("detections") or {}
+        n_det = int(cache.get("n_detections") or 0)
+        n_acc = int(cache.get("n_accepted") or 0)
+
+    traj_path = cdir / "trajectory.json"
+    traj_points: list[Any] = []
+    if traj_path.is_file():
+        try:
+            traj_points = read_json(traj_path).get("points") or []
+        except (OSError, ValueError, AttributeError):
+            traj_points = []
+
+    gt_path = cdir / "ground_truth.json"
+    gt: dict[str, Any] | None = None
+    if gt_path.is_file():
+        try:
+            gt = read_json(gt_path)
+        except (OSError, ValueError):
+            gt = None
+    gt = gt if isinstance(gt, dict) else None
+    x, y = (gt or {}).get("x_px"), (gt or {}).get("y_px")
+    gt_placed = isinstance(x, (int, float)) and isinstance(y, (int, float))
+    gt_in = (gt or {}).get("gt_in")
+    if gt_in is None and gt is None:  # nothing on disk — trust the cached number
+        gt_in = (man.get("ground_truth") or {}).get("gt_in")
+
+    plane = plane_resolution(man)
+
+    state: dict[str, Any] = {
+        "clip_id": man.get("clip_id") or cdir.name,
+        "has_detections_file": has_det,
+        "n_detections": n_det,
+        "n_accepted": n_acc,
+        "accepted_frames": frames,
+        "has_trajectory": bool(traj_points),
+        "n_trajectory_points": len(traj_points),
+        "has_gt_file": gt_path.is_file(),
+        "gt": gt,
+        "gt_placed": gt_placed,
+        "gt_in": gt_in,
+        "judge_in": (gt or {}).get("judge_in"),
+        "plane_doc": plane["doc"],
+        "plane_id": plane["setup_id"],
+        "plane_source": plane["source"],
+        "plane_error": plane["error"],
+        "plane_note": plane["note"],
+        "excluded_frames": excluded,
+    }
+    state["blockers"] = suite_blockers(state)
+    state["ready"] = not state["blockers"]
+    if key is not None:
+        _STATE_CACHE[key] = dict(state)
+    return state
+
+
+def suite_blockers(state: dict[str, Any]) -> list[str]:
+    """Why this clip cannot enter the suite yet (``[]`` == ready).
+
+    The single source of truth for suite readiness: the Run-suite list, the
+    Analyze readout and the tests all call it, so a stale manifest cache can no
+    longer hide a prepared clip (or admit an unprepared one).
+    """
+    out: list[str] = []
+    n_acc = int(state.get("n_accepted") or 0)
+    if not state.get("has_detections_file"):
+        out.append("no detections.json (run Analyze)")
+    elif n_acc < MIN_SUITE_POINTS:
+        out.append(f"{n_acc} accepted point(s), need {MIN_SUITE_POINTS}")
+    if state.get("plane_doc") is None:
+        out.append(state.get("plane_error") or "no plane assigned")
+    if not state.get("has_gt_file"):
+        out.append("no ground_truth.json")
+    elif not state.get("gt_placed"):
+        out.append("ground-truth point not placed")
+    return out
+
 
 def read_excluded_frames(clip_dir: str | Path) -> list[int]:
     """The technician's deselected detection frames, or ``[]`` (none yet).
