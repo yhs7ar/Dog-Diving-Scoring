@@ -941,7 +941,8 @@
     ],
     "box_conf": 0.13433074951171875,
     "track_id": null,
-    "accepted": true
+    "accepted": false,
+    "deselected": true
   },
   {
     "frame": 117,
@@ -957,7 +958,8 @@
     ],
     "box_conf": 0.13469703495502472,
     "track_id": null,
-    "accepted": true
+    "accepted": false,
+    "deselected": true
   },
   {
     "frame": 118,
@@ -973,7 +975,8 @@
     ],
     "box_conf": 0.18861664831638336,
     "track_id": null,
-    "accepted": true
+    "accepted": false,
+    "deselected": true
   },
   {
     "frame": 119,
@@ -989,7 +992,8 @@
     ],
     "box_conf": 0.2605944871902466,
     "track_id": null,
-    "accepted": true
+    "accepted": false,
+    "deselected": true
   },
   {
     "frame": 120,

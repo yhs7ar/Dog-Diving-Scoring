@@ -1,16 +1,14 @@
 {
   "schema": "test_bench.ground_truth/1",
-  "frame": null,
-  "x_px": null,
-  "y_px": null,
-  "gt_in": null,
-  "gt_in_source": null,
+  "frame": 136,
+  "x_px": 607.0,
+  "y_px": 343.5,
+  "gt_in": 86.03851398753639,
+  "gt_in_source": "plane_homography",
   "judge_in": 86.0,
   "judge_present": true,
-  "reference": {
-    "dog": "ICE",
-    "score_raw": "7'2\"",
-    "csv_line": 14
-  },
-  "updated": "2026-11-20T08:19:55.052493+00:00"
+  "updated": "2026-11-20T17:18:08.356203+00:00",
+  "warnings": [
+    "the homography route and the ray/plane route disagree by 5.858e+00 ft (7.029e+01 in); the answer came from the homography. They are the same map, so a disagreement means the pose is not self-consistent \u2014 with an assumed lens it is not, and on the synthetic scene that costs the ray/plane route several inches while the homography barely moves."
+  ]
 }

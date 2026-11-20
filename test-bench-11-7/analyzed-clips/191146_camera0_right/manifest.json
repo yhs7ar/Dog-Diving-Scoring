@@ -29,7 +29,9 @@
     "present": false
   },
   "detections": {},
-  "trajectory": {},
+  "trajectory": {
+    "n_points": 11
+  },
   "ground_truth": {
     "path": "ground_truth.json",
     "judge_present": false
@@ -42,5 +44,8 @@
     "csv_line": 15,
     "camera": "camera0_right",
     "jump_time": "191146"
-  }
+  },
+  "excluded_frames": [
+    19
+  ]
 }
