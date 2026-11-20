@@ -1198,36 +1198,31 @@ class App:
 
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
 
+        try:
+            from dog_diving.config import EXCEL_LEDGER_PATH
+            self.excel_ledger_path: Path = Path(EXCEL_LEDGER_PATH)
+        except (ImportError, AttributeError):
+            self.excel_ledger_path: Path = Path("data/score_ledger.xlsx")
+        self.jump_num_var = tk.IntVar(value=1)
+
+        self.root.protocol("WM_DELETE_WINDOW", self.on_close)
+
         self._build_ui()
-        self._setup_capture_tab()
         self.root.after(80, self._drain)
         self._refresh_plane_choices()
         if clip is not None:
             self.load_clip(clip)
 
+
     # -- ui construction ----------------------------------------------------
-        self._setup_capture_tab()
     def _build_ui(self) -> None:
         tk, ttk = self.tk, self.ttk
 
+        # --- Top Action Toolbar ---
         bar = ttk.Frame(self.root, padding=(8, 6))
         bar.pack(side="top", fill="x")
+        ttk.Button(bar, text="Open clip…", command=self.on_open).pack(side="left")
         
-        # Exit button
-        ttk.Button(bar, text="Exit", command=self.on_close).pack(side="right", padx=5)
-
-        # Camera Live button (resized/styled)
-        self.camera_toggle_btn = tk.Button(
-            bar, 
-            text="CAMERA LIVE", 
-            command=self.on_toggle_camera,
-            bg="black", 
-            fg="white",
-            font=("Arial", 12, "bold"),
-            padx=10, pady=5
-        )
-        self.camera_toggle_btn.pack(side="right", padx=5)
-
         self.capture_seconds_var = tk.StringVar(value=str(CAPTURE_SECONDS))
         ttk.Label(bar, text="capture (s):").pack(side="left", padx=(6, 2))
         self.capture_seconds_spin = ttk.Spinbox(
@@ -1239,6 +1234,7 @@ class App:
             command=self.on_capture_seconds_change,
         )
         self.capture_seconds_spin.pack(side="left", padx=(0, 6))
+        
         self.btn_live_score = tk.Button(
             bar,
             text=f"● Score Live Jump ({CAPTURE_SECONDS}s SVO)",
@@ -1255,50 +1251,73 @@ class App:
         )
         self.btn_live_score.pack(side="left", padx=(6, 12))
 
-        # self.btn_calibrate = tk.Button(
-        #     bar,
-        #     text="Calibrate Cameras…",
-        #     command=self.on_calibrate_capture,
-        #     relief="groove",
-        #     padx=10,
-        #     pady=2,
-        # )
-        # self.btn_calibrate.pack(side="left", padx=(0, 12))
+        self.btn_calibrate = tk.Button(
+            bar,
+            text="Calibrate Cameras…",
+            command=self.on_calibrate_capture,
+            relief="groove",
+            padx=10,
+            pady=2,
+        )
+        self.btn_calibrate.pack(side="left", padx=(0, 12))
 
-        ttk.Button(bar, text="Upload Clip", command=self.on_open).pack(side="left", padx=6)
-        self.clip_label = ttk.Label(bar, text="")
+        self.clip_label = ttk.Label(bar, text="no clip loaded")
         self.clip_label.pack(side="left", padx=12)
 
+        # --- Persistent Progress & Pipeline Bar ---
+        self.prog_frame = ttk.Frame(self.root, padding=(8, 2))
+        self.prog_frame.pack(side="top", fill="x")
+
+        self.run_btn = ttk.Button(self.prog_frame, text="Run Pipeline", command=self.on_run)
+        self.run_btn.pack(side="left", padx=(0, 4))
+        self.cancel_btn = ttk.Button(self.prog_frame, text="Cancel", command=self.on_cancel, state="disabled")
+        self.cancel_btn.pack(side="left", padx=4)
+
+        self.progress_label = ttk.Label(self.prog_frame, text="idle", font=("", 9))
+        self.progress_label.pack(side="left", padx=(10, 6))
+
+        self.progress = ttk.Progressbar(self.prog_frame, length=340, maximum=1.0)
+        self.progress.pack(side="left", padx=4)
+
+        self.cache_label = ttk.Label(self.prog_frame, text="", font=("", 8), foreground="#888")
+        self.cache_label.pack(side="left", padx=6)
+
+        # Internal fallback/model variables preserved from the retired process tab
+        self.min_points_var = tk.IntVar(value=0)
+        self.model_var = tk.StringVar(value=str(detect_mod.MODEL_PATH))
+        self.scale_var = tk.StringVar(value=self._scale_choice_for(detect_mod.MODEL_PATH))
+        self.contact_mode = ttk.Label(self.prog_frame, text="")
+
+        # --- Status & Main Notebook ---
         self.status = ttk.Label(self.root, text="ready", anchor="w", relief="sunken")
         self.status.pack(side="bottom", fill="x")
 
         self.nb = ttk.Notebook(self.root)
         self.nb.pack(fill="both", expand=True, padx=8, pady=(0, 8))
+
+        # Exactly 2 Tabs
         self.tab_calib = ttk.Frame(self.nb, padding=8)
-        self.tab_process = ttk.Frame(self.nb, padding=8)
-        self.tab_review = ttk.Frame(self.nb, padding=8)
-        self.tab_results = ttk.Frame(self.nb, padding=8)
-        self.tab_capture = ttk.Frame(self.nb, padding=8)
-        # No Load step (order 2026-10-28): the toolbar's "Open clip…" loads, the stability check runs
-        # by itself, and a clip that fails it says so in a popup on Calibrate.  Nothing is asked of
-        # the operator that a screen could ask for.
-        for tab, name in ((self.tab_calib, "1 Calibrate"), (self.tab_capture, "2 Capture"), (self.tab_process, "3 Process"), (self.tab_review, "4 Review"), (self.tab_results, "5 Results")):
-            self.nb.add(tab, text=name)
+        self.tab_scoring = ttk.Frame(self.nb, padding=8)
+
+        # Backwards-compatibility aliases for tests/handlers
+        self.tab_review = self.tab_scoring
+        self.tab_results = self.tab_scoring
+        self.tab_process = self.tab_scoring
+
+        self.nb.add(self.tab_calib, text="1 Calibrate")
+        self.nb.add(self.tab_scoring, text="2 Scoring")
 
         self._build_calibrate()
-        self._build_process()
-        self._build_review()
-        self._build_results()
-        self._setup_capture_tab()
+        self._build_scoring()
 
+        # Session Log
         log_frame = ttk.LabelFrame(self.root, text="session log", padding=4)
         log_frame.pack(side="bottom", fill="x", padx=8, pady=(0, 4))
-        self.log_text = tk.Text(log_frame, height=7, wrap="none")
+        self.log_text = tk.Text(log_frame, height=5, wrap="none")
         self.log_text.pack(fill="x")
         if MODEL_SELECTION_NOTE:
-            self.log(MODEL_SELECTION_NOTE)       # e.g. a DD_MODEL_SCALE the registry could not honour
-
-        self._setup_capture_tab()
+            self.log(MODEL_SELECTION_NOTE)
+            
     def _zoomable(self, parent, w: int, h: int):
         """Canvas + scrollbars + zoom toolbar + image-px cursor readout.
 
@@ -1575,7 +1594,199 @@ class App:
              else s.side_midpoint(s.selected))
         where = "" if p is None else f"  ({p[0]:.2f}, {p[1]:.2f}) px"
         var.set(f"moving {s.selected}{where}")
+    def _build_scoring(self) -> None:
+        """Consolidated Review & Results tab."""
+        tk, ttk = self.tk, self.ttk
+        f = self.tab_scoring
 
+        # Row 1: Quick Score Readout & Ledger Bar
+        score_box = ttk.LabelFrame(f, text="Score & Ledger", padding=(8, 4))
+        score_box.pack(fill="x", pady=(0, 4))
+
+        self.readout = ttk.Label(score_box, text="no run yet", font=("", 15, "bold"), foreground="#1f6feb")
+        self.readout.pack(side="left", padx=(4, 16))
+
+        ttk.Separator(score_box, orient="vertical").pack(side="left", fill="y", padx=8)
+
+        ttk.Label(score_box, text="Dog:").pack(side="left", padx=(4, 2))
+        self.dog_name_var = tk.StringVar()
+        self.dog_name_box = ttk.Combobox(
+            score_box, textvariable=self.dog_name_var, width=16, values=list(self.dog_names)
+        )
+        self.dog_name_box.pack(side="left", padx=2)
+        self.dog_name_box.bind("<<ComboboxSelected>>", self.on_dog_name_change)
+        self.dog_name_box.bind("<FocusOut>", self.on_dog_name_change)
+
+        ttk.Label(score_box, text="Jump #:").pack(side="left", padx=(6, 2))
+        self.jump_num_var = tk.IntVar(value=1)
+        self.jump_spin = ttk.Spinbox(score_box, from_=1, to=20, textvariable=self.jump_num_var, width=4)
+        self.jump_spin.pack(side="left", padx=2)
+
+        # Primary Blue Save Button
+        self.btn_save = self._blue_button(score_box, "Save Score", self.on_save_ledger)
+        self.btn_save.pack(side="left", padx=(10, 4))
+
+        ttk.Button(score_box, text="Open Excel", width=11, command=self.on_open_excel).pack(side="left", padx=2)
+        ttk.Button(score_box, text="Accept", width=8, command=self.on_accept).pack(side="left", padx=2)
+
+        self.save_label = ttk.Label(score_box, text="", font=("", 9))
+        self.save_label.pack(side="left", padx=8)
+        self.accept_label = ttk.Label(score_box, text="", font=("", 8), foreground="#666")
+
+        # Row 2: Playback, Frame Scrubber & Entry Adjustment
+        ctrl_row = ttk.Frame(f)
+        ctrl_row.pack(fill="x", pady=2)
+
+        ttk.Button(ctrl_row, text="last detection", command=self.on_jump_last_detection).pack(side="left", padx=(0, 2))
+        for txt, delta in (("<<", -10), ("<", -5), ("prev", -1), ("next", +1), ("+5", +5), (">>", +10)):
+            ttk.Button(ctrl_row, text=txt, width=5, command=lambda d=delta: self.on_nudge(d)).pack(side="left", padx=1)
+
+        self.play_btn = ttk.Button(ctrl_row, text="\u25b6 Play 0.25\u00d7", width=12, command=self.on_play_toggle)
+        self.play_btn.pack(side="left", padx=(6, 2))
+
+        ttk.Separator(ctrl_row, orient="vertical").pack(side="left", fill="y", padx=6)
+
+        ttk.Button(ctrl_row, text="Set entry frame", command=self.on_set_entry).pack(side="left", padx=2)
+        self.entry_live_var = tk.BooleanVar(value=False)
+        ttk.Checkbutton(ctrl_row, text="entry = slider", variable=self.entry_live_var, command=self.on_entry_live).pack(side="left", padx=2)
+        ttk.Button(ctrl_row, text="Auto entry", command=self.on_clear_entry).pack(side="left", padx=2)
+        
+        self.marquee_btn = ttk.Button(ctrl_row, text="Deselect points", command=self.on_toggle_marquee)
+        self.marquee_btn.pack(side="left", padx=(6, 2))
+        self.correct_btn = ttk.Button(ctrl_row, text="Correct Entry", command=self.on_toggle_correct)
+        self.correct_btn.pack(side="left", padx=2)
+
+        # Row 3: Method Switcher & Frame Slider
+        meth_row = ttk.Frame(f)
+        meth_row.pack(fill="x", pady=(2, 0))
+        ttk.Label(meth_row, text="method:").pack(side="left", padx=(2, 4))
+        self.space_var = tk.StringVar(value=measure_mod.SPACE_ARC)
+        for value, text in ((measure_mod.SPACE_ARC, "Trajectory arc (2-D)"), (measure_mod.SPACE_PLANE, "Trajectory plane (3-D)")):
+            ttk.Radiobutton(meth_row, text=text, value=value, variable=self.space_var, command=self.on_trajectory_space).pack(side="left", padx=(0, 8))
+        self.space_note = ttk.Label(meth_row, text="", font=("", 8))
+        self.space_note.pack(side="left", padx=4)
+
+        self.slider = tk.Scale(f, from_=0, to=1, orient="horizontal", length=880, label="frame scrubber", command=self.on_slider)
+        self.slider.pack(fill="x", pady=2)
+
+        # Row 4: Main Split View (Video on Left, Side Dock on Right)
+        body = ttk.Frame(f)
+        body.pack(fill="both", expand=True)
+
+        # Left: Zoomable Video Review Canvas
+        self.review_view, _rev_holder = self._zoomable(body, 660, 400)
+        _rev_holder.pack(side="left", fill="both", expand=True)
+        self.review_view.overlay = self._draw_review_overlay
+        self.review_canvas = self.review_view.canvas
+        self.review_canvas.bind("<Button-1>", self.on_review_click)
+        self.review_canvas.bind("<B1-Motion>", self.on_review_drag)
+        self.review_canvas.bind("<ButtonRelease-1>", self.on_review_release)
+        self.review_canvas.bind("<Motion>", self.on_review_motion)
+        self.review_canvas.bind("<Leave>", self.on_review_leave)
+
+        # Right: Sub-Notebook Dock
+        side_dock = ttk.Notebook(body, width=420)
+        side_dock.pack(side="right", fill="both", padx=(6, 0))
+
+        tab_plan = ttk.Frame(side_dock, padding=4)
+        tab_metrics = ttk.Frame(side_dock, padding=4)
+        side_dock.add(tab_plan, text="Jump View & Points")
+        side_dock.add(tab_metrics, text="Metrics & Export")
+
+        # Side Tab 1: Top-Down Plan View & Points List
+        plan_box = ttk.LabelFrame(tab_plan, text="Top-Down View of Jump", padding=4)
+        plan_box.pack(fill="x")
+        self.plan_canvas = tk.Canvas(plan_box, width=380, height=200, background="#101418", highlightthickness=1, highlightbackground="#2a3038")
+        self.plan_canvas.pack(fill="x")
+        self.plan_canvas.bind("<Configure>", lambda _e: self._redraw_plan())
+        self.plan_note = ttk.Label(plan_box, text="", font=("", 8))
+        self.plan_note.pack(anchor="w")
+
+        pts_box = ttk.LabelFrame(tab_plan, text="Points", padding=4)
+        pts_box.pack(fill="both", expand=True, pady=(4, 0))
+        pbar = ttk.Frame(pts_box)
+        pbar.pack(fill="x")
+        self.pts_note = ttk.Label(pbar, text="all detections included", font=("", 8))
+        self.pts_note.pack(side="left")
+        ttk.Button(pbar, text="Include all", command=self.on_include_all).pack(side="right", padx=(2, 0))
+        ttk.Button(pbar, text="Exclude", command=self.on_exclude_selected).pack(side="right")
+
+        pholder = ttk.Frame(pts_box)
+        pholder.pack(fill="both", expand=True)
+        self.pts_tree = ttk.Treeview(pholder, columns=("keep", "frame", "x", "y", "conf"), show="headings", height=5, selectmode="extended")
+        for col, txt, w in (("keep", "kept", 50), ("frame", "frame", 50), ("x", "x px", 55), ("y", "y px", 55), ("conf", "conf", 50)):
+            self.pts_tree.heading(col, text=txt)
+            self.pts_tree.column(col, width=w, anchor="w")
+        self.pts_tree.tag_configure("out", foreground="#8a8f98")
+        pscroll = ttk.Scrollbar(pholder, orient="vertical", command=self.pts_tree.yview)
+        self.pts_tree.configure(yscrollcommand=pscroll.set)
+        self.pts_tree.pack(side="left", fill="both", expand=True)
+        pscroll.pack(side="right", fill="y")
+        self.pts_tree.bind("<Button-1>", self.on_point_click)
+        self.pts_tree.bind("<space>", self.on_point_space)
+        self.pts_tree.bind("Double-1", self.on_point_goto)
+
+        # Opacity Sliders
+        op_bar = ttk.Frame(tab_plan)
+        op_bar.pack(fill="x", pady=(4, 0))
+        ttk.Label(op_bar, text="element %:").pack(side="left")
+        self.entry_opacity = tk.DoubleVar(value=OPACITY_DEFAULT_PCT)
+        self.opacity_scale = tk.Scale(op_bar, from_=0, to=100, orient="horizontal", variable=self.entry_opacity, showvalue=True, length=85, width=8, command=self.on_opacity)
+        self.opacity_scale.pack(side="left", padx=2)
+
+        ttk.Label(op_bar, text="grid %:").pack(side="left", padx=(6, 0))
+        self.grid_opacity = tk.DoubleVar(value=GRID_OPACITY_DEFAULT_PCT)
+        self.grid_opacity_scale = tk.Scale(op_bar, from_=0, to=100, orient="horizontal", variable=self.grid_opacity, showvalue=True, length=85, width=8, command=self.on_opacity)
+        self.grid_opacity_scale.pack(side="left", padx=2)
+
+        # Side Tab 2: Results Metrics & Artifact Exports
+        self.res_tree = ttk.Treeview(tab_metrics, columns=("k", "v"), show="headings", height=8)
+        self.res_tree.heading("k", text="field")
+        self.res_tree.heading("v", text="value")
+        self.res_tree.column("k", width=130, anchor="w")
+        self.res_tree.column("v", width=250, anchor="w")
+        self.res_tree.pack(fill="x", pady=(0, 4))
+
+        self.res_warn = tk.Text(tab_metrics, height=3, wrap="word")
+        self.res_warn.pack(fill="x", pady=2)
+
+        exp_box = ttk.LabelFrame(tab_metrics, text="Export Artifacts", padding=4)
+        exp_box.pack(fill="x", pady=4)
+        for label, key, ext in (
+            ("MP4…", "annotated", ".mp4"),
+            ("Still…", "still", ".png"),
+            ("JSON…", "result", ".json"),
+            ("Report…", "report", ".txt"),
+        ):
+            ttk.Button(exp_box, text=label, width=8, command=lambda k=key, e=ext: self.on_export(k, e)).pack(side="left", padx=2)
+        ttk.Button(exp_box, text="Folder", width=8, command=self.on_open_outdir).pack(side="left", padx=2)
+        
+    
+    def _on_outcome(self, outcome: PipelineOutcome) -> None:
+        self.run_btn.configure(state="normal")
+        self.cancel_btn.configure(state="disabled")
+        if outcome.error:
+            self.log(f"run FAILED: {outcome.error}")
+            self.progress_label.configure(text="failed")
+            return
+        if outcome.cancelled:
+            self.progress_label.configure(text="cancelled")
+            self.log("run cancelled")
+            return
+
+        self.progress.configure(value=1.0)
+        self.progress_label.configure(text="complete")
+        if outcome.detect is not None:
+            self.cache_label.configure(
+                text=("using cached tracks" if outcome.detect.from_cache else "inference complete")
+            )
+
+        self._install_review(outcome)
+
+        # Automatically switch straight to the Scoring tab!
+        self.nb.select(self.tab_scoring)
+        self.log("run complete — jumped to Scoring tab")
+    """
     def _build_process(self) -> None:
         ttk = self.ttk
         f = self.tab_process
@@ -1646,7 +1857,7 @@ class App:
         self.timing_text = self.tk.Text(f, height=9, width=92, wrap="none",
                                         font=("Consolas", 9), state="disabled")
         self.timing_text.pack(anchor="w", fill="x", pady=(6, 0))
-
+"""
     def on_jump_last_detection(self) -> None:
         """Jump to the last accepted detection — the fork's ``jump_last``, ported."""
         if self.review is None:
@@ -1659,7 +1870,7 @@ class App:
         self.review.choose(frame, "jump-last")
         self.log(f"jumped to the last accepted detection: frame {frame}")
         self._after_review_change()
-
+    """
     def _build_review(self) -> None:
         tk, ttk = self.tk, self.ttk
         f = self.tab_review
@@ -1818,7 +2029,7 @@ class App:
                                            command=self.on_opacity)
         self.grid_opacity_scale.pack(side="left", padx=(6, 0))
         ttk.Label(op, text="%").pack(side="left", padx=(2, 0))
-
+    """
     def on_export_more(self) -> None:
         win = tk.Toplevel(self.root)
         win.title("More Export Options")
@@ -1831,7 +2042,7 @@ class App:
                                 ("run meta JSON…", "meta", ".json")):
             ttk.Button(f, text=label, width=22,
                        command=lambda k=key, e=ext: (self.on_export(k, e), win.destroy())).pack(pady=4)
-
+    """
     def _build_results(self) -> None:
         tk, ttk = self.tk, self.ttk
         f = self.tab_results
@@ -1873,7 +2084,7 @@ class App:
                    command=self.on_replay_from_results).pack(side="left", padx=6)
         ttk.Button(exp, text="More...", width=10,
                    command=self.on_export_more).pack(side="left", padx=6)
-
+    """
     # -- logging / status ---------------------------------------------------
     def log(self, msg: str) -> None:
         self.log_text.insert("end", msg + "\n")
@@ -3285,6 +3496,8 @@ class App:
             self.plane_pick_var.set("")
 
     def _setup_capture_tab(self) -> None:
+        pass
+        """
         import tkinter as tk
         from tkinter import ttk
         
@@ -3293,6 +3506,7 @@ class App:
             
         wip_label = ttk.Label(self.tab_capture, text="WIP", font=("Arial", 48, "bold"), anchor="center")
         wip_label.pack(expand=True, fill="both")
+        """
 
     def _update_video_stream(self) -> None:
         pass
@@ -3719,7 +3933,7 @@ class App:
         if self.review is None:
             self.log("no run to replay")
             return
-        self.nb.select(self.tab_review)
+        self.nb.select(self.tab_scoring)
         self.on_play_toggle()
 
     def on_accept(self) -> None:
@@ -3786,7 +4000,38 @@ class App:
         if hasattr(self, "save_label"):
             self.save_label.configure(text=f"saved: {row['display']} ({name})")
         self.log(f"saved \u2192 ledger: {name} @ {row['display']}")
+        
+    def on_dog_name_change(self, _event=None) -> None:
+        """Auto-calculate and set the next jump number when a dog is selected/typed."""
+        dog_name = (self.dog_name_var.get() if hasattr(self, "dog_name_var") else "").strip()
+        if dog_name and hasattr(self, "jump_num_var"):
+            try:
+                if hasattr(ledger_mod, "get_next_jump_number"):
+                    next_jump = ledger_mod.get_next_jump_number(self.excel_ledger_path, dog_name)
+                    self.jump_num_var.set(next_jump)
+            except Exception:
+                pass
 
+    def on_open_excel(self) -> None:
+        """Open the score ledger Excel spreadsheet with the OS default application."""
+        path = Path(getattr(self, "excel_ledger_path", Path("data/score_ledger.xlsx")))
+        try:
+            if path.exists():
+                if sys.platform == "win32":
+                    try:
+                        os.startfile(str(path))
+                    except Exception:
+                        import subprocess
+                        subprocess.Popen(["explorer.exe", str(path)], shell=False)
+                else:
+                    import subprocess
+                    opener = "xdg-open" if sys.platform.startswith("linux") else "open"
+                    subprocess.Popen([opener, str(path)], shell=False)
+            else:
+                self.log(f"Excel ledger not yet created: {path}")
+        except Exception as exc:  # noqa: BLE001
+            self.log(f"could not open Excel file: {exc}")
+            
     def on_open_ledger(self) -> None:
         """Open the score ledger CSV with the OS default."""
         path = Path(self.ledger_path)
