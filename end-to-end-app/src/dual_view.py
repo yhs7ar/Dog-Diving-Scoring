@@ -139,15 +139,15 @@ class PairView:
         self.row = ttk.Frame(holder.master)
         self.row.pack(after=holder, anchor="w", pady=(2, 0))
         ttk.Label(self.row, text="camera view:").pack(side="left", padx=(0, 4))
+        # Plain ttk buttons, styled like the zoom bar's; the feed on screen carries a check mark.
         self.choice = tk.StringVar(value="clip")
-        self.btn_clip = ttk.Radiobutton(self.row, text="loaded clip", value="clip",
-                                        variable=self.choice, command=self._on_choice,
-                                        style="Toolbutton")
+        self.btn_clip = ttk.Button(self.row, text="loaded clip",
+                                   command=lambda: self._select("clip"))
         self.btn_clip.pack(side="left", padx=1)
-        self.btn_partner = ttk.Radiobutton(self.row, text="paired camera", value="partner",
-                                           variable=self.choice, command=self._on_choice,
-                                           style="Toolbutton")
+        self.btn_partner = ttk.Button(self.row, text="paired camera",
+                                      command=lambda: self._select("partner"))
         self.btn_partner.pack(side="left", padx=1)
+        self.choice.trace_add("write", lambda *_: self._sync_widgets())
         self.note = ttk.Label(self.row, text="", font=("", 8), foreground="#666")
         self.note.pack(side="left", padx=8)
 
@@ -188,6 +188,10 @@ class PairView:
         return True
 
     # -- the switch ------------------------------------------------------------
+    def _select(self, which: str) -> None:
+        self.choice.set(which)
+        self._on_choice()
+
     def _on_choice(self) -> None:
         if self.choice.get() == "partner":
             self.show_partner()
@@ -274,10 +278,14 @@ class PairView:
     def _sync_widgets(self) -> None:
         pair = self.pair
         state = "normal" if pair is not None else "disabled"
-        self.btn_clip.configure(state=state,
-                                text=f"{pair.clip_label} (loaded)" if pair else "loaded clip")
-        self.btn_partner.configure(state=state,
-                                   text=pair.partner_label if pair else "paired camera")
+        on_partner = self.choice.get() == "partner"
+        mark = lambda shown: "✓ " if (pair is not None and shown) else ""   # noqa: E731
+        self.btn_clip.configure(
+            state=state,
+            text=mark(not on_partner) + (f"{pair.clip_label} (loaded)" if pair else "loaded clip"))
+        self.btn_partner.configure(
+            state=state,
+            text=mark(on_partner) + (pair.partner_label if pair else "paired camera"))
 
 
 def attach_pair_view(app: Any, holder: Any) -> PairView:

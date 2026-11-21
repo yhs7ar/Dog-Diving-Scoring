@@ -117,10 +117,12 @@ def test_switch_shows_partner_and_returns(tmp_path: Path) -> None:
         pv = app.pair_view
         assert pv.pair is not None and pv.pair.partner is not None
         assert pv.btn_partner.cget("text") == "left camera"
+        assert pv.btn_clip.cget("text") == "✓ right camera (loaded)"
 
-        pv.choice.set("partner")
-        pv._on_choice()
+        pv.btn_partner.invoke()
         assert pv.showing_partner
+        assert pv.btn_partner.cget("text") == "✓ left camera"
+        assert pv.btn_clip.cget("text") == "right camera (loaded)"
         b, g, r = _shown_mean_bgr(app.calib_view)
         assert b > 150 and r < 50, "the other camera's (blue) frame is not on the canvas"
         assert pv._block(None) == "break", "plane edits must be swallowed on the other feed"
