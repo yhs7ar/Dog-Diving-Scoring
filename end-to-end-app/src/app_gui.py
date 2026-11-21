@@ -102,6 +102,7 @@ from dog_diving import ledger as ledger_mod  # noqa: E402
 from dog_diving import stability as stability_mod  # noqa: E402
 from dog_diving import waterline as waterline_mod  # noqa: E402
 from dog_diving.pool import seed as seed_mod  # noqa: E402
+import dual_view  # noqa: E402  — optional camera-pair switch in the Calibrate pane
 from dog_diving import trajectory as trajectory_mod  # noqa: E402
 from dog_diving import video as video_mod  # noqa: E402
 from dog_diving.pool import calib as pool_calib_mod  # noqa: E402
@@ -1476,6 +1477,7 @@ class App:
 
         self.calib_view, _cal_holder = self._zoomable(f, 900, 430)
         _cal_holder.pack(fill="both", expand=True)
+        self.pair_view = dual_view.attach_pair_view(self, _cal_holder)   # dual_view: camera switch
         self.calib_view.overlay = self._draw_plane_overlay
         self.calib_canvas = self.calib_view.canvas
         self.calib_canvas.bind("<Button-1>", self.on_calib_click)
@@ -2217,6 +2219,8 @@ class App:
         except Exception as exc:  # noqa: BLE001
             self.log(f"could not open {clip}: {type(exc).__name__}: {exc}")
             return
+        if getattr(self, "pair_view", None) is not None:      # dual_view: find the other camera
+            self.pair_view.on_clip_loaded(clip)
         self._stop_replay()
         self.clip_label.configure(text=str(clip))
         # No Load pane to print the probe into: it goes to the session log, where it stays readable.
@@ -2947,6 +2951,8 @@ class App:
         s = self.plane_session
         if s is None or self.pool_frame is None:
             return
+        if getattr(self, "pair_view", None) is not None and self.pair_view.release_view():
+            reset_view = True                                  # dual_view: back to this clip's feed
         base = plane_mod.padded_canvas(self.pool_frame, s.pad)
         # Fit on the PHOTO, not on the padded canvas: 35 % padding each side would otherwise make
         # fit-to-window show the frame at a quarter of the pane and leave the rest black.
