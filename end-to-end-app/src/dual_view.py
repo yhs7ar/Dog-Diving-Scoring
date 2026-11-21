@@ -207,9 +207,11 @@ class PairView:
             self.showing_partner = True
             self.choice.set("partner")
         frame, message = self._partner_image()
-        self.view.content_box = None
-        self.view.overlay = (lambda v, m=message: self._draw_message(v, m)) if message else None
-        self.view.show(frame, reset_view=True)
+        base, box = self._padded(frame)
+        self.view.content_box = box
+        self.view.overlay = ((lambda v, m=message, b=box: self._draw_message(v, m, b))
+                             if message else None)
+        self.view.show(base, reset_view=True)
         shown = self.pair.partner.name if self.pair.partner is not None else "no file"
         self.note.configure(text=f"display only — {shown}  ·  plane tools and Run use "
                                  f"{self.pair.clip.name}")
@@ -223,9 +225,25 @@ class PairView:
             return
         frame = read_first_frame(self.pair.clip, self._frame_index()) if self.pair else None
         if frame is not None:
-            self.view.show(frame, reset_view=True)
+            base, box = self._padded(frame)
+            self.view.content_box = box
+            self.view.show(base, reset_view=True)
 
     # -- helpers ---------------------------------------------------------------
+    def _padded(self, frame: np.ndarray) -> tuple[np.ndarray, tuple[float, float, float, float]]:
+        """``frame`` laid out exactly as ``App._redraw_plane`` lays out the loaded clip.
+
+        The Calibrate view shows the photo inside a dark margin (the plane's ``pad``) and fits /
+        centres on the photo through ``content_box``.  Using the same margin here keeps both
+        feeds in the same place on screen; without it the frame sat in the top-left corner.
+        """
+        from dog_diving.pool import plane as plane_mod
+
+        session = getattr(self.app, "plane_session", None)
+        pad = tuple(session.pad) if session is not None else plane_mod.default_pad(frame.shape[:2])
+        h, w = frame.shape[:2]
+        box = (float(pad[0]), float(pad[1]), float(pad[0]) + w, float(pad[1]) + h)
+        return plane_mod.padded_canvas(frame, pad), box
     def _frame_index(self) -> int:
         var = getattr(self.app, "calib_frame_idx", None)
         try:
@@ -261,16 +279,13 @@ class PairView:
         return result
 
     @staticmethod
-    def _draw_message(view: Any, message: str) -> None:
-        """Centred text as an overlay item, so it stays crisp at any zoom."""
-        size = view.image_size
-        if size is None:
-            return
+    def _draw_message(view: Any, message: str, box: tuple[float, float, float, float]) -> None:
+        """Text centred on the (black) photo, as an overlay item so it stays crisp at any zoom."""
         z = float(view.zoom or 1.0)
-        w, h = size
-        view.canvas.create_text(w * z / 2.0, h * z / 2.0, text=message, fill="#e6e6e6",
-                                font=("", 12, "bold"), justify="center",
-                                width=max(200, int(w * z * 0.8)), tags=("overlay",))
+        x0, y0, x1, y1 = box
+        view.canvas.create_text((x0 + x1) / 2.0 * z, (y0 + y1) / 2.0 * z, text=message,
+                                fill="#e6e6e6", font=("", 12, "bold"), justify="center",
+                                width=max(200, int((x1 - x0) * z * 0.8)), tags=("overlay",))
 
     def _block(self, _event) -> str | None:
         return "break" if self.showing_partner else None

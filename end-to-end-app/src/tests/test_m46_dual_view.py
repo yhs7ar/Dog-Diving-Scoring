@@ -99,8 +99,14 @@ def _app_or_skip():
     return root, app_gui.App(root)
 
 
+def _photo(view) -> np.ndarray:
+    """The photo inside the dark margin (``content_box``), as BGR."""
+    x0, y0, x1, y1 = (int(round(v)) for v in view.content_box)
+    return view._src[y0:y1, x0:x1, ::-1]                          # _src is RGB
+
+
 def _shown_mean_bgr(view) -> np.ndarray:
-    return view._src[:, :, ::-1].reshape(-1, 3).mean(axis=0)   # _src is RGB
+    return _photo(view).reshape(-1, 3).mean(axis=0)
 
 
 def _overlay_texts(view) -> list[str]:
@@ -144,10 +150,28 @@ def test_missing_pair_shows_black_with_message(tmp_path: Path) -> None:
         pv = app.pair_view
         pv.choice.set("partner")
         pv._on_choice()
-        assert float(app.calib_view._src.max()) == 0.0, "placeholder is not black"
-        assert app.calib_view.image_size == (app.info.width, app.info.height)
+        photo = _photo(app.calib_view)
+        assert float(photo.max()) == 0.0, "placeholder is not black"
+        assert photo.shape[:2] == (app.info.height, app.info.width)
         texts = _overlay_texts(app.calib_view)
         assert any("associated video for left camera not found" in t for t in texts), texts
+    finally:
+        root.destroy()
+
+
+def test_partner_sits_where_the_loaded_clip_sits(tmp_path: Path) -> None:
+    """Both feeds use the plane's margin + content box, so they land in the same place on screen."""
+    right = _write_clip(tmp_path / "live_jump_20261120_191517_right.mp4", (0, 0, 200))
+    _write_clip(tmp_path / "live_jump_20261120_191517_left.mp4", (200, 0, 0))
+    root, app = _app_or_skip()
+    try:
+        app.load_clip(right)
+        app.on_new_plane(seed=False)                  # the loaded clip, drawn by app_gui itself
+        clip_box, clip_size = app.calib_view.content_box, app.calib_view.image_size
+        assert clip_box is not None
+        app.pair_view.btn_partner.invoke()
+        assert app.calib_view.content_box == clip_box
+        assert app.calib_view.image_size == clip_size
     finally:
         root.destroy()
 
