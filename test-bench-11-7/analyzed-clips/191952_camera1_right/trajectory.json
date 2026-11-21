@@ -1,19 +1,7 @@
 {
   "clip_id": "191952_camera1_right",
-  "n_points": 5,
+  "n_points": 3,
   "points": [
-    {
-      "frame": 73,
-      "x": 959.1513671875,
-      "y": 265.3808288574219,
-      "kp_conf": 0.8437007069587708
-    },
-    {
-      "frame": 74,
-      "x": 960.0,
-      "y": 273.56329345703125,
-      "kp_conf": 0.9600127935409546
-    },
     {
       "frame": 75,
       "x": 960.0,
@@ -36,102 +24,32 @@
   "runs": [
     {
       "i0": 0,
-      "i1": 4,
-      "start_frame": 73,
+      "i1": 2,
+      "start_frame": 75,
       "end_frame": 78,
-      "n": 4
+      "n": 2
     },
     {
-      "i0": 4,
-      "i1": 5,
+      "i0": 2,
+      "i1": 3,
       "start_frame": 109,
       "end_frame": 109,
       "n": 1
     }
   ],
-  "flight_run": 0,
-  "airborne_frame_range": [
-    73,
-    78
-  ],
+  "flight_run": null,
+  "airborne_frame_range": null,
   "n_before_leave": 0,
-  "n_before_entry": 1,
-  "coeffs": {
-    "t_ref": 75.0,
-    "x": [
-      -1.4288539148827784,
-      -2.520742511222199,
-      959.5632445614642
-    ],
-    "y": [
-      -2.596332950486688,
-      8.1997015515744,
-      289.93521067582435
-    ]
-  },
-  "inliers": [
-    {
-      "frame": 73,
-      "x": 959.1513671875,
-      "y": 265.3808288574219,
-      "kp_conf": 0.8437007069587708
-    },
-    {
-      "frame": 74,
-      "x": 960.0,
-      "y": 273.56329345703125,
-      "kp_conf": 0.9600127935409546
-    },
-    {
-      "frame": 75,
-      "x": 960.0,
-      "y": 293.6524658203125,
-      "kp_conf": 0.9061951041221619
-    },
-    {
-      "frame": 78,
-      "x": 939.09765625,
-      "y": 290.79559326171875,
-      "kp_conf": 0.9730942845344543
-    }
-  ],
+  "n_before_entry": 0,
+  "coeffs": null,
+  "inliers": [],
   "n_outliers": 0,
-  "arc_rms_px": 3.560605386123825,
-  "arc_rms_all_px": 3.560605386123825,
-  "max_inlier_res_px": 5.614237929158721,
-  "residuals": [
-    2.245695171663884,
-    5.614237929158721,
-    3.7428252861059645,
-    0.37428252861026784
-  ],
-  "flight_points": [
-    {
-      "frame": 73,
-      "x": 959.1513671875,
-      "y": 265.3808288574219,
-      "kp_conf": 0.8437007069587708
-    },
-    {
-      "frame": 74,
-      "x": 960.0,
-      "y": 273.56329345703125,
-      "kp_conf": 0.9600127935409546
-    },
-    {
-      "frame": 75,
-      "x": 960.0,
-      "y": 293.6524658203125,
-      "kp_conf": 0.9061951041221619
-    },
-    {
-      "frame": 78,
-      "x": 939.09765625,
-      "y": 290.79559326171875,
-      "kp_conf": 0.9730942845344543
-    }
-  ],
-  "last_arc_frame": 78,
+  "arc_rms_px": null,
+  "arc_rms_all_px": null,
+  "max_inlier_res_px": null,
+  "residuals": null,
+  "flight_points": [],
+  "last_arc_frame": null,
   "last_contact_candidate": {
     "frame": 109,
     "x": 768.9349365234375,
@@ -152,7 +70,7 @@
   "contact_point": null,
   "fit_points": [],
   "fit_rms_px": null,
-  "fit_note": "the fork's gates rejected the last 5 point(s) (needs >= 6 points and an x-span of >= 30 px)",
+  "fit_note": "the fork's gates rejected the last 3 point(s) (needs >= 6 points and an x-span of >= 30 px)",
   "space": "2d",
   "arc_rms_ft": null,
   "max_inlier_res_ft": null,

@@ -229,7 +229,8 @@
     ],
     "box_conf": 0.19083039462566376,
     "track_id": null,
-    "accepted": true
+    "accepted": false,
+    "deselected": true
   },
   {
     "frame": 28,

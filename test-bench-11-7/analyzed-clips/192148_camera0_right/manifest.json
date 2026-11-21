@@ -29,10 +29,13 @@
     "present": false
   },
   "detections": {},
-  "trajectory": {},
+  "trajectory": {
+    "n_points": 21
+  },
   "ground_truth": {
     "path": "ground_truth.json",
-    "judge_present": false
+    "judge_present": true,
+    "gt_in": 107.39099571464271
   },
   "results": [],
   "labels": {
@@ -42,5 +45,21 @@
     "csv_line": 29,
     "camera": "camera0_right",
     "jump_time": "192148"
-  }
+  },
+  "excluded_frames": [
+    1,
+    2,
+    69,
+    72,
+    73,
+    89,
+    90,
+    91,
+    92,
+    93,
+    95,
+    137,
+    138,
+    139
+  ]
 }

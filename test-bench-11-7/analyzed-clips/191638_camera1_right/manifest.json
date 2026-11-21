@@ -32,7 +32,8 @@
   "trajectory": {},
   "ground_truth": {
     "path": "ground_truth.json",
-    "judge_present": false
+    "judge_present": true,
+    "gt_in": 109.02681090163549
   },
   "results": [],
   "labels": {
