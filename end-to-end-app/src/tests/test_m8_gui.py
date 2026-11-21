@@ -345,6 +345,35 @@ def test_plane_clicks_land_where_pressed_at_zoom() -> None:
         root.destroy()
 
 
+def test_a_missing_ultralytics_is_reported_not_a_dead_worker() -> None:
+    """A checkpoint that refuses to load must land in the log, with Run usable again.
+
+    Regression, 2026-11-18: ``_model_for`` raised ``ModuleNotFoundError`` inside the worker
+    thread (the app had been launched with a Python 3.14 on PATH that has no ultralytics).  The
+    thread died with only a stderr traceback, no outcome was ever queued, and Run stayed
+    disabled for the rest of the session.
+    """
+    root = _root_or_skip()
+    try:
+        app = app_gui.App(root)
+        app.run_btn.configure(state="disabled")     # the state on_run leaves behind
+        app.cancel_btn.configure(state="normal")
+        exc = ModuleNotFoundError("No module named 'ultralytics'")
+        exc.name = "ultralytics"
+        app._model_load_failed(exc)
+        app._drain()
+        log = app.log_text.get("1.0", "end")
+        assert "run FAILED" in log, log
+        assert "ultralytics" in log, log
+        assert sys.executable in log, log          # names the interpreter that is missing it
+        assert str(app.run_btn.cget("state")) == "normal"
+        assert str(app.cancel_btn.cget("state")) == "disabled"
+        print()
+        print("  missing ultralytics -> logged with interpreter path, Run re-enabled")
+    finally:
+        root.destroy()
+
+
 def test_m8_gate_scope() -> None:
     """Record, in the gate's own output, exactly what a machine can and cannot certify."""
     print("\n" + "=" * 74)

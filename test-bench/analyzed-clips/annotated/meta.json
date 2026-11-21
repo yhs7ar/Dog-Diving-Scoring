@@ -1,0 +1,15 @@
+{
+  "width": 960,
+  "height": 600,
+  "fps": 60.0,
+  "codec": "mpeg4",
+  "n_frames": 92,
+  "vfr": false,
+  "declared_vs_decoded": [
+    92,
+    92
+  ],
+  "duration_s": 1.533333,
+  "backend": "ffprobe",
+  "probe_warnings": []
+}

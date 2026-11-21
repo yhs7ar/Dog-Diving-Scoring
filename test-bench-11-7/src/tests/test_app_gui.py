@@ -200,3 +200,71 @@ def test_analyze_marquee_deselects_points_inside_rect(root):
     pane._on_marquee(0.0, 0.0, 500.0, 500.0)
     assert pane.excluded == {0, 1}
 
+# --- 11-7 regression: processed clips must render without being picked ---------
+
+def _make_clip(root: Path, cid: str, *, n_points: int, gt_px, plane_id: str) -> Path:
+    """A clip directory as the Analyze stage leaves it (real artifacts only)."""
+    cdir = root / cid
+    cdir.mkdir(parents=True, exist_ok=True)
+    (cdir / "manifest.json").write_text(json.dumps({
+        "schema": manifest_mod.SCHEMA, "clip_id": cid,
+        "meta": {"width": 960, "height": 600, "n_frames": 40, "fps": 30.0},
+        "plane": {"setup_id": plane_id, "present": False},   # stale id on purpose
+        "detections": {}, "trajectory": {}, "ground_truth": {},  # empty caches
+        "labels": {"camera": cid.split("_", 1)[1]},
+    }), encoding="utf-8")
+    frames = list(range(1, n_points + 1))
+    (cdir / "detections.json").write_text(json.dumps([
+        {"frame": f, "nose": [10.0 * f, 20.0, 0.9], "tailset": [10.0 * f + 5, 25.0, 0.9],
+         "box_conf": 0.8, "track_id": None, "accepted": True, "deselected": False}
+        for f in frames]), encoding="utf-8")
+    (cdir / "trajectory.json").write_text(json.dumps({
+        "clip_id": cid, "points": [{"frame": f, "x": 10.0 * f, "y": 20.0 * f} for f in frames],
+        "inliers": [], "coeffs": None}), encoding="utf-8")
+    gt = {"schema": "test_bench.ground_truth/1", "frame": 1, "x_px": None, "y_px": None,
+          "gt_in": None, "judge_in": 238.0, "judge_present": True}
+    if gt_px is not None:
+        gt.update({"x_px": gt_px[0], "y_px": gt_px[1], "gt_in": 227.33})
+    (cdir / "ground_truth.json").write_text(json.dumps(gt), encoding="utf-8")
+    return cdir
+
+
+def test_processed_clips_render_on_launch(root, tmp_path, monkeypatch):
+    """Opening the app must show the saved points and GT of the first clip, and
+    populate Run suite from the artifact files (not the stale manifest caches)."""
+    planes = tmp_path / "planes"
+    planes.mkdir()
+    (planes / "camera0_right_2026-11-20_01-44-19.pool.json").write_text(json.dumps({
+        "schema": "dog_diving.pool_plane/1",
+        "setup_id": "camera0_right_2026-11-20_01-44-19",
+        "created": "2026-11-20T01:44:19+00:00", "image_size": [960, 600],
+        "homography": [1, 0, 0, 0, 1, 0, 0, 0, 1], "route": "homography"}), encoding="utf-8")
+    monkeypatch.setattr(manifest_mod, "PLANES_DIR", planes)
+
+    root_dir = tmp_path / "analyzed-clips"
+    root_dir.mkdir()
+    (root_dir / "results").mkdir()
+    _make_clip(root_dir, "190321_camera0_right", n_points=6, gt_px=(372.09, 339.56),
+               plane_id="camera0_right_11-7")
+    _make_clip(root_dir, "190401_camera0_right", n_points=6, gt_px=None,
+               plane_id="camera0_right_11-7")
+    monkeypatch.setattr(app_gui, "DEFAULT_ROOT", root_dir)
+    manifest_mod.clear_state_cache()
+
+    app = app_gui.App(root)
+
+    # Analyze: the first clip loaded itself, with its saved points and GT pixel.
+    pane = app.analyze
+    assert pane.clip_var.get() == "190321_camera0_right"
+    assert pane._traj is not None and len(pane._traj.points) == 6
+    assert pane._plane_doc is not None                       # resolved by camera tag
+    assert "(auto-matched)" in pane.plane_lbl.cget("text")
+    assert pane.pending == pytest.approx((372.09, 339.56))
+    assert "227.33" in pane.gt_lbl.cget("text")
+
+    # Run suite: only the clip with points + plane + GT; the other is explained.
+    app.nb.select(app.run)
+    app.run.refresh()
+    listed = list(app.run.clip_list.get(0, "end"))
+    assert listed == ["190321_camera0_right"]
+    assert "1 clip(s) ready" in app.run.summary.cget("text")

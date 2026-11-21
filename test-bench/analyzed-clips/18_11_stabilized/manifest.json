@@ -25,14 +25,37 @@
     ]
   },
   "plane": {
-    "setup_id": null,
-    "present": false
+    "setup_id": "18_11_best_2026-11-18_12-11-20.pool",
+    "present": true
   },
-  "detections": {},
-  "trajectory": {},
+  "detections": {
+    "path": "detections.json",
+    "model_sha": "bdb7688775ee39201d4a77ef0041c7c3e9eb9202f7a5df287a11c98e80ef82e4",
+    "n_detections": 3,
+    "n_accepted": 3
+  },
+  "trajectory": {
+    "path": "trajectory.json",
+    "n_points": 3
+  },
   "ground_truth": {
     "path": "ground_truth.json",
-    "judge_present": false
+    "judge_present": true,
+    "gt_in": 221.61121494974347
   },
-  "results": []
+  "results": [],
+  "excluded_frames": [
+    114,
+    115,
+    116,
+    118,
+    121,
+    127,
+    128,
+    135,
+    140,
+    146,
+    147,
+    149
+  ]
 }

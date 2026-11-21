@@ -2,7 +2,7 @@
   "width": 960,
   "height": 600,
   "fps": 30.0,
-  "codec": "mpeg4",
+  "codec": "FMP4",
   "n_frames": 150,
   "vfr": false,
   "declared_vs_decoded": [
@@ -10,6 +10,8 @@
     150
   ],
   "duration_s": 5.0,
-  "backend": "ffprobe",
-  "probe_warnings": []
+  "backend": "cv2",
+  "probe_warnings": [
+    "ffprobe unavailable \u2014 metadata from cv2 only (no VFR detection)"
+  ]
 }

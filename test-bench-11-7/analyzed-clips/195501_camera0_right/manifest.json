@@ -2,16 +2,16 @@
   "schema": "test_bench.manifest/1",
   "clip_id": "195501_camera0_right",
   "source": {
-    "original_path": "C:\\Users\\harri\\Videos\\Dog-Diving-Videos\\Documents\\Captstone-Repo\\end-to-end-app\\data\\clips_11-7\\live_jump_19691231_195501_camera0_right.mp4",
+    "original_path": "/home/dogdiving/Documents/Captstone-Repo/end-to-end-app/data/clips/live_jump_19691231_195501_right.mp4",
     "sha256": "c44c9cad5d68dbcad5c83e39b18108d6ac7dd6839d731e625195c45ff658f513",
     "kind": "mp4",
-    "filename": "live_jump_19691231_195501_camera0_right.mp4"
+    "filename": "live_jump_19691231_195501_right.mp4"
   },
   "meta": {
     "width": 960,
     "height": 600,
     "fps": 30.0,
-    "codec": "mpeg4",
+    "codec": "FMP4",
     "n_frames": 150,
     "vfr": false,
     "declared_vs_decoded": [
@@ -19,24 +19,17 @@
       150
     ],
     "duration_s": 5.0,
-    "backend": "ffprobe",
-    "probe_warnings": []
+    "backend": "cv2",
+    "probe_warnings": [
+      "ffprobe unavailable \u2014 metadata from cv2 only (no VFR detection)"
+    ]
   },
   "plane": {
-    "setup_id": "camera0_right_2026-11-20_01-44-19",
-    "present": true
+    "setup_id": "camera0_right_11-7",
+    "present": false
   },
-  "detections": {
-    "path": "detections.json",
-    "model_sha": "bdb7688775ee39201d4a77ef0041c7c3e9eb9202f7a5df287a11c98e80ef82e4",
-    "n_detections": 21,
-    "n_accepted": 21,
-    "status": "detected"
-  },
-  "trajectory": {
-    "path": "trajectory.json",
-    "n_points": 21
-  },
+  "detections": {},
+  "trajectory": {},
   "ground_truth": {
     "path": "ground_truth.json",
     "judge_present": false

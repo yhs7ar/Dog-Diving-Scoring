@@ -25,18 +25,18 @@
     ]
   },
   "plane": {
-    "setup_id": "17_6_scored_2026-11-11_14-01-04.pool",
+    "setup_id": "17_6_2026-11-18_10-59-40.pool",
     "present": true
   },
   "detections": {
     "path": "detections.json",
-    "model_sha": "a083adb42303728ae14c4bd6bd56d80da46f82fb2564dbd6f31dcc92ea321646",
-    "n_detections": 60,
-    "n_accepted": 56
+    "model_sha": "bdb7688775ee39201d4a77ef0041c7c3e9eb9202f7a5df287a11c98e80ef82e4",
+    "n_detections": 0,
+    "n_accepted": 0
   },
   "trajectory": {
     "path": "trajectory.json",
-    "n_points": 56
+    "n_points": 0
   },
   "ground_truth": {
     "path": "ground_truth.json",

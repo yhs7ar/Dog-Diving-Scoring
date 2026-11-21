@@ -41,7 +41,40 @@ DATA_DIR = PROJECT_ROOT / "data"
 OUT_DIR = PROJECT_ROOT / "out"
 PLANES_DIR = PROJECT_ROOT / "planes"
 
-CSV_PATH = Path(r"C:\Users\harri\Videos\Dog-Diving-Videos\paw_scores_w_videos.csv")
+def _get_csv_path() -> Path:
+    local_csv = Path(r"C:\Users\harri\Videos\Dog-Diving-Videos\paw_scores_w_videos.csv")
+    if local_csv.is_file():
+        return local_csv
+    jetson_csv = PROJECT_ROOT / "paw_scores_w_videos.csv"
+    if jetson_csv.is_file():
+        return jetson_csv
+    return Path("/home/dogdiving/Desktop/paw_scores_w_videos.csv")
+
+def _resolve_video_path(video_name: str, fallback_path: str) -> Path:
+    if Path.home().name == "harri" or Path("C:/Users/harri").exists():
+        base = Path(r"C:\Users\harri\Videos\Dog-Diving-Videos\Documents\Captstone-Repo\end-to-end-app\data\clips_11-7")
+        cand = base / video_name
+        if cand.is_file():
+            return cand
+    else:
+        base = Path("/home/dogdiving/Documents/Captstone-Repo/end-to-end-app/data/clips")
+        jetson_name = video_name
+        if "camera1" in jetson_name:
+            jetson_name = jetson_name.replace("camera1_", "").replace("_right.mp4", "_left.mp4")
+        elif "camera0" in jetson_name:
+            jetson_name = jetson_name.replace("camera0_", "")
+        cand = base / jetson_name
+        if cand.is_file():
+            return cand
+        for b in [base, Path("/home/dogdiving/Documents/Captstone-Repo/end-to-end-app/data/clips_11-7")]:
+            if (b / video_name).is_file():
+                return b / video_name
+    fb = Path(fallback_path)
+    if fb.is_file():
+        return fb
+    return Path(video_name)
+
+CSV_PATH = _get_csv_path()
 
 INDEX_SCHEMA = "test_bench_11_7.clip_index/1"
 INDEX_PATH = DATA_DIR / "clip_index.json"
@@ -105,10 +138,11 @@ def cmd_index(args) -> int:
             dog = (row["Name"] or "").strip()
             for col in ("Video_Left", "Video_Right"):
                 name = (row[col] or "").strip()
-                pth = row["Left_Path" if col == "Video_Left" else "Right_Path"].strip()
-                if not name or not pth:
+                raw_pth = row["Left_Path" if col == "Video_Left" else "Right_Path"].strip()
+                if not name or not raw_pth:
                     raise SystemExit(f"row {line} {col}: empty name/path")
-                if not Path(pth).is_file():
+                pth = _resolve_video_path(name, raw_pth)
+                if not pth.is_file():
                     raise SystemExit(f"row {line}: path not a file: {pth}")
                 p = parse_filename(name)
                 cid = p["time"] + "_" + p["tag"] + (f"_{p['extra']}" if p["extra"] else "")
@@ -123,7 +157,7 @@ def cmd_index(args) -> int:
                     "cam": p["cam"],
                     "side": p["side"],
                     "video_name": name,
-                    "path": pth,
+                    "path": str(pth),
                     "setup_id": f"{p['tag']}_{PLANE_SUFFIX}",
                 })
 
