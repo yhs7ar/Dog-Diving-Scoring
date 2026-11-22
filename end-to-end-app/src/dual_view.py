@@ -12,6 +12,12 @@ Calibrate view so the operator can look at either feed.  It is deliberately **di
 * anything that redraws the plane (a button, a finished waterline seed, loading a clip) switches the
   view back to the loaded clip first, so the plane is only ever drawn over its own camera.
 
+The plane is fitted on the loaded clip ONLY.  The paired view draws the same plane read-only,
+derived through ``pair_homography`` (``H_world->cam2 = H12 @ H_world->cam1``); nothing about the
+paired camera is stored, so there is nothing to keep in sync.  ``H12`` is estimated when the paired
+view is opened (cached per clip pair / frame / plane footprint) by a swappable source — see
+:meth:`PairView.set_h12_source`.
+
 Hooking it in is three lines in ``app_gui.py`` (search for ``dual_view``): ``attach_pair_view`` in
 ``_build_calibrate``, ``on_clip_loaded`` in ``load_clip`` and ``release_view`` in ``_redraw_plane``.
 Deleting those lines removes the feature; this file then has no effect.
@@ -35,6 +41,8 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+
+import pair_homography as ph
 
 #: Same list as ``app_gui.VIDEO_SUFFIXES`` (duplicated so this module never imports ``app_gui``).
 VIDEO_SUFFIXES = (".mp4", ".mov", ".avi", ".mkv", ".m4v")
@@ -134,6 +142,10 @@ class PairView:
         self.showing_partner = False
         self._partner_cache: tuple[Path | None, Any] | None = None
         self._saved: tuple[Any, Any] | None = None   # (overlay, content_box) of the clip's view
+        #: Where H12 comes from: ``(frame1, frame2, mask1) -> pair_homography.H12Result``.
+        self.h12_source: ph.H12Source = ph.estimate_h12_from_images
+        self._h12_cache: tuple[Any, ph.H12Result] | None = None
+        self.h12: ph.H12Result | None = None          # the last alignment shown (for status/tests)
 
         tk, ttk = app.tk, app.ttk
         self.row = ttk.Frame(holder.master)
@@ -166,7 +178,14 @@ class PairView:
         self.release_view()
         self.pair = find_pair(clip)
         self._partner_cache = None
+        self._h12_cache = None
+        self.h12 = None
         self._sync_widgets()
+
+    def set_h12_source(self, source: ph.H12Source) -> None:
+        """Swap how H12 is obtained (e.g. a point-cloud / Fusion-JSON source later)."""
+        self.h12_source = source
+        self._h12_cache = None
 
     def release_view(self) -> bool:
         """Leave the other camera's view (if shown) without drawing anything.
@@ -209,12 +228,17 @@ class PairView:
         frame, message = self._partner_image()
         base, box = self._padded(frame)
         self.view.content_box = box
-        self.view.overlay = ((lambda v, m=message, b=box: self._draw_message(v, m, b))
-                             if message else None)
+        status = ""
+        if message:
+            self.view.overlay = lambda v, m=message, b=box: self._draw_message(v, m, b)
+        else:
+            H2, status = self._partner_plane(frame)
+            self.view.overlay = ((lambda v, H=H2, b=box: self._draw_partner_plane(v, H, b))
+                                 if H2 is not None else None)
         self.view.show(base, reset_view=True)
         shown = self.pair.partner.name if self.pair.partner is not None else "no file"
-        self.note.configure(text=f"display only — {shown}  ·  plane tools and Run use "
-                                 f"{self.pair.clip.name}")
+        text = f"view only — {shown}  ·  edit the plane on {self.pair.clip.name}"
+        self.note.configure(text=text + (f"  ·  {status}" if status else ""))
 
     def show_clip(self) -> None:
         if not self.release_view():
@@ -277,6 +301,97 @@ class PairView:
         result = (frame, message)
         self._partner_cache = (pair.partner, result)
         return result
+
+    # -- the derived plane ----------------------------------------------------------
+    def _partner_plane(self, frame2: np.ndarray) -> tuple[np.ndarray | None, str]:
+        """``(H_world->cam2, status)`` for the loaded plane, or ``(None, why not)``."""
+        from dog_diving.pool import plane as plane_mod
+
+        app = self.app
+        s = getattr(app, "plane_session", None)
+        frame1 = getattr(app, "pool_frame", None)
+        self.h12 = None
+        if s is None or frame1 is None or not s.placed:
+            return None, "fit the plane on the loaded clip to see it here"
+        try:
+            H1 = np.asarray(s.homography(), dtype=np.float64)
+        except Exception as exc:  # noqa: BLE001
+            return None, f"plane not drawable: {exc}"
+        width = float(s.width_ft)
+        mask = ph.plane_mask(frame1.shape[:2], H1, length_ft=plane_mod.METRIC_LENGTH_FT,
+                             width_ft=width)
+        corners = tuple(tuple(round(float(v)) for v in s.corners[t]) for t in plane_mod.CORNER_TAGS)
+        key = (self.pair.clip, self.pair.partner, self._frame_index(), corners, self.h12_source)
+        if self._h12_cache is not None and self._h12_cache[0] == key:
+            result = self._h12_cache[1]
+        else:
+            try:
+                result = self.h12_source(frame1, frame2, mask)
+            except Exception as exc:  # noqa: BLE001 — a failed alignment is a status, not a crash
+                result = ph.H12Result(None, f"camera alignment failed: {exc}")
+            self._h12_cache = (key, result)
+        self.h12 = result
+        if not result.ok:
+            return None, result.message
+        return ph.compose(result.H, H1), f"plane derived via H12 ({result.message})"
+
+    def _draw_partner_plane(self, view: Any, H2: np.ndarray,
+                            box: tuple[float, float, float, float]) -> None:
+        """The loaded plane in the paired camera: same colours as app_gui's, no handles."""
+        from dog_diving.pool import plane as plane_mod
+
+        s = self.app.plane_session
+        c = view.canvas
+        c.delete("overlay")
+        z = float(view.zoom or 1.0)
+        ox, oy = float(box[0]), float(box[1])
+        Wd, L, off = float(s.width_ft), float(s.length_ft), float(s.dock_offset_ft)
+        Lm = float(plane_mod.METRIC_LENGTH_FT)
+        # Sign of the homogeneous w for a point known to be on the plane: endpoints with the other
+        # sign are behind camera 2 and would draw as lines thrown across the frame.
+        ref_w = float((H2 @ np.array([off + L / 2.0, Wd / 2.0, 1.0]))[2]) or 1.0
+
+        def px(X: float, Y: float) -> tuple[float, float] | None:
+            v = H2 @ np.array([X, Y, 1.0])
+            if v[2] * ref_w <= 1e-12:
+                return None
+            x, y = (v[0] / v[2] + ox) * z, (v[1] / v[2] + oy) * z
+            return (x, y) if abs(x) < 1e5 and abs(y) < 1e5 else None
+
+        def seg(X0, Y0, X1, Y1, colour, width=1, dash=None) -> None:
+            a, b = px(X0, Y0), px(X1, Y1)
+            if a is None or b is None:
+                return
+            kw = {"fill": colour, "width": width, "tags": "overlay"}
+            if dash:
+                kw["dash"] = dash
+            c.create_line(*a, *b, **kw)
+
+        grid_var = getattr(self.app, "grid_var", None)
+        if grid_var is None or bool(grid_var.get()):
+            minor, major = plane_mod.MINOR_FT, plane_mod.MAJOR_FT
+            for i in range(int(round(Lm / minor)) + 1):
+                X = i * minor
+                is_major = abs(X / major - round(X / major)) < 1e-9
+                seg(X, 0.0, X, Wd, "#78d278" if is_major else "#44804a")
+                if is_major and (a := px(X, 0.0)) is not None:
+                    c.create_text(a[0] + 3, a[1] - 5, text=f"{X:g}'", fill="#96f096",
+                                  anchor="sw", font=("", 8), tags="overlay")
+            for j in range(int(round(Wd / minor)) + 1):
+                Y = j * minor
+                is_major = abs(Y / major - round(Y / major)) < 1e-9
+                seg(0.0, Y, Lm, Y, "#63a063" if is_major else "#456b4f")
+        seg(0.0, 0.0, 0.0, Wd, "#3c78ff", 2)                                  # dock-lip datum
+        seg(off, 0.0, off, Wd, "#ff9f43", 1, dash=(2, 3))                     # +x anchors
+        seg(off + L, 0.0, off + L, Wd, "#e6d24a", 1, dash=(4, 3))
+        seg(off, 0.0, off + L, 0.0, "#00c8ff")
+        seg(off, Wd, off + L, Wd, "#00c8ff")
+        # Corners as hollow grey rings: visibly NOT handles — the plane is edited on the loaded clip.
+        for X, Y in ((off, 0.0), (off + L, 0.0), (off + L, Wd), (off, Wd)):
+            p = px(X, Y)
+            if p is not None:
+                c.create_oval(p[0] - 4, p[1] - 4, p[0] + 4, p[1] + 4, outline="#c8c8c8",
+                              width=1, tags="overlay")
 
     @staticmethod
     def _draw_message(view: Any, message: str, box: tuple[float, float, float, float]) -> None:

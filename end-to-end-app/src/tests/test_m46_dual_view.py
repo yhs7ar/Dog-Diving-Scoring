@@ -191,3 +191,138 @@ def test_loading_a_clip_leaves_the_partner_view(tmp_path: Path) -> None:
         assert app.calib_view.overlay == app._draw_plane_overlay, "plane overlay not restored"
     finally:
         root.destroy()
+
+
+# -- the derived plane on the paired camera (H12) ----------------------------------
+
+import pair_homography as ph  # noqa: E402
+
+_H12_TRUE = np.array([[0.92, 0.06, 18.0],
+                      [-0.03, 0.97, 9.0],
+                      [0.00012, -0.00005, 1.0]])
+
+
+def _textured(size=(480, 300), seed=3) -> np.ndarray:
+    """A feature-rich synthetic "pool": random blobs + lines, so matching has something to bite."""
+    cv2 = pytest.importorskip("cv2")
+    w, h = size
+    rng = np.random.default_rng(seed)
+    img = np.full((h, w, 3), 90, np.uint8)
+    for _ in range(160):
+        c = tuple(int(v) for v in rng.integers(0, 255, 3))
+        x, y = int(rng.integers(0, w)), int(rng.integers(0, h))
+        if rng.random() < 0.5:
+            cv2.circle(img, (x, y), int(rng.integers(3, 14)), c, -1)
+        else:
+            cv2.rectangle(img, (x, y), (x + int(rng.integers(4, 25)), y + int(rng.integers(4, 25))), c, -1)
+    return img
+
+
+def _warp(img: np.ndarray, H: np.ndarray) -> np.ndarray:
+    cv2 = pytest.importorskip("cv2")
+    return cv2.warpPerspective(img, H, (img.shape[1], img.shape[0]))
+
+
+def test_estimate_h12_recovers_a_known_mapping() -> None:
+    a = _textured()
+    b = _warp(a, _H12_TRUE)
+    r = ph.estimate_h12_from_images(a, b)
+    assert r.ok, r.message
+    pts = np.array([[100, 80], [380, 90], [360, 240], [120, 230]], float)
+    err = np.abs(ph.map_points(r.H, pts) - ph.map_points(_H12_TRUE, pts)).max()
+    assert err < 1.5, f"H12 off by {err:.2f} px"
+
+
+def test_estimate_h12_fails_cleanly_on_unrelated_images() -> None:
+    r = ph.estimate_h12_from_images(_textured(seed=1), _textured(seed=2))
+    assert not r.ok and r.message
+
+
+def test_plane_mask_and_compose() -> None:
+    H1 = np.array([[10.0, 0, 20], [0, 10.0, 30], [0, 0, 1]])        # 1 ft = 10 px
+    m = ph.plane_mask((300, 480), H1, length_ft=35, width_ft=20, margin_px=0)
+    assert m[30 + 100, 20 + 175] == 255 and m[5, 5] == 0
+    H2 = ph.compose(_H12_TRUE, H1)
+    want = ph.map_points(_H12_TRUE, ph.map_points(H1, [[7.0, 4.0]]))
+    assert np.allclose(ph.map_points(H2, [[7.0, 4.0]]), want)
+
+
+def _write_frames(path: Path, frame: np.ndarray, n: int = 3) -> Path:
+    cv2 = pytest.importorskip("cv2")
+    h, w = frame.shape[:2]
+    wr = cv2.VideoWriter(str(path), cv2.VideoWriter_fourcc(*"mp4v"), 30, (w, h))
+    if not wr.isOpened():
+        pytest.skip("cv2 cannot write mp4v here")
+    for _ in range(n):
+        wr.write(frame)
+    wr.release()
+    return path
+
+
+def _real_reader(monkeypatch) -> None:
+    """Older tests (m20, m25) replace ``app_gui.read_frame`` without restoring it; these tests need
+    the loaded clip's real pixels, so pin the real reader for their duration."""
+    import app_gui
+    monkeypatch.setattr(app_gui, "read_frame", lambda clip, idx: dual_view.read_first_frame(clip, idx))
+
+
+def _overlay_lines(view) -> int:
+    c = view.canvas
+    return sum(1 for i in c.find_withtag("overlay") if c.type(i) == "line")
+
+
+def test_paired_view_draws_the_derived_plane(tmp_path: Path, monkeypatch) -> None:
+    _real_reader(monkeypatch)
+    a = _textured()
+    right = _write_frames(tmp_path / "jump_right.mp4", a)
+    _write_frames(tmp_path / "jump_left.mp4", _warp(a, _H12_TRUE))
+    root, app = _app_or_skip()
+    try:
+        app.load_clip(right)
+        pv = app.pair_view
+        pv.btn_partner.invoke()                              # no plane yet: frame only, a hint
+        assert _overlay_lines(app.calib_view) == 0
+        assert "fit the plane" in pv.note.cget("text")
+
+        pv.btn_clip.invoke()
+        app.on_new_plane(seed=False)
+        pv.btn_partner.invoke()
+        assert pv.h12 is not None and pv.h12.ok, pv.h12 and pv.h12.message
+        assert _overlay_lines(app.calib_view) > 10, "derived plane not drawn"
+        assert "derived via H12" in pv.note.cget("text")
+        assert pv._block(None) == "break", "the paired view must stay read-only"
+
+        # The derived corner = H12(loaded corner), within a few px of the true mapping.
+        s = app.plane_session
+        H2 = ph.compose(pv.h12.H, s.homography())
+        got = ph.map_points(H2, [[0.0, 0.0]])[0]
+        want = ph.map_points(_H12_TRUE, [s.corners["00"]])[0]
+        assert np.abs(got - want).max() < 3.0
+    finally:
+        root.destroy()
+
+
+def test_h12_source_is_swappable(tmp_path: Path, monkeypatch) -> None:
+    _real_reader(monkeypatch)
+    a = _textured()
+    right = _write_frames(tmp_path / "jump_right.mp4", a)
+    _write_frames(tmp_path / "jump_left.mp4", a)
+    root, app = _app_or_skip()
+    try:
+        app.load_clip(right)
+        app.on_new_plane(seed=False)
+        calls = []
+
+        def fake(f1, f2, mask):
+            calls.append(mask is not None)
+            return ph.H12Result(np.eye(3), "identity (test source)", source="test")
+
+        app.pair_view.set_h12_source(fake)
+        app.pair_view.btn_partner.invoke()
+        assert calls == [True], "source not called once with the plane mask"
+        assert "identity (test source)" in app.pair_view.note.cget("text")
+        app.pair_view.btn_clip.invoke()
+        app.pair_view.btn_partner.invoke()
+        assert calls == [True], "an unchanged plane must reuse the cached H12"
+    finally:
+        root.destroy()
