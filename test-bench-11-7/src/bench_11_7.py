@@ -1,8 +1,8 @@
 """Test-bench 11-7 batch driver.
 
 Maps ``paw_scores_w_videos.csv`` into ``test-bench-11-7/analyzed-clips/`` for the
-two right-side cameras.  One plane per camera (``camera0_right_11-7`` /
-``camera1_right_11-7``) is assigned to every clip of that camera by reference.
+two cameras.  One plane per camera (``camera0_11-7`` /
+``camera1_11-7``) is assigned to every clip of that camera by reference.
 
 Subcommands (run from the repo root, ``python src/bench_11_7.py <cmd>``)::
 
@@ -81,7 +81,7 @@ INDEX_PATH = DATA_DIR / "clip_index.json"
 LOG_PATH = ANALYZED_ROOT / "analyzed_log.csv"
 
 LOG_COLUMNS = ["jump_time", "dog", "judge_score_in", "score_raw",
-               "Camera0_Left", "Camera0_Right", "Camera1_Left", "Camera1_Right"]
+               "Camera0", "Camera1"]
 
 PLANE_SUFFIX = "11-7"
 MIN_OK_POINTS = 4                            # operator decision U1: ok needs >= 4 accepted
@@ -102,7 +102,7 @@ def parse_distance(raw: str) -> int | None:
 
 
 def parse_filename(name: str) -> dict[str, Any]:
-    """``live_jump_19691231_191517_camera0_right_sapper.mp4`` -> parts."""
+    """``live_jump_19691231_191517_camera0_sapper.mp4`` -> parts."""
     stem = Path(name).stem
     if stem.startswith("live_jump_19691231_"):
         stem = stem[len("live_jump_19691231_"):]
@@ -110,9 +110,10 @@ def parse_filename(name: str) -> dict[str, Any]:
     time = parts[0]
     ci = next(i for i, p in enumerate(parts) if p.startswith("camera"))
     cam = parts[ci]                         # camera0 / camera1
-    side = parts[ci + 1]                    # left / right
+    side = parts[ci + 1] if ci + 1 < len(parts) else ""  # '' for bare cameraN
     extra = "_".join(parts[ci + 2:])        # '' or 'sapper' (etc.)
-    return {"time": time, "cam": cam, "side": side, "tag": f"{cam}_{side}",
+    tag = f"{cam}_{side}" if side else cam
+    return {"time": time, "cam": cam, "side": side, "tag": tag,
             "extra": extra}
 
 
@@ -136,9 +137,9 @@ def cmd_index(args) -> int:
             if inches is None:
                 continue  # 15 unscored rows excluded (operator decision)
             dog = (row["Name"] or "").strip()
-            for col in ("Video_Left", "Video_Right"):
+            for col in ("Video_Camera1", "Video_Camera0"):
                 name = (row[col] or "").strip()
-                raw_pth = row["Left_Path" if col == "Video_Left" else "Right_Path"].strip()
+                raw_pth = row["Camera1_Path" if col == "Video_Camera1" else "Camera0_Path"].strip()
                 if not name or not raw_pth:
                     raise SystemExit(f"row {line} {col}: empty name/path")
                 pth = _resolve_video_path(name, raw_pth)
@@ -153,7 +154,7 @@ def cmd_index(args) -> int:
                     "score_raw": raw,
                     "csv_line": line,
                     "jump_time": p["time"],
-                    "camera": p["tag"],          # camera0_right / camera1_right
+                    "camera": p["tag"],          # camera0 / camera1
                     "cam": p["cam"],
                     "side": p["side"],
                     "video_name": name,
@@ -372,8 +373,8 @@ def _write_log(clips: list[dict], statuses: dict[str, str]) -> None:
         j = jumps.setdefault(c["jump_time"], {
             "jump_time": c["jump_time"], "dog": c["dog"],
             "judge_score_in": c["judge_score_in"], "score_raw": c["score_raw"],
-            "Camera0_Left": "", "Camera0_Right": "", "Camera1_Left": "", "Camera1_Right": ""})
-        col = f"Camera{c['cam'][-1]}_{c['side'].capitalize()}"   # camera0_right -> Camera0_Right
+            "Camera0": "", "Camera1": ""})
+        col = f"Camera{c['cam'][-1]}"   # camera0 -> Camera0
         j[col] = statuses[c["clip_id"]]
     LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
     with LOG_PATH.open("w", newline="", encoding="utf-8") as fh:
@@ -407,10 +408,10 @@ def _write_audit(clips: list[dict], rows: list[dict]) -> None:
     by_jump: dict[str, dict[str, float]] = {}
     for r in ok:
         by_jump.setdefault(r["jump_time"], {})[r["camera"]] = r["distance_in"]
-    cross = [abs(v["camera0_right"] - v["camera1_right"])
+    cross = [abs(v["camera0"] - v["camera1"])
              for v in by_jump.values()
-             if "camera0_right" in v and "camera1_right" in v
-             and v["camera0_right"] is not None and v["camera1_right"] is not None]
+             if "camera0" in v and "camera1" in v
+             and v["camera0"] is not None and v["camera1"] is not None]
 
     out = OUT_DIR / "audit_11-7.csv"
     out.parent.mkdir(parents=True, exist_ok=True)

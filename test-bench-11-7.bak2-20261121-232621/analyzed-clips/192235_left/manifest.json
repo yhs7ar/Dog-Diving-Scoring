@@ -1,0 +1,47 @@
+{
+  "schema": "test_bench.manifest/1",
+  "clip_id": "192235_left",
+  "source": {
+    "original_path": "/home/dogdiving/Documents/Captstone-Repo/end-to-end-app/data/clips/live_jump_19691231_192235_left.mp4",
+    "sha256": "a887dceddb8efee9386dae296a8a8c7313c9fbc552e517b05c6775cc343d7a1a",
+    "kind": "mp4",
+    "filename": "live_jump_19691231_192235_left.mp4"
+  },
+  "meta": {
+    "width": 960,
+    "height": 600,
+    "fps": 30.0,
+    "codec": "FMP4",
+    "n_frames": 150,
+    "vfr": false,
+    "declared_vs_decoded": [
+      150,
+      150
+    ],
+    "duration_s": 5.0,
+    "backend": "cv2",
+    "probe_warnings": [
+      "ffprobe unavailable \u2014 metadata from cv2 only (no VFR detection)"
+    ]
+  },
+  "plane": {
+    "setup_id": "left_11-7",
+    "present": false
+  },
+  "detections": {},
+  "trajectory": {},
+  "ground_truth": {
+    "path": "ground_truth.json",
+    "judge_present": true,
+    "gt_in": 132.84458323601
+  },
+  "results": [],
+  "labels": {
+    "dog": "joule",
+    "judge_score_in": 143,
+    "score_raw": "11'11\"",
+    "csv_line": 30,
+    "camera": "left",
+    "jump_time": "192235"
+  }
+}

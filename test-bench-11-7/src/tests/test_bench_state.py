@@ -95,10 +95,10 @@ def test_accepted_frames_honours_flags_and_exclusions():
 
 def test_clip_state_reads_artifacts_not_the_empty_manifest_cache(tmp_path, planes_dir):
     """The 11-7 regression: detections {} in the manifest, real points on disk."""
-    doc = _plane_doc("camera0_right_2026-11-20_01-44-19")
+    doc = _plane_doc("right_2026-11-20_01-44-19")
     _save_plane(planes_dir, doc)
-    cdir = _write_clip(tmp_path, "190321_camera0_right", setup_id="camera0_right_11-7",
-                       camera="camera0_right",
+    cdir = _write_clip(tmp_path, "190321_right", setup_id="right_11-7",
+                       camera="right",
                        detections_block={})          # the stale cache
 
     st = man_mod.clip_state(cdir)
@@ -111,7 +111,7 @@ def test_clip_state_reads_artifacts_not_the_empty_manifest_cache(tmp_path, plane
 
 def test_clip_state_ready_when_points_plane_and_gt_present(tmp_path, planes_dir):
     _save_plane(planes_dir, _plane_doc("cam"))
-    cdir = _write_clip(tmp_path, "190321_camera0_right", setup_id="cam",
+    cdir = _write_clip(tmp_path, "190321_right", setup_id="cam",
                        gt={"frame": 3, "x_px": 100.0, "y_px": 200.0, "gt_in": 180.0,
                            "judge_in": 238.0, "judge_present": True})
     st = man_mod.clip_state(cdir)
@@ -121,8 +121,8 @@ def test_clip_state_ready_when_points_plane_and_gt_present(tmp_path, planes_dir)
 
 
 def test_suite_blockers_report_each_missing_input(tmp_path, planes_dir):
-    cdir = _write_clip(tmp_path, "190321_camera0_right", frames=(1, 2),
-                       setup_id="camera0_right_11-7", camera="camera0_right")
+    cdir = _write_clip(tmp_path, "190321_right", frames=(1, 2),
+                       setup_id="right_11-7", camera="right")
     blockers = man_mod.clip_state(cdir)["blockers"]
     assert any("need 4" in b for b in blockers)
     assert any("ground-truth point not placed" in b for b in blockers)
@@ -134,7 +134,7 @@ def test_suite_blockers_report_each_missing_input(tmp_path, planes_dir):
 def test_plane_exact_id_wins_over_camera_match(tmp_path, planes_dir):
     _save_plane(planes_dir, _plane_doc("cam_old", created="2026-01-01T00:00:00+00:00"))
     _save_plane(planes_dir, _plane_doc("cam_new", created="2026-11-20T00:00:00+00:00"))
-    man = {"clip_id": "190321_camera0_right", "labels": {"camera": "camera0_right"},
+    man = {"clip_id": "190321_right", "labels": {"camera": "right"},
            "meta": {"width": 960, "height": 600}, "plane": {"setup_id": "cam_old"}}
     info = man_mod.plane_resolution(man)
     assert info["source"] == "manifest"
@@ -142,31 +142,31 @@ def test_plane_exact_id_wins_over_camera_match(tmp_path, planes_dir):
 
 
 def test_plane_falls_back_to_newest_camera_plane(tmp_path, planes_dir):
-    _save_plane(planes_dir, _plane_doc("camera0_right_2026-11-19_10-00-00",
+    _save_plane(planes_dir, _plane_doc("right_2026-11-19_10-00-00",
                                        created="2026-11-19T10:00:00+00:00"))
-    _save_plane(planes_dir, _plane_doc("camera0_right_2026-11-20_01-44-19",
+    _save_plane(planes_dir, _plane_doc("right_2026-11-20_01-44-19",
                                        created="2026-11-20T01:44:19+00:00"))
-    _save_plane(planes_dir, _plane_doc("camera1_right_2026-11-20_01-48-37",
+    _save_plane(planes_dir, _plane_doc("left_2026-11-20_01-48-37",
                                        created="2026-11-20T01:48:37+00:00"))
-    man = {"clip_id": "190321_camera0_right", "labels": {"camera": "camera0_right"},
-           "meta": {"width": 960, "height": 600}, "plane": {"setup_id": "camera0_right_11-7"}}
+    man = {"clip_id": "190321_right", "labels": {"camera": "right"},
+           "meta": {"width": 960, "height": 600}, "plane": {"setup_id": "right_11-7"}}
     info = man_mod.plane_resolution(man)
     assert info["source"] == "camera-auto"
-    assert info["setup_id"] == "camera0_right_2026-11-20_01-44-19"
-    assert "camera0_right" in (info["note"] or "")
+    assert info["setup_id"] == "right_2026-11-20_01-44-19"
+    assert "right" in (info["note"] or "")
 
 
 def test_plane_fallback_can_be_refused(tmp_path, planes_dir):
-    _save_plane(planes_dir, _plane_doc("camera0_right_2026-11-20_01-44-19"))
-    man = {"clip_id": "190321_camera0_right", "labels": {"camera": "camera0_right"},
-           "meta": {"width": 960, "height": 600}, "plane": {"setup_id": "camera0_right_11-7"}}
+    _save_plane(planes_dir, _plane_doc("right_2026-11-20_01-44-19"))
+    man = {"clip_id": "190321_right", "labels": {"camera": "right"},
+           "meta": {"width": 960, "height": 600}, "plane": {"setup_id": "right_11-7"}}
     assert man_mod.clip_plane(man, allow_camera_fallback=False) is None
     assert man_mod.plane_resolution(man, allow_camera_fallback=False)["error_kind"] == "not_found"
 
 
 def test_plane_size_mismatch_is_loud(tmp_path, planes_dir):
     _save_plane(planes_dir, _plane_doc("cam", size=(1280, 720)))
-    man = {"clip_id": "190321_camera0_right", "meta": {"width": 960, "height": 600},
+    man = {"clip_id": "190321_right", "meta": {"width": 960, "height": 600},
            "plane": {"setup_id": "cam"}}
     info = man_mod.plane_resolution(man)
     assert info["error_kind"] == "size_mismatch"
@@ -175,9 +175,9 @@ def test_plane_size_mismatch_is_loud(tmp_path, planes_dir):
 
 
 def test_plane_mismatched_candidate_is_not_auto_matched(tmp_path, planes_dir):
-    _save_plane(planes_dir, _plane_doc("camera0_right_big", size=(1280, 720)))
-    man = {"clip_id": "190321_camera0_right", "labels": {"camera": "camera0_right"},
-           "meta": {"width": 960, "height": 600}, "plane": {"setup_id": "camera0_right_11-7"}}
+    _save_plane(planes_dir, _plane_doc("right_big", size=(1280, 720)))
+    man = {"clip_id": "190321_right", "labels": {"camera": "right"},
+           "meta": {"width": 960, "height": 600}, "plane": {"setup_id": "right_11-7"}}
     info = man_mod.plane_resolution(man)
     assert info["doc"] is None
     assert "no saved plane matches" in (info["error"] or "")
@@ -195,7 +195,7 @@ def real_plane():
 def test_recover_gt_from_snapshot(tmp_path, planes_dir, real_plane):
     size = real_plane.get("image_size") or [960, 600]
     _save_plane(planes_dir, real_plane)
-    cdir = _write_clip(tmp_path, "190321_camera0_right", setup_id=real_plane["setup_id"],
+    cdir = _write_clip(tmp_path, "190321_right", setup_id=real_plane["setup_id"],
                        w=int(size[0]), h=int(size[1]),
                        gt={"frame": None, "x_px": None, "y_px": None, "gt_in": None,
                            "judge_in": 238.0, "judge_present": True,
@@ -204,7 +204,7 @@ def test_recover_gt_from_snapshot(tmp_path, planes_dir, real_plane):
     res = tmp_path / "results"
     res.mkdir()
     snap = {"run_id": "2026-11-20T07-32-40.207077Z00-00",
-            "rows": [{"clip_id": "190321_camera0_right",
+            "rows": [{"clip_id": "190321_right",
                       "gt": {"frame": 15, "x_px": 532.8985, "y_px": 311.032,
                              "gt_in": 0.0, "judge_in": 238.0}}]}
     (res / "run.json").write_text(json.dumps(snap), encoding="utf-8")

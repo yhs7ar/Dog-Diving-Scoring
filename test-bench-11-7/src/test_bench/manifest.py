@@ -26,7 +26,7 @@ from pathlib import Path
 import re
 from typing import Any, Iterable
 
-from dog_diving.config import PLANES_DIR  # test-bench/planes/ — the saved-planes folder
+from dog_diving.config import PLANES_DIR, SOURCE_CLIPS_DIR  # test-bench/planes/; machine-local clips
 
 #: Bump only with a migration; readers refuse an unknown major.
 SCHEMA = "test_bench.manifest/1"
@@ -58,18 +58,29 @@ def clip_dir(analyzed_root: str | Path, clip_id: str) -> Path:
 
 def clip_video_path(manifest: dict[str, Any],
                     clip_dir: str | Path | None = None) -> Path | None:
-    """Resolve a clip's video file — the *mapped original*, never a repo copy.
+    """Resolve a clip's video file on *this* machine — never a repo copy.
 
-    New ingests store only ``source.original_path`` (the clip stays where the
-    operator put it; nothing is copied into ``analyzed-clips/``).  Pre-migration
-    manifests carry a ``source.clip_file`` (the old in-repo copy); resolve
-    ``original_path`` first and fall back to that copy only when the original has
-    since moved/deleted and the copy is all that remains.  ``None`` = unreachable.
+    A manifest records ``source.original_path`` (the absolute path on the machine
+    that ingested the clip), which does not transfer to other machines (the bench
+    is ingested on the Jetson but reviewed on Windows).  Resolution order:
+
+      1. ``original_path`` as recorded — still valid on the ingest machine;
+      2. ``source.filename`` under :data:`config.SOURCE_CLIPS_DIR` — the
+         machine-local clips root (default ``<repo>/end-to-end-app/data/clips``,
+         ``DD_CLIPS_DIR`` env overrides it);
+      3. a pre-migration ``source.clip_file`` copy inside the clip directory.
+
+    ``None`` = unreachable.
     """
     source = manifest.get("source") or {}
     orig = source.get("original_path")
     if orig:
         p = Path(orig)
+        if p.is_file():
+            return p
+    filename = source.get("filename")
+    if filename:
+        p = Path(SOURCE_CLIPS_DIR) / filename
         if p.is_file():
             return p
     clip_file = source.get("clip_file")
@@ -131,7 +142,7 @@ def clip_plane(manifest: dict[str, Any], *, allow_camera_fallback: bool = True
 
     Order: the manifest's ``plane.setup_id``, then — when that id names no saved
     plane — the newest saved plane whose id starts with the clip's camera tag
-    (``camera0_right`` -> ``camera0_right_2026-11-20_01-44-19``).  The fallback
+    (``right`` -> ``right_2026-11-20_01-44-19``).  The fallback
     exists because a re-saved calibration gets a timestamped id while every
     manifest still carries the older one; without it the same clips silently lose
     their plane on every machine.  Pass ``allow_camera_fallback=False`` to insist
@@ -147,11 +158,11 @@ def clip_plane(manifest: dict[str, Any], *, allow_camera_fallback: bool = True
     return info["doc"]
 
 
-_CAMERA_TAG = re.compile(r"(camera\d+[A-Za-z_]*)")
+_CAMERA_TAG = re.compile(r"(camera\d+[A-Za-z_]*|left|right)")
 
 
 def camera_tag(manifest: dict[str, Any]) -> str | None:
-    """The camera a clip belongs to (``camera0_right``), from labels or clip id."""
+    """The camera/plane tag a clip belongs to (``left`` / ``right``), from labels or clip id."""
     cam = (manifest.get("labels") or {}).get("camera")
     for candidate in (cam, manifest.get("clip_id")):
         if not candidate:

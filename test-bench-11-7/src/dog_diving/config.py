@@ -13,6 +13,15 @@ PLANES_DIR = PROJECT_ROOT / "planes"
 #: reused for every clip in a competition (no per-clip plane matching).
 ACTIVE_PLANE_PATH = PROJECT_ROOT / "data" / "active_plane.json"
 CLIP_DIR = PROJECT_ROOT / "data" / "clips"
+#: Where the *source* clip videos live on THIS machine.  A manifest records the
+#: ingest machine's absolute ``source.original_path`` (a Linux path on the Jetson),
+#: which does not transfer to other machines; ``manifest.clip_video_path`` falls
+#: back to looking the clip up by ``source.filename`` under this root.  Default is
+#: the repo's ``end-to-end-app/data/clips``; ``DD_CLIPS_DIR`` (env) overrides it.
+SOURCE_CLIPS_DIR = PROJECT_ROOT.parent / "end-to-end-app" / "data" / "clips"
+_env_clips = os.environ.get("DD_CLIPS_DIR", "").strip()
+if _env_clips:
+    SOURCE_CLIPS_DIR = Path(_env_clips)
 OUT_DIR = PROJECT_ROOT / "out"
 
 # calibration-capture mode (step 1a): the one known path where the app writes the

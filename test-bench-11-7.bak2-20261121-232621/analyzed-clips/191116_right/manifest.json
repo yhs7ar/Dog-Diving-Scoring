@@ -1,0 +1,55 @@
+{
+  "schema": "test_bench.manifest/1",
+  "clip_id": "191116_right",
+  "source": {
+    "original_path": "/home/dogdiving/Documents/Captstone-Repo/end-to-end-app/data/clips/live_jump_19691231_191116_right.mp4",
+    "sha256": "bbef179631f0903c4d93b6bdd3b267301fab232e859736544daa17b86cdfb740",
+    "kind": "mp4",
+    "filename": "live_jump_19691231_191116_right.mp4"
+  },
+  "meta": {
+    "width": 960,
+    "height": 600,
+    "fps": 30.0,
+    "codec": "FMP4",
+    "n_frames": 150,
+    "vfr": false,
+    "declared_vs_decoded": [
+      150,
+      150
+    ],
+    "duration_s": 5.0,
+    "backend": "cv2",
+    "probe_warnings": [
+      "ffprobe unavailable \u2014 metadata from cv2 only (no VFR detection)"
+    ]
+  },
+  "plane": {
+    "setup_id": "right_11-7",
+    "present": false
+  },
+  "detections": {},
+  "trajectory": {
+    "n_points": 10
+  },
+  "ground_truth": {
+    "path": "ground_truth.json",
+    "judge_present": true,
+    "gt_in": 86.03851398753639
+  },
+  "results": [],
+  "labels": {
+    "dog": "ICE",
+    "judge_score_in": 86,
+    "score_raw": "7'2\"",
+    "csv_line": 14,
+    "camera": "right",
+    "jump_time": "191116"
+  },
+  "excluded_frames": [
+    116,
+    117,
+    118,
+    119
+  ]
+}

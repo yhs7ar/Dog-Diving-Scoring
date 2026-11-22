@@ -1,0 +1,386 @@
+{
+  "schema": "dog_diving_pool_calibration/v1",
+  "setup_id": "11_7_bad_2026-11-11_14-44-57",
+  "created": "2026-11-11T19:44:57+00:00",
+  "image_size": [
+    1920,
+    1080
+  ],
+  "model_sha": "",
+  "notes": "water-surface plane (app_gui)",
+  "route": "A_correspondences",
+  "route_label": "A \u2014 direct correspondences with known (X, Y)",
+  "world_frame": {
+    "origin": "0 ft mark on the dock edge",
+    "x_axis": "+X = jump direction, feet from the dock edge",
+    "y_axis": "+Y = across the pool, feet",
+    "z_axis": "+Z = up; the marks' plane is Z = 0",
+    "pixel_space": "undistorted",
+    "units": "feet"
+  },
+  "lens": {
+    "K": [
+      [
+        1920.0,
+        0.0,
+        959.5
+      ],
+      [
+        0.0,
+        1920.0,
+        539.5
+      ],
+      [
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "dist": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "dist_model": "opencv_radtan5",
+    "dist_names": [
+      "k1",
+      "k2",
+      "p1",
+      "p2",
+      "k3"
+    ],
+    "image_size": [
+      1920,
+      1080
+    ],
+    "source": "assumed",
+    "rms_px": null,
+    "focal_ratio": 1.0,
+    "notes": [],
+    "roundtrip_px": 0.0
+  },
+  "marks": [
+    {
+      "ft": 7.0,
+      "inch": 0.0,
+      "label": "7'",
+      "x_px": 1090.4279434035109,
+      "y_px": 759.0141391514494,
+      "x_px_raw": 1090.4279434035109,
+      "y_px_raw": 759.0141391514494
+    },
+    {
+      "ft": 12.0,
+      "inch": 0.0,
+      "label": "12'",
+      "x_px": 876.5512110350842,
+      "y_px": 758.4102719729003,
+      "x_px_raw": 876.5512110350842,
+      "y_px_raw": 758.4102719729003
+    }
+  ],
+  "vp_transverse": null,
+  "vp_along": null,
+  "edge_line": null,
+  "marks_on_edge": "far",
+  "width_prior_ft": 21.0,
+  "homography": [
+    [
+      -43.83870629660592,
+      -21.58217948028946,
+      1383.2349707698897
+    ],
+    [
+      -1.5165988255225407,
+      -14.880711172647723,
+      759.8408609342124
+    ],
+    [
+      -0.0018425160238289492,
+      -0.0226571204303262,
+      1.0
+    ]
+  ],
+  "homography_info": {
+    "route": "A_correspondences",
+    "robust": true,
+    "iterations": 1,
+    "residual": {
+      "n": 4,
+      "rms_ft": 4.9535112066732047e-14,
+      "max_ft": 6.042224978733284e-14,
+      "rms_px": 5.020274822031665e-13,
+      "max_px": 9.374856803373542e-13,
+      "per_point_ft": [
+        1.4210854715202004e-14,
+        5.570001676237829e-14,
+        6.042224978733284e-14,
+        5.347542221830668e-14
+      ],
+      "per_point_px": [
+        1.1368683772161603e-13,
+        2.2737367544323206e-13,
+        2.5421149729252077e-13,
+        9.374856803373542e-13
+      ]
+    },
+    "weights": [
+      1.0,
+      1.0,
+      1.0,
+      1.0
+    ],
+    "inliers": 4,
+    "n_points": 4
+  },
+  "pose": {
+    "R": [
+      [
+        -0.9990317218121073,
+        0.04339106056078872,
+        0.00726874655947657
+      ],
+      [
+        -0.009895093011803982,
+        -0.060622875585877256,
+        -0.998111694195588
+      ],
+      [
+        -0.04286847265093173,
+        -0.9972171693363033,
+        0.06099353435788991
+      ]
+    ],
+    "t": [
+      9.876632812503646,
+      5.135818205148683,
+      44.75234830288523
+    ],
+    "z_sign": 1.0,
+    "z_sign_detail": {
+      "rule": "not resolved: no rim pair was clicked"
+    },
+    "orthonormality": 0.09238280390810422,
+    "camera_centre_ft": [
+      11.836353702500341,
+      44.51060059133392,
+      2.324725575238111
+    ],
+    "camera_height_ft": 2.324725575238111
+  },
+  "wall": null,
+  "water": {
+    "z_ft": -0.0,
+    "offset_ft": -0.0,
+    "offset_in": -0.0,
+    "below_marked_plane_in": 0.0,
+    "method": "known_freeboard",
+    "sigma_ft": null,
+    "sigma_in": null,
+    "residual_px": null,
+    "residual_ft": null,
+    "wall": null,
+    "rim_top_z_ft": null,
+    "anchors": [],
+    "notes": [
+      "water level from a stated freeboard of 0 in (plane_is_the_water_surface specification); its error is the venue's tolerance, not this pipeline's"
+    ]
+  },
+  "pool": {
+    "width_ft": 21.0,
+    "marks_on_edge": "far",
+    "y_min_ft": 21.0,
+    "along_ft": 12.0,
+    "along_source": "the marks' own span"
+  },
+  "extent": {
+    "x_min": 0.0,
+    "x_max": 35.0,
+    "y_min": 0.0,
+    "y_max": 21.0
+  },
+  "width_observation": {},
+  "anchors": [
+    "metric anchor: points with known real-world (X, Y) in feet",
+    "the up-axis sign could not be resolved from a rim pair, so +Z is the decomposition's default. If the water comes out ABOVE the marked plane on a venue where it should be below, this is the reason \u2014 click a rim/coping pair and rebuild."
+  ],
+  "gates": {
+    "W1": {
+      "pass": true,
+      "warn": false,
+      "detail": "lens undistort/distort round-trip max 0 px (block > 0.05)"
+    },
+    "W2": {
+      "pass": true,
+      "warn": false,
+      "detail": "homography residual RMS 0.00 in (warn > 3 in, block > 12 in)"
+    },
+    "W3": {
+      "pass": false,
+      "warn": false,
+      "detail": "pose orthonormality residual 0.0924 (block > 0.05)"
+    },
+    "W4": {
+      "pass": true,
+      "warn": false,
+      "detail": "homography route vs ray/plane route: max disagreement 5.15e-13 in over 15 probe point(s)"
+    },
+    "W5": {
+      "pass": true,
+      "warn": false,
+      "detail": "water level -0.0 in from the marked plane; no rim pair (method known_freeboard)"
+    },
+    "W6": {
+      "pass": true,
+      "warn": false,
+      "detail": "no observed pool width to compare with the prior (visual check only)"
+    },
+    "W7": {
+      "pass": true,
+      "warn": false,
+      "detail": "px/ft along 42.4, across 2.2, anisotropy 18.9x, cond 5.22e+05"
+    }
+  },
+  "plane": {
+    "schema": "dog_diving_pool_plane/v1",
+    "frame_shape": [
+      1080,
+      1920
+    ],
+    "corners": {
+      "00": [
+        1090.4279434035109,
+        759.0141391514494
+      ],
+      "10": [
+        876.5512110350842,
+        758.4102719729003
+      ],
+      "11": [
+        804.5260848084235,
+        854.7202736785935
+      ],
+      "01": [
+        1218.7263319326878,
+        854.15077779548
+      ]
+    },
+    "length_ft": 5.0,
+    "width_ft": 21.0,
+    "dock_offset_ft": 7.0,
+    "metric_length_ft": 35.0,
+    "length_note": "length_ft is the +x ANCHOR \u2014 where the operator's far edge sits, used to line the grid up against visible pool detail. dock_offset_ft is the near-edge anchor: the X of the quad's DOCK-SIDE edge, 0 when that edge is the dock lip. Quad world X runs dock_offset_ft -> dock_offset_ft + length_ft; the metric axis always runs 0 -> metric_length_ft.",
+    "pad": [
+      672.0,
+      672.0
+    ],
+    "kind": "water_surface",
+    "mapping": "homography",
+    "freeboard_in_spec": 19.5,
+    "freeboard_note": "Dog Diving' 19.5 in recorded as a specification for the record. NOT used by the mapping: the aligned plane IS the water surface, so the water offset is zero by construction"
+  },
+  "plane_gates": {
+    "P1": {
+      "pass": true,
+      "warn": false,
+      "detail": "quad area 30060 px\u00b2, 5 x 21 ft"
+    },
+    "P2": {
+      "pass": true,
+      "warn": false,
+      "detail": "px/ft along 42.4, across 2.2, cond 5.22e+05"
+    },
+    "P3": {
+      "pass": true,
+      "warn": false,
+      "detail": "corner round-trip worst 6.40e-14 ft (block > 0.01 ft)"
+    },
+    "P4": {
+      "pass": true,
+      "warn": true,
+      "detail": "1 ft subtends 54.0 px at the dock edge and 55.3 px at the far end (ratio 1.02x) \u2014 a reversed plane scores > 1.05"
+    }
+  },
+  "mapping": {
+    "y_probe_ft": 10.5,
+    "probe": [
+      {
+        "X_ft": 0.0,
+        "pixel": [
+          1517.6771143443816,
+          792.0131309761342
+        ],
+        "px_per_ft_along": 53.98485387979448,
+        "roundtrip_error_ft": 5.710076191381002e-14
+      },
+      {
+        "X_ft": 5.0,
+        "pixel": [
+          1245.110805134074,
+          791.6325832263607
+        ],
+        "px_per_ft_along": 55.31573004286413,
+        "roundtrip_error_ft": 4.6398291028314195e-14
+      },
+      {
+        "X_ft": 10.0,
+        "pixel": [
+          965.7914419490638,
+          791.2426070938145
+        ],
+        "px_per_ft_along": 56.69643447026086,
+        "roundtrip_error_ft": 2.3832327871173822e-14
+      },
+      {
+        "X_ft": 15.0,
+        "pixel": [
+          679.4649081345024,
+          790.8428477895219
+        ],
+        "px_per_ft_along": 58.12948600551792,
+        "roundtrip_error_ft": 1.0671455396416427e-13
+      },
+      {
+        "X_ft": 20.0,
+        "pixel": [
+          385.8641752378617,
+          790.4329324974987
+        ],
+        "px_per_ft_along": 59.61756468820937,
+        "roundtrip_error_ft": 8.015287401035549e-14
+      },
+      {
+        "X_ft": 25.0,
+        "pixel": [
+          84.70847238904359,
+          790.012469215068
+        ],
+        "px_per_ft_along": 61.16352429337135,
+        "roundtrip_error_ft": 5.54951617168815e-14
+      },
+      {
+        "X_ft": 30.0,
+        "pixel": [
+          -224.2976092760847,
+          789.5810455024872
+        ],
+        "px_per_ft_along": 62.77040602386708,
+        "roundtrip_error_ft": 9.866379057398557e-14
+      },
+      {
+        "X_ft": 35.0,
+        "pixel": [
+          -541.4650831533867,
+          789.1382271335
+        ],
+        "px_per_ft_along": 64.44145347846221,
+        "roundtrip_error_ft": 7.588599744428076e-14
+      }
+    ],
+    "px_per_ft_along_at_0": 53.98485387979448,
+    "px_per_ft_along_at_far": 64.44145347846221,
+    "note": "X is the distance from the dock edge by construction: the plane's X = 0 edge is the dock lip. No height is used \u2014 the plane IS the water surface."
+  }
+}

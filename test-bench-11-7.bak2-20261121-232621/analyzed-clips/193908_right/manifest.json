@@ -1,0 +1,46 @@
+{
+  "schema": "test_bench.manifest/1",
+  "clip_id": "193908_right",
+  "source": {
+    "original_path": "/home/dogdiving/Documents/Captstone-Repo/end-to-end-app/data/clips/live_jump_19691231_193908_right.mp4",
+    "sha256": "d482014cd934b5e38fee44011c37a5039a00dd2e81dd8a4fc557ddf84c7a7764",
+    "kind": "mp4",
+    "filename": "live_jump_19691231_193908_right.mp4"
+  },
+  "meta": {
+    "width": 960,
+    "height": 600,
+    "fps": 30.0,
+    "codec": "FMP4",
+    "n_frames": 150,
+    "vfr": false,
+    "declared_vs_decoded": [
+      150,
+      150
+    ],
+    "duration_s": 5.0,
+    "backend": "cv2",
+    "probe_warnings": [
+      "ffprobe unavailable \u2014 metadata from cv2 only (no VFR detection)"
+    ]
+  },
+  "plane": {
+    "setup_id": "right_11-7",
+    "present": false
+  },
+  "detections": {},
+  "trajectory": {},
+  "ground_truth": {
+    "path": "ground_truth.json",
+    "judge_present": false
+  },
+  "results": [],
+  "labels": {
+    "dog": "sapper",
+    "judge_score_in": 247,
+    "score_raw": "20'7\"",
+    "csv_line": 45,
+    "camera": "right",
+    "jump_time": "193908"
+  }
+}

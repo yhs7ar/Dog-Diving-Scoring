@@ -1,0 +1,16 @@
+{
+  "schema": "test_bench.ground_truth/1",
+  "frame": null,
+  "x_px": null,
+  "y_px": null,
+  "gt_in": null,
+  "gt_in_source": null,
+  "judge_in": 205.0,
+  "judge_present": true,
+  "reference": {
+    "dog": "sapper",
+    "score_raw": "17'1\"",
+    "csv_line": 48
+  },
+  "updated": "2026-11-20T08:20:09.051047+00:00"
+}

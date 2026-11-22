@@ -36,6 +36,7 @@ __all__ = [
     "nominal_in_per_px",
     "local_in_per_px_at_entry",
     "bin_counts",
+    "find_run",
     "aggregate",
 ]
 
@@ -170,6 +171,12 @@ def _find_run(runs: Iterable[dict[str, Any]] | None, cfg: dict[str, Any]
                 and str(run.get("n_points")) == str(n_points)):
             return run
     return None
+
+
+def find_run(runs: Iterable[dict[str, Any]] | None, cfg: dict[str, Any]
+             ) -> dict[str, Any] | None:
+    """Public alias for ``_find_run`` (GUI consumers, e.g. the Compare cone)."""
+    return _find_run(runs, cfg)
 
 
 def aggregate(rows: list[dict[str, Any]], method_cfg: dict[str, Any],

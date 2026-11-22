@@ -22,6 +22,12 @@ import tkinter as tk
 import tkinter.font as tkfont
 from tkinter import filedialog, messagebox, simpledialog, ttk
 
+import matplotlib
+matplotlib.use("TkAgg")
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
+from matplotlib.lines import Line2D
+
 SRC = Path(__file__).resolve().parent
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
@@ -624,9 +630,11 @@ class AnalyzePane(_FramePane):
         cfg = detect_mod.DetectConfig(model_path=model)
         clip = manifest_mod.clip_video_path(man, cdir)
         if clip is None:
+            src = man.get("source", {})
             messagebox.showerror(
-                "analyze", "clip file not found "
-                f"({man.get('source', {}).get('original_path')!r})")
+                "analyze", "clip file not found — looked for "
+                f"{src.get('filename')!r} in {manifest_mod.SOURCE_CLIPS_DIR} "
+                f"(ingest path: {src.get('original_path')!r})")
             return
         self._busy = True
         self.status.config(text="analyzing…")
@@ -965,6 +973,10 @@ class ComparePane(_FramePane):
                "#ff6b6b", "#b388ff", "#69f0ae", "#ff80ab", "#80d8ff")
     #: The judge reference line (drawn at X = judge distance) and its legend swatch.
     JUDGE_COLOUR = "#ffca28"
+    #: The accuracy cone — a shaded ±X fan around the fitted trajectory.  Red
+    #: when the compared clip's own error falls outside the suite's error range.
+    CONE_COLOUR = "#5b7d99"
+    CONE_OUT_COLOUR = "#b00020"
 
     def __init__(self, parent, app):
         super().__init__(parent, app)
@@ -972,6 +984,7 @@ class ComparePane(_FramePane):
         self.gt = None
         self.plane_doc = None
         self.points = []        # accepted detections (post-deselection)
+        self._run_doc = None    # newest results doc containing this clip
         self.filter_frame = ttk.Frame(self)
         self.filter_frame.pack(fill="x", padx=8, pady=4)
         self.legend = ttk.Frame(self)
@@ -993,10 +1006,13 @@ class ComparePane(_FramePane):
         self.show_det = tk.BooleanVar(value=True)
         self.show_vec = tk.BooleanVar(value=True)
         self.show_grid = tk.BooleanVar(value=True)
+        self.show_cone = tk.BooleanVar(value=True)
         for text, var in (("detections", self.show_det), ("error vectors", self.show_vec),
                           ("grid", self.show_grid)):
             ttk.Checkbutton(op, text=text, variable=var,
                             command=self._redraw).pack(side="left", padx=(12, 0))
+        ttk.Checkbutton(op, text="accuracy cone", variable=self.show_cone,
+                        command=self._on_cone_toggle).pack(side="left", padx=(12, 0))
 
     # -- loading ------------------------------------------------------------
     def load_clip(self, clip_id):
@@ -1013,12 +1029,14 @@ class ComparePane(_FramePane):
         self.gt = None
         self.plane_doc = None
         self.points = []
+        self._run_doc = None
         if not cid or not self.man:
             return
         cdir = self.app.clip_dir(cid)
         gt_path = cdir / "ground_truth.json"
         self.gt = json.loads(gt_path.read_text(encoding="utf-8")) if gt_path.is_file() else None
         self.plane_doc = manifest_mod.clip_plane(self.man)
+        self._run_doc = self._active_run_doc()
         det_path = cdir / "detections.json"
         if det_path.is_file():
             recs = json.loads(det_path.read_text(encoding="utf-8"))
@@ -1057,6 +1075,10 @@ class ComparePane(_FramePane):
         self._rebuild_legend()
         self._redraw()
 
+    def _on_cone_toggle(self):
+        self._rebuild_legend()
+        self._redraw()
+
     def _run_visible(self, r):
         if self.method_group is not None and r["method"] not in self.method_group.selected():
             return False
@@ -1084,26 +1106,43 @@ class ComparePane(_FramePane):
             if not self.legend.winfo_children():
                 ttk.Label(self.legend, text="no runs for this clip (run a suite first)").pack(side="left")
             return
+        if self.show_cone.get():
+            geo = self._cone_geometry(visible[0][0])
+            if geo is not None:
+                col = self.CONE_OUT_COLOUR if geo["outlier"] else self.CONE_COLOUR
+                tag = "OUTLIER " if geo["outlier"] else ""
+                self._legend_row(col, f"{tag}accuracy cone ±{geo['X_in']:.1f}in "
+                                      f"(n={geo['n_other']} others)")
         for r, colour in visible:
             px = _fmt(r.get("pixel_error_px"))
             inch = _fmt(r.get("score_error_in"))
             self._legend_row(colour, f"{r['method']} n={r.get('n_points')} {r.get('selection')}  "
                                      f"Δ{px}px/{inch}in")
 
-    def _active_runs_for(self, cid):
-        """The runs for ``cid`` in the newest results file (the active bench run)."""
+    def _active_run_doc(self):
+        """The newest results document that contains the current clip (or None)."""
+        cid = self.clip_var.get()
         rdir = self.app.root_dir / "results"
-        if not rdir.is_dir():
-            return []
+        if not cid or not rdir.is_dir():
+            return None
         files = sorted(rdir.glob("*.json"), key=lambda p: p.stat().st_mtime)
         for p in reversed(files):
             try:
                 doc = json.loads(p.read_text(encoding="utf-8"))
             except Exception:  # noqa: BLE001
                 continue
-            for row in doc.get("rows", []):
-                if row["clip_id"] == cid:
-                    return row["runs"]
+            if any(row.get("clip_id") == cid for row in doc.get("rows", [])):
+                return doc
+        return None
+
+    def _active_runs_for(self, cid):
+        """The runs for ``cid`` in the newest results file (the active bench run)."""
+        doc = self._active_run_doc()
+        if not doc:
+            return []
+        for row in doc.get("rows", []):
+            if row.get("clip_id") == cid:
+                return row["runs"]
         return []
 
     def _selected_px_for(self, r):
@@ -1174,8 +1213,124 @@ class ComparePane(_FramePane):
         except Exception:  # noqa: BLE001
             return None
 
+    def _cone_geometry(self, run):
+        """Accuracy-cone geometry around ``run``'s trajectory, or None.
+
+        The cone is a fan from the launch point to the landing line spanning
+        ±X inches, where X is the robust error bound (Tukey fence on absolute
+        score error) of the *other* clips at this run's config.  Returns
+        ``{"polygon": [(x,y)...], "ticks": [(x,y,is_outlier)...], "X_in": X,
+        "outlier": bool, "this_signed": float|None, "n_other": int}``.
+        """
+        sc = run.get("score") or {}
+        ep = sc.get("entry_px")
+        fit = sc.get("fit") or {}
+        curve = fit.get("curve")
+        if not ep or not curve or len(curve) < 2:
+            return None
+        in_per_px = accuracy_mod.local_in_per_px_at_entry(self.plane_doc, ep)
+        if in_per_px is None:
+            in_per_px = accuracy_mod.nominal_in_per_px(self.plane_doc)
+        if not in_per_px or in_per_px <= 0:
+            return None
+        cl = fit.get("centerline_line_px")
+        if not cl or len(cl) < 2:
+            return None
+        dirv = np.asarray(cl[1], dtype=float) - np.asarray(cl[0], dtype=float)
+        norm = float(np.linalg.norm(dirv))
+        if norm <= 0:
+            return None
+        dirv = dirv / norm
+        # The centerline's endpoint order is arbitrary; orient it in the +X
+        # (down-pool) direction via the homography so overshoot/short map to
+        # the physically correct sides.
+        H = (self.plane_doc or {}).get("homography")
+        if H is not None:
+            try:
+                Hm = np.asarray(H, dtype=float).reshape(3, 3)
+                Xc = float(sc.get("distance_in") or 0.0) / 12.0
+                Yc = float(fit.get("centerline_yc_ft") or 0.0)
+                p0 = Hm @ np.array([Xc, Yc, 1.0], dtype=float)
+                p1 = Hm @ np.array([Xc + 1.0, Yc, 1.0], dtype=float)
+                if abs(float(p0[2])) > 1e-12 and abs(float(p1[2])) > 1e-12:
+                    plus_x = (p1[:2] / p1[2]) - (p0[:2] / p0[2])
+                    if float(np.dot(plus_x, dirv)) < 0:
+                        dirv = -dirv
+            except Exception:  # noqa: BLE001
+                pass
+
+        cfg = {"method": run.get("method"), "n_points": run.get("n_points"),
+               "selection": run.get("selection")}
+        cid = self.clip_var.get()
+        signed = []
+        for row in (self._run_doc or {}).get("rows") or []:
+            if row.get("clip_id") == cid:
+                continue
+            gt_in = (row.get("gt") or {}).get("gt_in")
+            cell = accuracy_mod.find_run(row.get("runs"), cfg)
+            d_in = ((cell or {}).get("score") or {}).get("distance_in")
+            if gt_in is not None and d_in is not None:
+                signed.append(float(d_in) - float(gt_in))
+        if len(signed) < 2:
+            return None
+        abs_err = np.abs(np.asarray(signed, dtype=float))
+        if len(signed) >= 4:
+            q1, q3 = np.percentile(abs_err, [25.0, 75.0])
+            X = float(q3 + 1.5 * (q3 - q1))
+        else:
+            X = float(abs_err.max())
+        if X <= 0:
+            return None
+        dx = X / in_per_px
+
+        pts = [np.asarray(p, dtype=float) for p in curve]
+        pts.append(np.asarray(ep, dtype=float))
+        n = len(pts)
+        t = np.linspace(0.0, 1.0, n)
+        long_pts = [tuple(pts[i] + (t[i] * dx) * dirv) for i in range(n)]
+        short_pts = [tuple(pts[i] - (t[i] * dx) * dirv) for i in range(n)]
+        polygon = long_pts + list(reversed(short_pts))
+
+        ep_arr = np.asarray(ep, dtype=float)
+        ticks = []
+        for s in signed:
+            pos = ep_arr + (s / in_per_px) * dirv
+            ticks.append((float(pos[0]), float(pos[1]), abs(s) > X))
+
+        this_signed = None
+        if sc.get("distance_in") is not None and (self.gt or {}).get("gt_in") is not None:
+            this_signed = float(sc["distance_in"]) - float(self.gt["gt_in"])
+        outlier = this_signed is not None and abs(this_signed) > X
+
+        return {"polygon": polygon, "ticks": ticks, "X_in": X,
+                "outlier": outlier, "this_signed": this_signed, "n_other": len(signed)}
+
+    def _cone_overlays(self):
+        """Overlays for the accuracy cone (empty when off / no data)."""
+        if not self.show_cone.get() or not self.plane_doc:
+            return []
+        visible = [r for r, _ in self.runs if self._run_visible(r)]
+        if not visible:
+            return []
+        geo = self._cone_geometry(visible[0])
+        if geo is None:
+            return []
+        colour = self.CONE_OUT_COLOUR if geo["outlier"] else self.CONE_COLOUR
+        overlays = [("polygon", geo["polygon"], colour, 0.30)]
+        for x, y, is_out in geo["ticks"]:
+            overlays.append(("dot", (x, y, 0.8),
+                             self.CONE_OUT_COLOUR if is_out else self.CONE_COLOUR))
+        if geo["outlier"] and geo["this_signed"] is not None:
+            ep = (visible[0].get("score") or {}).get("entry_px")
+            s = geo["this_signed"]
+            overlays.append(("label", (ep[0], ep[1],
+                                       f"OUTLIER {'+' if s >= 0 else ''}{s:.1f}in "
+                                       f"(cone ±{geo['X_in']:.1f}in)"),
+                             self.CONE_OUT_COLOUR))
+        return overlays
+
     def _build_overlays(self):
-        overlays = []
+        overlays = list(self._cone_overlays())
         if self.gt and self.gt.get("x_px") is not None:
             overlays.append(("marker", (self.gt["x_px"], self.gt["y_px"], 2.2), "red"))
         judge = self._judge_line()
@@ -1292,6 +1447,15 @@ class AccuracyPane(ttk.Frame):
                   "mean_pct": 60, "median_pct": 60, "w2": 48, "w4": 48, "w6": 48,
                   "judge_in": 66, "judge_pct": 66}
 
+    # plot colours (kept distinct from the tree so the two views read clearly)
+    BAR_COLOUR = "#5b7d99"
+    SEL_COLOUR = "#0077c8"
+    MED_COLOUR = "#00a651"
+    MEAN_COLOUR = "#ff6d00"
+    OUT_COLOUR = "#b00020"
+    RIGHT_COLOUR = "#0077c8"     # right clip (closest to dock) in the landing plot
+    LEFT_COLOUR = "#e07b00"      # left clip
+
     def __init__(self, parent, app):
         super().__init__(parent)
         self.app = app
@@ -1318,6 +1482,12 @@ class AccuracyPane(ttk.Frame):
         self.cfg_box = ttk.Combobox(bar, textvariable=self.cfg_var, width=38, state="readonly")
         self.cfg_box.pack(side="left", padx=4)
         self.cfg_box.bind("<<ComboboxSelected>>", lambda e: self._render())
+        ttk.Label(bar, text="Group by:").pack(side="left", padx=(12, 0))
+        self.group_var = tk.StringVar(value="none")
+        self.group_box = ttk.Combobox(bar, textvariable=self.group_var, width=9,
+                                      state="readonly", values=("none", "camera", "dog"))
+        self.group_box.pack(side="left", padx=4)
+        self.group_box.bind("<<ComboboxSelected>>", lambda e: self._render())
 
         # average-error summary — one row per method config in the active run
         sframe = ttk.Frame(self)
@@ -1338,6 +1508,31 @@ class AccuracyPane(ttk.Frame):
         _sb = ttk.Scrollbar(sum_hold, orient="vertical", command=self.sum_tree.yview)
         self.sum_tree.configure(yscrollcommand=_sb.set)
         _sb.pack(side="right", fill="y")
+
+        # four plots in a 2x2 grid: error-by-config/group + landing-location on
+        # top; per-clip error + judge comparison below (selected config)
+        self._plots = ttk.Frame(self)
+        self._plots.pack(fill="x", padx=8, pady=(0, 4))
+        top = ttk.Frame(self._plots)
+        top.pack(fill="x")
+        bot = ttk.Frame(self._plots)
+        bot.pack(fill="x")
+        self.fig_cfg = Figure(figsize=(3.6, 2.2), dpi=100, tight_layout=True)
+        self.ax_cfg = self.fig_cfg.add_subplot(111)
+        self.canvas_cfg = FigureCanvasTkAgg(self.fig_cfg, master=top)
+        self.canvas_cfg.get_tk_widget().pack(side="left", fill="both", expand=True)
+        self.fig_land = Figure(figsize=(3.6, 2.2), dpi=100, tight_layout=True)
+        self.ax_land = self.fig_land.add_subplot(111)
+        self.canvas_land = FigureCanvasTkAgg(self.fig_land, master=top)
+        self.canvas_land.get_tk_widget().pack(side="left", fill="both", expand=True)
+        self.fig_sel = Figure(figsize=(3.6, 2.2), dpi=100, tight_layout=True)
+        self.ax_sel = self.fig_sel.add_subplot(111)
+        self.canvas_sel = FigureCanvasTkAgg(self.fig_sel, master=bot)
+        self.canvas_sel.get_tk_widget().pack(side="left", fill="both", expand=True)
+        self.fig_judge = Figure(figsize=(3.6, 2.2), dpi=100, tight_layout=True)
+        self.ax_judge = self.fig_judge.add_subplot(111)
+        self.canvas_judge = FigureCanvasTkAgg(self.fig_judge, master=bot)
+        self.canvas_judge.get_tk_widget().pack(side="left", fill="both", expand=True)
 
         body = ttk.Frame(self)
         body.pack(fill="both", expand=True, padx=8, pady=4)
@@ -1429,6 +1624,10 @@ class AccuracyPane(ttk.Frame):
         self.cfg_var.set("")
         self.stale_lbl.pack_forget()
         self.res_lbl.pack_forget()
+        for ax, cv in ((self.ax_cfg, self.canvas_cfg), (self.ax_land, self.canvas_land),
+                       (self.ax_sel, self.canvas_sel), (self.ax_judge, self.canvas_judge)):
+            ax.cla()
+            cv.draw_idle()
 
     def _render(self):
         self.tree.delete(*self.tree.get_children())
@@ -1460,6 +1659,9 @@ class AccuracyPane(ttk.Frame):
             except Exception:  # noqa: BLE001
                 man = plane = gt_disk = None
             r["plane_doc"] = plane
+            r["_labels"] = (man or {}).get("labels") or {}
+            r["dog"] = (r["_labels"].get("dog")
+                        or ((row.get("gt") or {}).get("reference") or {}).get("dog"))
             if suite_mod.is_stale(recorded.get(cid), man, plane, gt_disk):
                 any_stale = True
             psize = (plane or {}).get("image_size")
@@ -1488,6 +1690,7 @@ class AccuracyPane(ttk.Frame):
             ))
 
         self._render_summary(rows, clip_ids)
+        self._render_plots(rows, clip_ids, method_cfg, res)
 
         if any_stale:
             self.stale_lbl.config(text="stale: recorded provenance no longer matches current inputs")
@@ -1524,11 +1727,557 @@ class AccuracyPane(ttk.Frame):
         self.sum_tree.tag_configure("current", font=(self._font_fam, 11, "bold"))
         self.sum_tree.configure(height=max(3, min(len(self._configs), 12)))
 
+    # -- plots ----------------------------------------------------------------
+
+    def _cfg_short(self, cfg):
+        """Compact x-axis label; n_points only when method/selection are fixed."""
+        keys = {(c.get("method"), c.get("selection")) for c in self._configs}
+        n = cfg.get("n_points")
+        if len(keys) == 1:
+            return f"n={n}"
+        m = str(cfg.get("method") or "")
+        if m.startswith("arc_2d_"):
+            m = m[len("arc_2d_"):]
+        elif m == "arc_2d":
+            m = "a2d"
+        return f"{m}/{cfg.get('selection')}/n{n}"
+
+    @staticmethod
+    def _short_clip(cid):
+        """``<HHMMSS>_<tag>...`` -> ``<HHMMSS>/<tag>`` (compact tick label)."""
+        parts = str(cid).split("_")
+        if len(parts) >= 2:
+            tag = parts[1]
+            if tag.startswith("camera"):
+                return f"{parts[0]}/{tag.replace('camera', 'c')}"
+            if tag in ("left", "right"):
+                return f"{parts[0]}/{tag[0].upper()}"   # 190321/R, 190321/L
+        return str(cid)
+
+    @staticmethod
+    def _camera_key(cid, labels=None):
+        """``left`` / ``right`` for a clip, from labels or its id."""
+        cam = (labels or {}).get("camera") or str(cid)
+        for part in str(cam).split("_"):
+            if part in ("left", "right") or part.startswith("camera"):
+                return part
+        return "unknown"
+
+    def _render_plots(self, rows, clip_ids, method_cfg, sel_res):
+        cur = self.cfg_box.current()
+        cur = cur if cur >= 0 else 0
+        mode = self.group_var.get()
+        meta = {r["clip_id"]: r for r in rows}
+
+        # Plot 1 — error distribution: box + jittered per-clip strip.  By
+        # default it is grouped by config (find the best n); the "group by"
+        # selector regroups the SELECTED config's errors by camera or dog.
+        ax = self.ax_cfg
+        ax.cla()
+        groups: list = []          # (label, [score_error_in, ...])
+        sel_pos = None
+        if mode == "none":
+            for i, cfg in enumerate(self._configs):
+                res = accuracy_mod.aggregate(rows, cfg, clip_ids=clip_ids)
+                errs = [c["score_error_in"] for c in res["clips"]
+                        if c["score_error_in"] is not None]
+                if errs:
+                    if i == cur:
+                        sel_pos = len(groups)
+                    groups.append((self._cfg_short(cfg), errs))
+        else:
+            keyed: dict = {}
+            for c in (sel_res.get("clips") or []):
+                if c.get("score_error_in") is None:
+                    continue
+                r = meta.get(c["clip_id"]) or {}
+                key = (self._camera_key(c["clip_id"], r.get("_labels")) if mode == "camera"
+                       else (r.get("dog") or "unknown"))
+                keyed.setdefault(key, []).append(c["score_error_in"])
+            for key in sorted(keyed):
+                groups.append((key, keyed[key]))
+        if groups:
+            labels = [g[0] for g in groups]
+            pos = np.arange(len(groups))
+            bp = ax.boxplot(
+                [g[1] for g in groups], positions=pos, widths=0.55,
+                patch_artist=True, showfliers=False, showmeans=True,
+                meanprops=dict(marker="D", markerfacecolor=self.MEAN_COLOUR,
+                               markeredgecolor=self.MEAN_COLOUR, markersize=6),
+                medianprops=dict(color="black", lw=1.5),
+            )
+            for patch in bp["boxes"]:
+                patch.set_facecolor("#dbe7f3")
+                patch.set_edgecolor(self.BAR_COLOUR)
+            rng = np.random.default_rng(0)   # deterministic jitter
+            for xi, errs in zip(pos, (g[1] for g in groups)):
+                errs = np.asarray(errs, dtype=float)
+                q1, q3 = np.percentile(errs, [25.0, 75.0])
+                hi = q3 + 1.5 * (q3 - q1)
+                out = errs > hi
+                jit = rng.uniform(-0.18, 0.18, errs.size)
+                ax.scatter(xi + jit[~out], errs[~out], s=16, color=self.BAR_COLOUR,
+                           alpha=0.6, zorder=3)
+                ax.scatter(xi + jit[out], errs[out], s=26, color=self.OUT_COLOUR,
+                           zorder=4)
+            ax.set_xticks(pos)
+            ax.set_xticklabels(labels)
+            if sel_pos is not None:
+                ax.get_xticklabels()[sel_pos].set_fontweight("bold")
+                ax.get_xticklabels()[sel_pos].set_color(self.SEL_COLOUR)
+            ax.set_ylabel("score error (in)")
+            if mode == "none":
+                ax.set_title("Error by config — box + per-clip points", fontsize=10)
+            else:
+                ax.set_title(f"Error by {mode} ({self._cfg_short(method_cfg)})", fontsize=10)
+            ax.legend(handles=[
+                Line2D([0], [0], color="black", lw=1.5, label="median"),
+                Line2D([0], [0], marker="D", color="none",
+                       markerfacecolor=self.MEAN_COLOUR,
+                       markeredgecolor=self.MEAN_COLOUR, markersize=6,
+                       label="mean"),
+                Line2D([0], [0], marker="o", color="none",
+                       markerfacecolor=self.OUT_COLOUR, markersize=7,
+                       label="outlier (>Q3+1.5·IQR)"),
+            ], fontsize=8, loc="best", frameon=False)
+            ax.set_xlim(-0.7, len(groups) - 0.3)
+            ax.set_ylim(bottom=0)
+        else:
+            ax.set_title("Error — no GT", fontsize=10)
+            ax.axis("off")
+        self.canvas_cfg.draw_idle()
+
+        # Plot 2 — the selected config: one point per clip, ranked by error,
+        # with statistical outliers named so they can be removed from the suite.
+        ax = self.ax_sel
+        ax.cla()
+        clips = [c for c in (sel_res.get("clips") or [])
+                 if c.get("score_error_in") is not None]
+        if clips:
+            clips = sorted(clips, key=lambda c: c["score_error_in"], reverse=True)
+            errs = np.array([c["score_error_in"] for c in clips], dtype=float)
+            q1, q3 = np.percentile(errs, [25.0, 75.0])
+            hi = q3 + 1.5 * (q3 - q1)
+            out = errs > hi
+            x = np.arange(len(clips))
+            ax.scatter(x[~out], errs[~out], s=22, color=self.BAR_COLOUR,
+                       alpha=0.7, zorder=3)
+            ax.scatter(x[out], errs[out], s=40, color=self.OUT_COLOUR, zorder=4)
+            for i in np.where(out)[0]:
+                ax.annotate(self._short_clip(clips[i]["clip_id"]), (x[i], errs[i]),
+                            xytext=(0, 6), textcoords="offset points", ha="center",
+                            rotation=90, fontsize=6, color=self.OUT_COLOUR)
+            summary = sel_res.get("summary") or {}
+            mean_v, med_v = summary.get("mean_in"), summary.get("median_in")
+            if mean_v is not None:
+                ax.axhline(mean_v, color=self.MEAN_COLOUR, lw=1.0, ls="--",
+                           label=f"mean {mean_v:.1f}")
+            if med_v is not None:
+                ax.axhline(med_v, color=self.MED_COLOUR, lw=1.0, ls=":",
+                           label=f"median {med_v:.1f}")
+            ax.set_xticks(x)
+            ax.set_xticklabels([self._short_clip(c["clip_id"]) for c in clips],
+                               rotation=90, fontsize=6)
+            ax.set_ylabel("score error (in)")
+            ax.set_title(f"{self._cfg_short(method_cfg)} — per-clip error", fontsize=10)
+            ax.legend(fontsize=8, loc="best", frameon=False)
+            ax.set_xlim(-0.6, len(clips) - 0.4)
+            ax.set_ylim(bottom=0)
+        else:
+            ax.set_title("Selected config — no scored clips", fontsize=10)
+            ax.axis("off")
+        self.canvas_sel.draw_idle()
+
+        # Plot 3 — automated score error vs human judge error (inches) for the
+        # selected config.  Points above the diagonal are clips where the
+        # pipeline is less accurate than the judge (the removal candidates).
+        ax = self.ax_judge
+        ax.cla()
+        pts = [(c["score_error_in"], c["judge_error_in"], c["clip_id"])
+               for c in (sel_res.get("clips") or [])
+               if c.get("score_error_in") is not None
+               and c.get("judge_error_in") is not None]
+        if pts:
+            score = np.array([p[0] for p in pts], dtype=float)
+            judge = np.array([p[1] for p in pts], dtype=float)
+            q1, q3 = np.percentile(score, [25.0, 75.0])
+            hi = q3 + 1.5 * (q3 - q1)
+            out = score > hi
+            ax.scatter(judge[~out], score[~out], s=22, color=self.BAR_COLOUR,
+                       alpha=0.7, zorder=3)
+            ax.scatter(judge[out], score[out], s=40, color=self.OUT_COLOUR, zorder=4)
+            for i in np.where(out)[0]:
+                ax.annotate(self._short_clip(pts[i][2]), (judge[i], score[i]),
+                            xytext=(0, 6), textcoords="offset points", ha="center",
+                            fontsize=6, color=self.OUT_COLOUR)
+            ax.axline((0.0, 0.0), slope=1.0, color="#666666", lw=1.0, ls="--",
+                      label="score = judge")
+            ax.set_xlabel("judge error (in)")
+            ax.set_ylabel("score error (in)")
+            ax.set_title(f"{self._cfg_short(method_cfg)} — score vs judge", fontsize=10)
+            ax.legend(fontsize=8, loc="best", frameon=False)
+            ax.set_xlim(0, None)
+            ax.set_ylim(0, None)
+        else:
+            ax.set_title("Selected config — no judge data", fontsize=10)
+            ax.axis("off")
+        self.canvas_judge.draw_idle()
+
+        # Plot 4 — score error vs GT landing location, coloured by side
+        # (right vs left).  Shows whether error grows with jump length and
+        # whether one side is systematically biased.
+        ax = self.ax_land
+        ax.cla()
+        side_colours = {"camera0": self.RIGHT_COLOUR, "camera1": self.LEFT_COLOUR}
+        pts = []
+        for c in (sel_res.get("clips") or []):
+            if c.get("score_error_in") is None:
+                continue
+            r = meta.get(c["clip_id"]) or {}
+            gt_in = (r.get("gt") or {}).get("gt_in")
+            if gt_in is None or float(gt_in) <= 0:
+                continue
+            cam = self._camera_key(c["clip_id"], r.get("_labels"))
+            pts.append((cam, float(gt_in), float(c["score_error_in"])))
+        if pts:
+            for cam in ("camera0", "camera1"):
+                xs = [p[1] for p in pts if p[0] == cam]
+                ys = [p[2] for p in pts if p[0] == cam]
+                if xs:
+                    ax.scatter(xs, ys, s=24, color=side_colours.get(cam, "#888888"),
+                               alpha=0.8, label=cam)
+            ax.set_xlabel("GT landing location (in)")
+            ax.set_ylabel("score error (in)")
+            ax.set_title(f"{self._cfg_short(method_cfg)} — error vs landing", fontsize=10)
+            ax.legend(fontsize=8, loc="best", frameon=False)
+            ax.set_xlim(0, None)
+            ax.set_ylim(bottom=0)
+        else:
+            ax.set_title("Error vs landing — no GT", fontsize=10)
+            ax.axis("off")
+        self.canvas_land.draw_idle()
+
     @staticmethod
     def _pass(clip, key):
         if clip.get("score_error_in") is None:
             return "—"
         return "✓" if clip.get(key) else "✗"
+
+
+class DetectionStatsPane(ttk.Frame):
+    """Per-clip detector yield: accepted detections ÷ total frames, broken down
+    by camera (right/left), dog, and jump distance.  Read-only over the
+    analyzed-clips/ artifacts."""
+
+    COLS = ("clip", "camera", "dog", "distance_in", "n_frames", "n_detections",
+            "n_accepted", "deselected", "rate_pct")
+
+    RIGHT_COLOUR = "#0077c8"
+    LEFT_COLOUR = "#e07b00"
+    BAR_COLOUR = "#5b7d99"
+    MEAN_COLOUR = "#ff6d00"
+
+    def __init__(self, parent, app):
+        super().__init__(parent)
+        self.app = app
+        self.rows = []
+        self._font_fam = tkfont.nametofont("TkDefaultFont").actual("family")
+        _style = ttk.Style()
+        _style.configure("DetectSum.Treeview", font=(self._font_fam, 10), rowheight=24)
+        _style.configure("DetectSum.Treeview.Heading", font=(self._font_fam, 11, "bold"))
+
+        hdr = ttk.Frame(self)
+        hdr.pack(fill="x", padx=8, pady=4)
+        ttk.Label(hdr, text="Detection rate per clip (accepted detections ÷ total frames):",
+                  font=(self._font_fam, 12, "bold")).pack(side="left")
+        self.count_lbl = ttk.Label(hdr, text="")
+        self.count_lbl.pack(side="right")
+
+        bar2 = ttk.Frame(self)
+        bar2.pack(fill="x", padx=8, pady=(0, 2))
+        ttk.Label(bar2, text="Accuracy config:").pack(side="left")
+        self.cfg_var = tk.StringVar()
+        self.cfg_box = ttk.Combobox(bar2, textvariable=self.cfg_var, width=38, state="readonly")
+        self.cfg_box.pack(side="left", padx=4)
+        self.cfg_box.bind("<<ComboboxSelected>>", lambda e: self._render_plots())
+        ttk.Label(bar2, text="Group by:").pack(side="left", padx=(12, 0))
+        self.group_var = tk.StringVar(value="camera")
+        self.group_box = ttk.Combobox(bar2, textvariable=self.group_var, width=10,
+                                      state="readonly", values=("camera", "dog", "distance"))
+        self.group_box.pack(side="left", padx=4)
+        self.group_box.bind("<<ComboboxSelected>>", lambda e: self._render_plots())
+        self._run_doc = None
+        self._configs = []
+        self._cfg_labels = []
+
+        hold = ttk.Frame(self)
+        hold.pack(fill="x", padx=8, pady=(0, 4))
+        headings = {"clip": "clip", "camera": "camera", "dog": "dog",
+                    "distance_in": "dist (in)", "n_frames": "frames",
+                    "n_detections": "detected", "n_accepted": "accepted",
+                    "deselected": "deselected", "rate_pct": "rate %"}
+        widths = {"clip": 190, "camera": 70, "dog": 130, "distance_in": 80,
+                  "n_frames": 60, "n_detections": 70, "n_accepted": 70,
+                  "deselected": 80, "rate_pct": 70}
+        self.tree = ttk.Treeview(hold, columns=self.COLS, show="headings",
+                                 style="DetectSum.Treeview")
+        for c in self.COLS:
+            self.tree.heading(c, text=headings.get(c, c))
+            self.tree.column(c, width=widths.get(c, 80), anchor="center")
+        self.tree.column("clip", anchor="w")
+        self.tree.column("dog", anchor="w")
+        self.tree.pack(side="left", fill="both", expand=True)
+        sb = ttk.Scrollbar(hold, orient="vertical", command=self.tree.yview)
+        self.tree.configure(yscrollcommand=sb.set)
+        sb.pack(side="right", fill="y")
+
+        self._plots = ttk.Frame(self)
+        self._plots.pack(fill="x", padx=8, pady=(0, 4))
+        top = ttk.Frame(self._plots)
+        top.pack(fill="x")
+        bot = ttk.Frame(self._plots)
+        bot.pack(fill="x")
+        self.fig_dist = Figure(figsize=(3.9, 2.5), dpi=100, tight_layout=True)
+        self.ax_dist = self.fig_dist.add_subplot(111)
+        self.canvas_dist = FigureCanvasTkAgg(self.fig_dist, master=top)
+        self.canvas_dist.get_tk_widget().pack(side="left", fill="both", expand=True)
+        self.fig_acc = Figure(figsize=(3.9, 2.5), dpi=100, tight_layout=True)
+        self.ax_acc = self.fig_acc.add_subplot(111)
+        self.canvas_acc = FigureCanvasTkAgg(self.fig_acc, master=top)
+        self.canvas_acc.get_tk_widget().pack(side="left", fill="both", expand=True)
+        self.fig_cam = Figure(figsize=(3.9, 2.5), dpi=100, tight_layout=True)
+        self.ax_grp = self.fig_cam.add_subplot(111)
+        self.canvas_grp = FigureCanvasTkAgg(self.fig_cam, master=bot)
+        self.canvas_grp.get_tk_widget().pack(side="left", fill="both", expand=True)
+        self.fig_dog = Figure(figsize=(3.9, 2.5), dpi=100, tight_layout=True)
+        self.ax_desel = self.fig_dog.add_subplot(111)
+        self.canvas_desel = FigureCanvasTkAgg(self.fig_dog, master=bot)
+        self.canvas_desel.get_tk_widget().pack(side="left", fill="both", expand=True)
+
+    def refresh(self):
+        self._load()
+        self._render_table()
+        self._render_plots()
+
+    @staticmethod
+    def _cam_key(cid, labels):
+        cam = (labels or {}).get("camera") or str(cid)
+        for part in str(cam).split("_"):
+            if part in ("left", "right") or part.startswith("camera"):
+                return part
+        return "?"
+
+    def _cfg_short(self, cfg):
+        keys = {(c.get("method"), c.get("selection")) for c in self._configs}
+        n = cfg.get("n_points")
+        if len(keys) == 1:
+            return f"n={n}"
+        m = str(cfg.get("method") or "")
+        if m.startswith("arc_2d_"):
+            m = m[len("arc_2d_"):]
+        elif m == "arc_2d":
+            m = "a2d"
+        return f"{m}/{cfg.get('selection')}/n{n}"
+
+    DIST_BINS = ((0, 50), (50, 100), (100, 150), (150, 200),
+                 (200, 250), (250, 300), (300, None))
+
+    def _dist_bin(self, d):
+        if d is None:
+            return "unknown"
+        d = float(d)
+        for lo, hi in self.DIST_BINS:
+            if hi is None or d < hi:
+                return f"{lo}+" if hi is None else f"{lo}-{hi - 1}"
+        return "unknown"
+
+    def _group_key(self, r):
+        mode = self.group_var.get()
+        if mode == "camera":
+            return r["camera"]
+        if mode == "dog":
+            return r["dog"]
+        if mode == "distance":
+            return self._dist_bin(r["distance_in"])
+        return "all"
+
+    def _group_values(self, rows, key):
+        mode = self.group_var.get()
+        buckets = {}
+        for r in rows:
+            v = key(r)
+            if v is None:
+                continue
+            buckets.setdefault(self._group_key(r), []).append(v)
+        if mode == "distance":
+            def _lo(label):
+                try:
+                    return int(label.split("-")[0].rstrip("+"))
+                except (ValueError, IndexError):
+                    return 10 ** 9
+            order = sorted(buckets, key=lambda g: (_lo(g), g))
+        else:
+            order = sorted(buckets)
+        return [(g, buckets[g]) for g in order]
+
+    def _load(self):
+        rows = []
+        for cid in self.app.list_clips():
+            cdir = self.app.clip_dir(cid)
+            try:
+                man = manifest_mod.read_manifest(cdir)
+                state = manifest_mod.clip_state(cdir, man)
+            except Exception:  # noqa: BLE001
+                continue
+            meta = man.get("meta") or {}
+            labels = man.get("labels") or {}
+            n_frames = int(meta.get("n_frames") or 0)
+            n_det = int(state.get("n_detections") or 0)
+            n_acc = int(state.get("n_accepted") or 0)
+            n_desel = len(state.get("excluded_frames") or [])
+            dist = state.get("gt_in")
+            if dist is None:
+                dist = labels.get("judge_score_in")
+            rows.append({
+                "clip_id": cid,
+                "camera": self._cam_key(cid, labels),
+                "dog": labels.get("dog") or "unknown",
+                "distance_in": dist,
+                "n_frames": n_frames,
+                "n_detections": n_det,
+                "n_accepted": n_acc,
+                "deselected": n_desel,
+                "rate_pct": (100.0 * n_acc / n_frames) if n_frames else None,
+            })
+        self.rows = rows
+
+        # newest results run -> accuracy configs (for the rate-vs-accuracy plot)
+        self._run_doc = None
+        self._configs = []
+        rdir = self.app.root_dir / "results"
+        files = sorted(rdir.glob("*.json"), key=lambda p: p.stat().st_mtime) if rdir.is_dir() else []
+        if files:
+            try:
+                self._run_doc = json.loads(files[-1].read_text(encoding="utf-8"))
+            except Exception:  # noqa: BLE001
+                self._run_doc = None
+        if self._run_doc:
+            self._configs = list((self._run_doc.get("config") or {}).get("methods") or [])
+        self._cfg_labels = [f"{c.get('method')} · n={c.get('n_points')} · {c.get('selection')}"
+                            for c in self._configs]
+        self.cfg_box["values"] = self._cfg_labels
+        if self._cfg_labels and self.cfg_var.get() not in self._cfg_labels:
+            self.cfg_var.set(self._cfg_labels[0])
+
+    def _render_table(self):
+        self.tree.delete(*self.tree.get_children())
+        for r in self.rows:
+            self.tree.insert("", "end", values=(
+                r["clip_id"], r["camera"], r["dog"], _fmt(r["distance_in"]),
+                r["n_frames"], r["n_detections"], r["n_accepted"], r["deselected"],
+                _fmt(r["rate_pct"])))
+        self.tree.configure(height=max(3, min(len(self.rows), 18)))
+        self.count_lbl.config(text=f"{len(self.rows)} clips")
+
+    def _box_strip(self, ax, groups, title, rotate=False):
+        ax.cla()
+        if not groups:
+            ax.set_title(title + " — no data", fontsize=10)
+            ax.axis("off")
+            return
+        labels = [g[0] for g in groups]
+        pos = np.arange(len(groups))
+        ax.boxplot([g[1] for g in groups], positions=pos, widths=0.55,
+                   patch_artist=True, showfliers=False, showmeans=True,
+                   meanprops=dict(marker="D", markerfacecolor=self.MEAN_COLOUR,
+                                  markeredgecolor=self.MEAN_COLOUR, markersize=6),
+                   medianprops=dict(color="black", lw=1.5))
+        for p in ax.patches:
+            p.set_facecolor("#dbe7f3")
+            p.set_edgecolor(self.BAR_COLOUR)
+        rng = np.random.default_rng(0)
+        for xi, errs in zip(pos, (g[1] for g in groups)):
+            errs = np.asarray(errs, dtype=float)
+            jit = rng.uniform(-0.18, 0.18, errs.size)
+            ax.scatter(xi + jit, errs, s=14, color=self.BAR_COLOUR, alpha=0.5, zorder=3)
+        ax.set_xticks(pos)
+        ax.set_xticklabels(labels, rotation=90 if rotate else 0, fontsize=7)
+        ax.set_ylabel("detection rate (%)")
+        ax.set_ylim(0, 105)
+        ax.set_xlim(-0.6, len(groups) - 0.4)
+        ax.set_title(title, fontsize=10)
+
+    def _render_plots(self):
+        rows = self.rows
+        cam_colours = {"camera0": self.RIGHT_COLOUR, "camera1": self.LEFT_COLOUR}
+
+        # Plot 1 — detection rate vs distance, colour by camera
+        ax = self.ax_dist
+        ax.cla()
+        pts = [r for r in rows if r["rate_pct"] is not None and r["distance_in"] is not None]
+        if pts:
+            for cam in ("camera0", "camera1"):
+                xs = [r["distance_in"] for r in pts if r["camera"] == cam]
+                ys = [r["rate_pct"] for r in pts if r["camera"] == cam]
+                if xs:
+                    ax.scatter(xs, ys, s=24, color=cam_colours.get(cam, "#888"),
+                               alpha=0.8, label=cam)
+            ax.set_xlabel("distance (in)")
+            ax.set_ylabel("detection rate (%)")
+            ax.set_title("Detection rate vs distance", fontsize=10)
+            ax.legend(fontsize=8, loc="best", frameon=False)
+            ax.set_xlim(0, None)
+            ax.set_ylim(0, 105)
+        else:
+            ax.set_title("Detection rate vs distance — no data", fontsize=10)
+            ax.axis("off")
+        self.canvas_dist.draw_idle()
+
+        # Plot 2 — detection rate by group (camera / dog / distance)
+        rotate = self.group_var.get() == "dog"
+        rate_groups = self._group_values(rows, key=lambda r: r["rate_pct"])
+        self._box_strip(self.ax_grp, rate_groups,
+                        f"Detection rate by {self.group_var.get()}", rotate=rotate)
+        self.canvas_grp.draw_idle()
+
+        # Plot 3 — manually deselected points by group
+        desel_groups = self._group_values(rows, key=lambda r: r["deselected"])
+        self._box_strip(self.ax_desel, desel_groups,
+                        f"Deselected points by {self.group_var.get()}", rotate=rotate)
+        self.canvas_desel.draw_idle()
+
+        # Plot 4 — detection rate vs score error (accuracy), colour by camera
+        ax = self.ax_acc
+        ax.cla()
+        idx = self.cfg_box.current()
+        cfg = self._configs[idx if idx >= 0 else 0] if self._configs else None
+        acc_pts = []
+        if cfg is not None and self._run_doc:
+            res = accuracy_mod.aggregate(self._run_doc.get("rows") or [], cfg)
+            err_map = {c["clip_id"]: c["score_error_in"] for c in res["clips"]
+                       if c.get("score_error_in") is not None}
+            rate_map = {r["clip_id"]: r for r in rows}
+            for cid, err in err_map.items():
+                r = rate_map.get(cid)
+                if r is not None and r["rate_pct"] is not None:
+                    acc_pts.append((r["camera"], r["rate_pct"], err))
+        if acc_pts:
+            for cam in ("camera0", "camera1"):
+                xs = [p[1] for p in acc_pts if p[0] == cam]
+                ys = [p[2] for p in acc_pts if p[0] == cam]
+                if xs:
+                    ax.scatter(xs, ys, s=24, color=cam_colours.get(cam, "#888"),
+                               alpha=0.8, label=cam)
+            ax.set_xlabel("detection rate (%)")
+            ax.set_ylabel("score error (in)")
+            ax.set_title(f"Detection rate vs accuracy ({self._cfg_short(cfg)})", fontsize=10)
+            ax.legend(fontsize=8, loc="best", frameon=False)
+            ax.set_xlim(0, None)
+            ax.set_ylim(bottom=0)
+        else:
+            ax.set_title("Detection rate vs accuracy — no data", fontsize=10)
+            ax.axis("off")
+        self.canvas_acc.draw_idle()
 
 
 class App:
@@ -1550,11 +2299,12 @@ class App:
         self.results = ResultsPane(self.nb, self)
         self.compare = ComparePane(self.nb, self)
         self.accuracy = AccuracyPane(self.nb, self)
+        self.detection = DetectionStatsPane(self.nb, self)
         for name, pane in (("Select clips", self.ingest), ("Calibrate", self.calibrate),
                            ("Analyze", self.analyze),
                            ("Run suite", self.run),
                            ("Results", self.results), ("Compare", self.compare),
-                           ("Accuracy", self.accuracy)):
+                           ("Accuracy", self.accuracy), ("Detection Stats", self.detection)):
             self.nb.add(pane, text=name)
         self.on_clips_changed()
 
@@ -1572,6 +2322,7 @@ class App:
         self.run.refresh()
         self.results.refresh()
         self.accuracy.refresh()
+        self.detection.refresh()
 
     def _refresh_visible_pane(self):
         """Give the newly shown pane a chance to load its (deferred) data."""

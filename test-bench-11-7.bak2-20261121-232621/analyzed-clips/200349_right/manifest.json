@@ -1,0 +1,46 @@
+{
+  "schema": "test_bench.manifest/1",
+  "clip_id": "200349_right",
+  "source": {
+    "original_path": "/home/dogdiving/Documents/Captstone-Repo/end-to-end-app/data/clips/live_jump_19691231_200349_right.mp4",
+    "sha256": "441d6f93ef54ff5d7c7bbd68a5ced7caa76623fd876e2cdb5f6f483074e06459",
+    "kind": "mp4",
+    "filename": "live_jump_19691231_200349_right.mp4"
+  },
+  "meta": {
+    "width": 960,
+    "height": 600,
+    "fps": 30.0,
+    "codec": "FMP4",
+    "n_frames": 150,
+    "vfr": false,
+    "declared_vs_decoded": [
+      150,
+      150
+    ],
+    "duration_s": 5.0,
+    "backend": "cv2",
+    "probe_warnings": [
+      "ffprobe unavailable \u2014 metadata from cv2 only (no VFR detection)"
+    ]
+  },
+  "plane": {
+    "setup_id": "right_11-7",
+    "present": false
+  },
+  "detections": {},
+  "trajectory": {},
+  "ground_truth": {
+    "path": "ground_truth.json",
+    "judge_present": false
+  },
+  "results": [],
+  "labels": {
+    "dog": "surfer",
+    "judge_score_in": 164,
+    "score_raw": "13'8\"",
+    "csv_line": 69,
+    "camera": "right",
+    "jump_time": "200349"
+  }
+}

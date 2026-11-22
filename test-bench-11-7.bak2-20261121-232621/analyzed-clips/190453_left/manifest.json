@@ -1,0 +1,47 @@
+{
+  "schema": "test_bench.manifest/1",
+  "clip_id": "190453_left",
+  "source": {
+    "original_path": "/home/dogdiving/Documents/Captstone-Repo/end-to-end-app/data/clips/live_jump_19691231_190453_left.mp4",
+    "sha256": "73be646d7f9b8748b220bbd8298c8d5d7e6102c9e3b89c46fb11af85a1ef37c9",
+    "kind": "mp4",
+    "filename": "live_jump_19691231_190453_left.mp4"
+  },
+  "meta": {
+    "width": 960,
+    "height": 600,
+    "fps": 30.0,
+    "codec": "FMP4",
+    "n_frames": 150,
+    "vfr": false,
+    "declared_vs_decoded": [
+      150,
+      150
+    ],
+    "duration_s": 5.0,
+    "backend": "cv2",
+    "probe_warnings": [
+      "ffprobe unavailable \u2014 metadata from cv2 only (no VFR detection)"
+    ]
+  },
+  "plane": {
+    "setup_id": "left_11-7",
+    "present": false
+  },
+  "detections": {},
+  "trajectory": {},
+  "ground_truth": {
+    "path": "ground_truth.json",
+    "judge_present": true,
+    "gt_in": 233.80738714069687
+  },
+  "results": [],
+  "labels": {
+    "dog": "lida ford",
+    "judge_score_in": 256,
+    "score_raw": "21'4\"",
+    "csv_line": 7,
+    "camera": "left",
+    "jump_time": "190453"
+  }
+}

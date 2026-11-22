@@ -1,0 +1,16 @@
+{
+  "schema": "test_bench.ground_truth/1",
+  "frame": null,
+  "x_px": null,
+  "y_px": null,
+  "gt_in": null,
+  "gt_in_source": null,
+  "judge_in": 291.0,
+  "judge_present": true,
+  "reference": {
+    "dog": "lucian",
+    "score_raw": "24'3\"",
+    "csv_line": 61
+  },
+  "updated": "2026-11-20T08:20:14.744105+00:00"
+}

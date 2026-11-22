@@ -223,7 +223,8 @@ class FrameView:
     def set_overlays(self, overlays: Sequence[tuple]) -> None:
         """``(kind, args, colour[, alpha])`` in image px.
 
-        ``kind`` in ``{'marker', 'dot', 'curve', 'segment', 'label', 'grid'}``.
+        ``kind`` in ``{'marker', 'dot', 'curve', 'segment', 'label', 'grid',
+        'polygon'}``.
         The optional 4th element is a per-item opacity override (0..1); otherwise
         the view's ``element_opacity`` (or ``grid_opacity`` for ``grid``) applies.
         """
@@ -333,6 +334,15 @@ class FrameView:
                 bx, by = self.to_display(x1, y1)
                 self._ink_segments([(ax, ay), (bx, by)], ink, line_w, dash,
                                    alpha if alpha is not None else self.element_opacity)
+            elif kind == "polygon":
+                pts = [self.to_display(px, py) for px, py in args]
+                if len(pts) >= 3:
+                    cx = sum(p[0] for p in pts) / len(pts) / z
+                    cy = sum(p[1] for p in pts) / len(pts) / z
+                    fill = self._blend(colour, (cx, cy),
+                                       alpha if alpha is not None else self.element_opacity)
+                    flat = [c for p in pts for c in p]
+                    self.canvas.create_polygon(*flat, fill=fill, outline="")
             elif kind == "label":
                 ix, iy, text = args
                 cx, cy = self.to_display(ix, iy)

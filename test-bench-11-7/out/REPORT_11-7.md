@@ -7,8 +7,8 @@ ok clips: 57 / 116
 
 ## per camera (score-vs-judge, mean±median in)
 ```
-camera0_right: n=37  mean=47.09  median=35.23
-camera1_right: n=20  mean=85.09  median=59.99
+camera0: n=37  mean=47.09  median=35.23
+camera1: n=20  mean=85.09  median=59.99
 ```
 
 ## per dog

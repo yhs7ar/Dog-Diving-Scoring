@@ -15,10 +15,10 @@ Videos live in place at `...\Dog-Diving-Videos\Documents\Captstone-Repo\end-to-e
 | Fact | Number |
 |---|---|
 | CSV data rows | **73** jumps across 9 dogs (lida ford 18, joule 17, ICE 9, lucian 7, sapper 6, lydia 5, surfer 5, blue 4, sable 2) |
-| Rows **with** a judge score (ingested) | **58** → **116 clips** (58 `camera1_right` + 58 `camera0_right`) |
+| Rows **with** a judge score (ingested) | **58** → **116 clips** (58 `camera1` + 58 `camera0`) |
 | Rows **without** a score (excluded) | **15** (12 `N/A`, 2 `missing score`, 1 `~~~`) → 30 clips never ingested; he keeps them for future YOLO training |
 | Videos referenced / existence | every referenced video exists; 0 duplicates, 0 missing |
-| CSV column → camera | `Video_Left` = `camera1_right`, `Video_Right` = `camera0_right` (verified name↔path on all 73 rows, pairs share the timestamp) |
+| CSV column → camera | `Video_Camera1` = `camera1`, `Video_Camera0` = `camera0` (verified name↔path on all 73 rows, pairs share the timestamp) |
 | Distance parse | `19'10"` → 238 in; only the 58 parseable rows proceed |
 | mp4 on disk, unreferenced | **22** — incl. 16 from **other sessions/dates** (11-04 … 11-16), 2 `_empty`, 2 unscored (191348, 191425). Untouched — candidate future training data. |
 | Clip geometry | every clip 960×600, 30 fps, 150 frames, 5.0 s |
@@ -41,8 +41,8 @@ test-bench-11-7/
                                               trajectory.json; ground_truth.json on the "ok" clips
   planes/
     (old .pool.json files stay until he builds the new ones)        ← kept, per decision #2
-    camera0_right_11-7.pool.json        new, 960×600, all 58 camera0 clips
-    camera1_right_11-7.pool.json        new, 960×600, all 58 camera1 clips
+    camera0_11-7.pool.json        new, 960×600, all 58 camera0 clips
+    camera1_11-7.pool.json        new, 960×600, all 58 camera1 clips
   data/clip_index.json                  CSV mirror for the 58 rows: dog, score_raw, judge_in, paths
   data/active_plane.json                GUI picker pointer (cleared of its stale Jetson path)
   out/                                  scratch: acceptance, audit tables, report
@@ -50,12 +50,12 @@ test-bench-11-7/
   src/, models/, ROADMAP.md, ACCURACY_TAB_*.md, run_app.*   unchanged
 ```
 
-`clip_id` = `<HHMMSS>_<camera>_<side>[_sapper]`, e.g. `190234_camera0_right`. Keeps the camera tag
+`clip_id` = `<HHMMSS>_<camera>_<side>[_sapper]`, e.g. `190234_camera0`. Keeps the camera tag
 (that is what selects the plane), sorts chronologically, unique across all 58 rows.
 
 **Plane mapping is data, not code.** `manifest.plane.setup_id` already resolves to
-`planes/<setup_id>.pool.json`; every camera0 clip carries `camera0_right_11-7`, every camera1 clip
-`camera1_right_11-7`. The planned `camera0_left_11-7` / `camera1_left_11-7` planes slot in later
+`planes/<setup_id>.pool.json`; every camera0 clip carries `camera0_11-7`, every camera1 clip
+`camera1_11-7`. The planned `camera0_left_11-7` / `camera1_left_11-7` planes slot in later
 with zero refactor.
 
 ### 2.1 What is saved onto each clip
@@ -65,7 +65,7 @@ with zero refactor.
   ```json
   // manifest.json
   "labels": { "dog": "joule", "judge_score_in": 130.0, "score_raw": "10'10\"",
-              "csv_line": 31, "camera": "camera0_right" }
+              "csv_line": 31, "camera": "camera0" }
   // ground_truth.json (written at ingest, before GT is placed)
   { "schema": "test_bench.ground_truth/1",
     "frame": null, "x_px": null, "y_px": null, "gt_in": null,
@@ -156,9 +156,9 @@ Gate: 116/116 `detections.json`; `analyzed_log.csv` has 58 rows × 8 columns, ev
 the sampled zero/near-zero clips fail).
 
 ### P4 — He builds the two planes (his clicks; ~20–40 min)
-Reference clips (mid-session, avoids the 1.2 px first-clip offset): `192148_camera0_right`,
-`192148_camera1_right`. Planes land at `planes/camera0_right_11-7.pool.json` and
-`planes/camera1_right_11-7.pool.json`, both 960×600.
+Reference clips (mid-session, avoids the 1.2 px first-clip offset): `192148_camera0`,
+`192148_camera1`. Planes land at `planes/camera0_11-7.pool.json` and
+`planes/camera1_11-7.pool.json`, both 960×600.
 Gate: W1/W2/W4 and P1/P3 pass; px/ft along + across recorded (~20–26 px/ft along, ~1 px/ft across
 — transverse stays coarse, limiting lateral placement, not distance); marks round-trip to their
 labels; `plane_coverage.py` on 5 sample clips per camera shows high, stable `pool_in_quad`.
@@ -212,7 +212,7 @@ later.
 3. 116 registered clips, each carrying `labels` (dog, judge score) + `ground_truth.json`
    (`judge_in`, then `gt_in` after his clicks), and `data/clip_index.json`.
 4. `analyzed-clips/analyzed_log.csv` — per-jump, per-camera ok/failed record.
-5. `planes/camera0_right_11-7.pool.json`, `planes/camera1_right_11-7.pool.json` (his, 960×600,
+5. `planes/camera0_11-7.pool.json`, `planes/camera1_11-7.pool.json` (his, 960×600,
    gate-passing).
 6. `out/acceptance_11-7.csv`, `out/audit_11-7.csv`, `out/REPORT_11-7.md`, `results/<run_id>.json`.
 7. `BENCH_11-7.md`.

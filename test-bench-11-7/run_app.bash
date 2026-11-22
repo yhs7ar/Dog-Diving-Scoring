@@ -12,7 +12,7 @@
 #  A candidate only wins if it actually runs ("-c import sys"), so a broken venv
 #  or an interpreter whose base is missing is skipped.
 #  Once an interpreter is chosen its import-time dependencies are VERIFIED
-#  (cv2, numpy, torch, tkinter); if any are missing the launcher prints exactly
+#  (cv2, numpy, torch, tkinter, matplotlib); if any are missing the launcher prints exactly
 #  which ones and how to fix, instead of letting the app crash on `import cv2`.
 #
 #  Usage:  ./run_app.bash                     (no clip; use "Open clip..." in the GUI)
@@ -86,7 +86,7 @@ fi
 
 # verify import-time dependencies so the app cannot crash on a bare import
 _missing=""
-for mod in cv2 numpy torch tkinter; do
+for mod in cv2 numpy torch tkinter matplotlib; do
     "$PY" -c "import $mod" >/dev/null 2>&1 || _missing="$_missing $mod"
 done
 if [ -n "$_missing" ]; then

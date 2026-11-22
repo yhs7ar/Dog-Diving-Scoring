@@ -2,18 +2,18 @@
   "run_id": "2026-11-20T07-32-40.207077Z00-00",
   "config": {
     "clips": [
-      "190321_camera0_right",
-      "190321_camera1_right",
-      "190401_camera0_right",
-      "190401_camera1_right",
-      "190453_camera0_right",
-      "190453_camera1_right",
-      "190623_camera0_right",
-      "190623_camera1_right",
-      "190746_camera0_right",
-      "190746_camera1_right",
-      "190832_camera0_right",
-      "190832_camera1_right"
+      "190321_camera0",
+      "190321_camera1",
+      "190401_camera0",
+      "190401_camera1",
+      "190453_camera0",
+      "190453_camera1",
+      "190623_camera0",
+      "190623_camera1",
+      "190746_camera0",
+      "190746_camera1",
+      "190832_camera0",
+      "190832_camera1"
     ],
     "methods": [
       {
@@ -49,73 +49,73 @@
     ]
   },
   "provenance": {
-    "190321_camera0_right": {
+    "190321_camera0": {
       "model_sha": "bdb7688775ee39201d4a77ef0041c7c3e9eb9202f7a5df287a11c98e80ef82e4",
-      "plane_setup_id": "camera0_right_2026-11-20_01-44-19",
+      "plane_setup_id": "camera0_2026-11-20_01-44-19",
       "gt_updated": "2026-11-20T06:56:30.130151+00:00",
       "excluded_frames": [
         0
       ]
     },
-    "190321_camera1_right": {
+    "190321_camera1": {
       "model_sha": "bdb7688775ee39201d4a77ef0041c7c3e9eb9202f7a5df287a11c98e80ef82e4",
-      "plane_setup_id": "camera1_right_2026-11-20_01-48-37",
+      "plane_setup_id": "camera1_2026-11-20_01-48-37",
       "gt_updated": "2026-11-20T06:57:24.314441+00:00",
       "excluded_frames": []
     },
-    "190401_camera0_right": {
+    "190401_camera0": {
       "model_sha": "bdb7688775ee39201d4a77ef0041c7c3e9eb9202f7a5df287a11c98e80ef82e4",
-      "plane_setup_id": "camera0_right_2026-11-20_01-44-19",
+      "plane_setup_id": "camera0_2026-11-20_01-44-19",
       "gt_updated": "2026-11-20T07:24:57.653087+00:00",
       "excluded_frames": []
     },
-    "190401_camera1_right": {
+    "190401_camera1": {
       "model_sha": "bdb7688775ee39201d4a77ef0041c7c3e9eb9202f7a5df287a11c98e80ef82e4",
-      "plane_setup_id": "camera1_right_2026-11-20_01-48-37",
+      "plane_setup_id": "camera1_2026-11-20_01-48-37",
       "gt_updated": "2026-11-20T07:25:27.519954+00:00",
       "excluded_frames": []
     },
-    "190453_camera0_right": {
+    "190453_camera0": {
       "model_sha": "bdb7688775ee39201d4a77ef0041c7c3e9eb9202f7a5df287a11c98e80ef82e4",
-      "plane_setup_id": "camera0_right_2026-11-20_01-44-19",
+      "plane_setup_id": "camera0_2026-11-20_01-44-19",
       "gt_updated": "2026-11-20T07:25:46.002533+00:00",
       "excluded_frames": []
     },
-    "190453_camera1_right": {
+    "190453_camera1": {
       "model_sha": "bdb7688775ee39201d4a77ef0041c7c3e9eb9202f7a5df287a11c98e80ef82e4",
-      "plane_setup_id": "camera1_right_2026-11-20_01-48-37",
+      "plane_setup_id": "camera1_2026-11-20_01-48-37",
       "gt_updated": "2026-11-20T07:26:34.168138+00:00",
       "excluded_frames": [
         118
       ]
     },
-    "190623_camera0_right": {
+    "190623_camera0": {
       "model_sha": "bdb7688775ee39201d4a77ef0041c7c3e9eb9202f7a5df287a11c98e80ef82e4",
-      "plane_setup_id": "camera0_right_2026-11-20_01-44-19",
+      "plane_setup_id": "camera0_2026-11-20_01-44-19",
       "gt_updated": "2026-11-20T07:27:03.828454+00:00",
       "excluded_frames": []
     },
-    "190623_camera1_right": {
+    "190623_camera1": {
       "model_sha": "bdb7688775ee39201d4a77ef0041c7c3e9eb9202f7a5df287a11c98e80ef82e4",
-      "plane_setup_id": "camera1_right_2026-11-20_01-48-37",
+      "plane_setup_id": "camera1_2026-11-20_01-48-37",
       "gt_updated": "2026-11-20T07:27:33.498197+00:00",
       "excluded_frames": []
     },
-    "190746_camera0_right": {
+    "190746_camera0": {
       "model_sha": "bdb7688775ee39201d4a77ef0041c7c3e9eb9202f7a5df287a11c98e80ef82e4",
-      "plane_setup_id": "camera0_right_2026-11-20_01-44-19",
+      "plane_setup_id": "camera0_2026-11-20_01-44-19",
       "gt_updated": "2026-11-20T07:27:48.368439+00:00",
       "excluded_frames": []
     },
-    "190746_camera1_right": {
+    "190746_camera1": {
       "model_sha": "bdb7688775ee39201d4a77ef0041c7c3e9eb9202f7a5df287a11c98e80ef82e4",
-      "plane_setup_id": "camera1_right_2026-11-20_01-48-37",
+      "plane_setup_id": "camera1_2026-11-20_01-48-37",
       "gt_updated": "2026-11-20T07:28:06.185129+00:00",
       "excluded_frames": []
     },
-    "190832_camera0_right": {
+    "190832_camera0": {
       "model_sha": "bdb7688775ee39201d4a77ef0041c7c3e9eb9202f7a5df287a11c98e80ef82e4",
-      "plane_setup_id": "camera0_right_2026-11-20_01-44-19",
+      "plane_setup_id": "camera0_2026-11-20_01-44-19",
       "gt_updated": "2026-11-20T07:28:53.686963+00:00",
       "excluded_frames": [
         132,
@@ -136,9 +136,9 @@
         147
       ]
     },
-    "190832_camera1_right": {
+    "190832_camera1": {
       "model_sha": "bdb7688775ee39201d4a77ef0041c7c3e9eb9202f7a5df287a11c98e80ef82e4",
-      "plane_setup_id": "camera1_right_2026-11-20_01-48-37",
+      "plane_setup_id": "camera1_2026-11-20_01-48-37",
       "gt_updated": "2026-11-20T07:29:35.220317+00:00",
       "excluded_frames": [
         4,
@@ -148,7 +148,7 @@
   },
   "rows": [
     {
-      "clip_id": "190321_camera0_right",
+      "clip_id": "190321_camera0",
       "gt": {
         "schema": "test_bench.ground_truth/1",
         "frame": 15,
@@ -2016,7 +2016,7 @@
       ]
     },
     {
-      "clip_id": "190321_camera1_right",
+      "clip_id": "190321_camera1",
       "gt": {
         "schema": "test_bench.ground_truth/1",
         "frame": 15,
@@ -4741,7 +4741,7 @@
       ]
     },
     {
-      "clip_id": "190401_camera0_right",
+      "clip_id": "190401_camera0",
       "gt": {
         "schema": "test_bench.ground_truth/1",
         "frame": 123,
@@ -8858,7 +8858,7 @@
       ]
     },
     {
-      "clip_id": "190401_camera1_right",
+      "clip_id": "190401_camera1",
       "gt": {
         "schema": "test_bench.ground_truth/1",
         "frame": 123,
@@ -10358,7 +10358,7 @@
       ]
     },
     {
-      "clip_id": "190453_camera0_right",
+      "clip_id": "190453_camera0",
       "gt": {
         "schema": "test_bench.ground_truth/1",
         "frame": 120,
@@ -14049,7 +14049,7 @@
       ]
     },
     {
-      "clip_id": "190453_camera1_right",
+      "clip_id": "190453_camera1",
       "gt": {
         "schema": "test_bench.ground_truth/1",
         "frame": 120,
@@ -15786,7 +15786,7 @@
       ]
     },
     {
-      "clip_id": "190623_camera0_right",
+      "clip_id": "190623_camera0",
       "gt": {
         "schema": "test_bench.ground_truth/1",
         "frame": 131,
@@ -19181,7 +19181,7 @@
       ]
     },
     {
-      "clip_id": "190623_camera1_right",
+      "clip_id": "190623_camera1",
       "gt": {
         "schema": "test_bench.ground_truth/1",
         "frame": 130,
@@ -21205,7 +21205,7 @@
       ]
     },
     {
-      "clip_id": "190746_camera0_right",
+      "clip_id": "190746_camera0",
       "gt": {
         "schema": "test_bench.ground_truth/1",
         "frame": 83,
@@ -23728,7 +23728,7 @@
       ]
     },
     {
-      "clip_id": "190746_camera1_right",
+      "clip_id": "190746_camera1",
       "gt": {
         "schema": "test_bench.ground_truth/1",
         "frame": 83,
@@ -25907,7 +25907,7 @@
       ]
     },
     {
-      "clip_id": "190832_camera0_right",
+      "clip_id": "190832_camera0",
       "gt": {
         "schema": "test_bench.ground_truth/1",
         "frame": 13,
@@ -27498,7 +27498,7 @@
       ]
     },
     {
-      "clip_id": "190832_camera1_right",
+      "clip_id": "190832_camera1",
       "gt": {
         "schema": "test_bench.ground_truth/1",
         "frame": 12,

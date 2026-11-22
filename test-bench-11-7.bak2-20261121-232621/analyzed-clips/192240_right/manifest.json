@@ -1,0 +1,56 @@
+{
+  "schema": "test_bench.manifest/1",
+  "clip_id": "192240_right",
+  "source": {
+    "original_path": "/home/dogdiving/Documents/Captstone-Repo/end-to-end-app/data/clips/live_jump_19691231_192240_right.mp4",
+    "sha256": "aad6088bee665dc1f13b28fa60a1100616f1f4300d8652557506258c5cd3ff7b",
+    "kind": "mp4",
+    "filename": "live_jump_19691231_192240_right.mp4"
+  },
+  "meta": {
+    "width": 960,
+    "height": 600,
+    "fps": 30.0,
+    "codec": "FMP4",
+    "n_frames": 150,
+    "vfr": false,
+    "declared_vs_decoded": [
+      150,
+      150
+    ],
+    "duration_s": 5.0,
+    "backend": "cv2",
+    "probe_warnings": [
+      "ffprobe unavailable \u2014 metadata from cv2 only (no VFR detection)"
+    ]
+  },
+  "plane": {
+    "setup_id": "right_11-7",
+    "present": false
+  },
+  "detections": {},
+  "trajectory": {
+    "n_points": 14
+  },
+  "ground_truth": {
+    "path": "ground_truth.json",
+    "judge_present": true,
+    "gt_in": 111.13812221787387
+  },
+  "results": [],
+  "labels": {
+    "dog": "sable",
+    "judge_score_in": 130,
+    "score_raw": "10'10\"",
+    "csv_line": 31,
+    "camera": "right",
+    "jump_time": "192240"
+  },
+  "excluded_frames": [
+    99,
+    100,
+    101,
+    105,
+    124
+  ]
+}

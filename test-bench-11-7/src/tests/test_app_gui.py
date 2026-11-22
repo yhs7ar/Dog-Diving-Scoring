@@ -40,7 +40,7 @@ def root():
 
 def test_app_constructs_headless(root):
     app = app_gui.App(root)
-    assert len(app.nb.tabs()) == 7
+    assert len(app.nb.tabs()) == 8
     assert "Calibrate" in [app.nb.tab(t, "text") for t in app.nb.tabs()]
     assert "Accuracy" in [app.nb.tab(t, "text") for t in app.nb.tabs()]
     tabs = app.nb.tabs()
@@ -234,9 +234,9 @@ def test_processed_clips_render_on_launch(root, tmp_path, monkeypatch):
     populate Run suite from the artifact files (not the stale manifest caches)."""
     planes = tmp_path / "planes"
     planes.mkdir()
-    (planes / "camera0_right_2026-11-20_01-44-19.pool.json").write_text(json.dumps({
+    (planes / "right_2026-11-20_01-44-19.pool.json").write_text(json.dumps({
         "schema": "dog_diving.pool_plane/1",
-        "setup_id": "camera0_right_2026-11-20_01-44-19",
+        "setup_id": "right_2026-11-20_01-44-19",
         "created": "2026-11-20T01:44:19+00:00", "image_size": [960, 600],
         "homography": [1, 0, 0, 0, 1, 0, 0, 0, 1], "route": "homography"}), encoding="utf-8")
     monkeypatch.setattr(manifest_mod, "PLANES_DIR", planes)
@@ -244,10 +244,10 @@ def test_processed_clips_render_on_launch(root, tmp_path, monkeypatch):
     root_dir = tmp_path / "analyzed-clips"
     root_dir.mkdir()
     (root_dir / "results").mkdir()
-    _make_clip(root_dir, "190321_camera0_right", n_points=6, gt_px=(372.09, 339.56),
-               plane_id="camera0_right_11-7")
-    _make_clip(root_dir, "190401_camera0_right", n_points=6, gt_px=None,
-               plane_id="camera0_right_11-7")
+    _make_clip(root_dir, "190321_right", n_points=6, gt_px=(372.09, 339.56),
+               plane_id="right_11-7")
+    _make_clip(root_dir, "190401_right", n_points=6, gt_px=None,
+               plane_id="right_11-7")
     monkeypatch.setattr(app_gui, "DEFAULT_ROOT", root_dir)
     manifest_mod.clear_state_cache()
 
@@ -255,7 +255,7 @@ def test_processed_clips_render_on_launch(root, tmp_path, monkeypatch):
 
     # Analyze: the first clip loaded itself, with its saved points and GT pixel.
     pane = app.analyze
-    assert pane.clip_var.get() == "190321_camera0_right"
+    assert pane.clip_var.get() == "190321_right"
     assert pane._traj is not None and len(pane._traj.points) == 6
     assert pane._plane_doc is not None                       # resolved by camera tag
     assert "(auto-matched)" in pane.plane_lbl.cget("text")
@@ -266,5 +266,5 @@ def test_processed_clips_render_on_launch(root, tmp_path, monkeypatch):
     app.nb.select(app.run)
     app.run.refresh()
     listed = list(app.run.clip_list.get(0, "end"))
-    assert listed == ["190321_camera0_right"]
+    assert listed == ["190321_right"]
     assert "1 clip(s) ready" in app.run.summary.cget("text")

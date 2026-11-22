@@ -12,7 +12,7 @@ REM    5. python.exe / python3.exe / py.exe on PATH
 REM  A candidate only wins if it actually runs ("-c import sys"), so a broken
 REM  venv, a missing base interpreter, or a Windows Store alias is skipped.
 REM  Once an interpreter is chosen its import-time dependencies are VERIFIED
-REM  (cv2, numpy, torch, tkinter); if any are missing the launcher prints exactly
+REM  (cv2, numpy, torch, tkinter, matplotlib); if any are missing the launcher prints exactly
 REM  which ones and how to fix, instead of letting the app crash on `import cv2`.
 REM
 REM  Usage:  run_app.cmd                       (no clip; use "Open clip..." in the GUI)
@@ -97,6 +97,11 @@ if errorlevel 1 (
 "%PY%" -c "import tkinter" >nul 2>&1
 if errorlevel 1 (
     echo   - tkinter ^(ships with CPython on Windows; on Linux: python3-tk^)
+    set "HAS_MISSING=1"
+)
+"%PY%" -c "import matplotlib" >nul 2>&1
+if errorlevel 1 (
+    echo   - matplotlib ^(pip: matplotlib^)
     set "HAS_MISSING=1"
 )
 if defined HAS_MISSING exit /b 1
